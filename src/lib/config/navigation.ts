@@ -4,15 +4,9 @@ import theme from '$lib/assets/svgs/theme.svg';
 
 export const navigation = {
 	items: [
-		{
-			slug: '',
-			href: '/',
-			title: 'Home',
-            icon : hourglass,
-		},
         {
-			slug: 'prayertimes_sources',
-			href: '/prayertimes_sources',
+			slug: 'sources',
+			href: '/sources',
 			title: 'Prayertime Sources',
             icon : hourglass,
 		},
