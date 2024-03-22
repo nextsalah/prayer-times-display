@@ -1,0 +1,1 @@
+<p>Theme page</p>
