@@ -3,4 +3,4 @@
   </script>
   
   <!-- Simple placeholder content, can be a loading spinner or empty div -->
-  <div>Loading...</div>
+<div>Loading...</div>

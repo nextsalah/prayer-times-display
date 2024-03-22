@@ -38,3 +38,5 @@ build
 bun.lockb
 build/
 build/*
+
+sqlite.db

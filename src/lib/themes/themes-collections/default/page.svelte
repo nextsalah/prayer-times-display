@@ -1,5 +1,10 @@
-<p>Fajr 00:00</p>
-<p>Dhuhr 00:00</p>
-<p>Asr 00:00</p>
-<p>Maghrib 00:00</p>
-<p>Isha 00:00</p>
+<script lang="ts">
+	export let data: any;
+</script>
+
+
+<p>Fajr {data.data.fajr}</p>
+<p>Dhuhr {data.data.dhuhr}</p>
+<p>Asr {data.data.asr}</p>
+<p>Maghrib {data.data.maghrib}</p>
+<p>Isha {data.data.isha}</p>

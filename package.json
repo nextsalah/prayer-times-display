@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "start": "bun --bun run ./build/index.js",
+    "build": "bunx --bun vite build",
     "preview": "vite preview",
+    "migrate": "bun run ./db/migrate.ts",
+    "generate": "drizzle-kit generate:sqlite --schema ./db/schema.ts",
     "test": "bun run test:integration && bun run test:unit",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -23,7 +26,10 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "autoprefixer": "^10.4.17",
+    "better-sqlite3": "^9.4.3",
+    "bun-types": "^1.0.33",
     "daisyui": "^4.7.2",
+    "drizzle-kit": "^0.20.14",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.35.1",
@@ -42,5 +48,8 @@
     "vite-plugin-dynamic-import": "^1.5.0",
     "vitest": "^1.2.0"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "drizzle-orm": "^0.30.4"
+  }
 }
