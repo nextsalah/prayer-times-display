@@ -50,6 +50,8 @@
   },
   "type": "module",
   "dependencies": {
-    "drizzle-orm": "^0.30.4"
+    "drizzle-orm": "^0.30.4",
+    "pino": "^8.19.0",
+    "pino-pretty": "^11.0.0"
   }
 }
