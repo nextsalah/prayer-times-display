@@ -51,7 +51,7 @@
 <Form FormData={FormData}>
     <label class="input input-bordered flex items-center gap-2">
         Choose a country
-        <select class="mt-2" bind:value={country_selected} required>
+        <select class="mt-2" bind:value={country_selected} required name="country_code">
             <option value=""> -- Select a country -- </option>
             {#each all_countries as country}
                 <option value={country.value}>{country.name}</option>
@@ -61,7 +61,7 @@
     {#if country_selected}
         <label class="input input-bordered flex items-center gap-2">
             Choose a city
-            <select class="mt-2" bind:value={city_selected} required>
+            <select class="mt-2" bind:value={city_selected} required name="location_slug">
                 {#each all_cities[country_selected] as city}
                     <option value={city.value}>{city.name}</option>
                 {/each}
