@@ -1,21 +1,16 @@
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad , Actions } from './$types';
-import type { ILocation, IFetchPrayertimes } from '$lib/nextsalah_api/interfaces';
+import type { Actions } from './$types';
+import type { ILocation } from '$lib/nextsalah_api/interfaces';
+import { insertPrayerTime, prayertimes as prayertimesTable, type InsertPrayerTime } from '$lib/db/schema';
 import NextSalahAPI from '$lib/nextsalah_api/handler';
 import { logger } from '$lib/server/logger';
-export const load = (async () => {
-    return {};
-}) satisfies PageServerLoad;
-
+import { db } from '$lib/db/db.server';
 
 export const actions: Actions = {
-
     default: async ({ request }) => {
         // Convert FormData to JSON
         logger.info("Fetching prayer times...");    
         const formData = await request.formData();
-        logger.info("Form data: ", formData);
-
         const source =  formData.get('source') as string;
         const prayertimes = new NextSalahAPI(source);
 
@@ -39,24 +34,47 @@ export const actions: Actions = {
         }         
 
         const formatStringTime = (time: string) : string => {
-            const [hour, minute]  = time.split(":");
-            const formattedTime = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
-            return formattedTime;
+            const [hour, minute] = time.split(":");
+            return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
         }
-        logger.info(`Prayer times fetched successfully!\nSource: ${source as string}, Location: ${JSON.stringify(data)}`);
-        const prayerData = result.data.prayertimes.map((prayer: IFetchPrayertimes) => {
-            // Parse date and time
-            return {
-                date : new Date(prayer.date),
-                fajr : formatStringTime(prayer.fajr),
-                sunrise : formatStringTime(prayer.sunrise),
-                dhuhr :  formatStringTime(prayer.dhuhr),
-                asr : formatStringTime(prayer.asr),
-                maghrib : formatStringTime(prayer.maghrib),
-                isha : formatStringTime(prayer.isha),
-            }
-        });
 
+        logger.info(`Fetched successfully\nSource: ${source}, Location: ${JSON.stringify(data)}`);
+        let validatedPrayerData: InsertPrayerTime[] = [];
+        for (const prayer of result.data.prayertimes) {
+            const prayerObj = {
+                date: new Date(prayer.date),
+                fajr: formatStringTime(prayer.fajr),
+                sunrise: formatStringTime(prayer.sunrise),
+                dhuhr: formatStringTime(prayer.dhuhr),
+                asr: formatStringTime(prayer.asr),
+                maghrib: formatStringTime(prayer.maghrib),
+                isha: formatStringTime(prayer.isha),
+            };
+            // Validate each prayer time entry
+            const parseResult = insertPrayerTime.safeParse(prayerObj);
+            if (parseResult.success) {
+                validatedPrayerData.push(parseResult.data);
+            } else {
+                logger.error("Validation failed for a prayer time entry, applying default values.");
+                logger.error(parseResult.error);
+                continue; 
+            }
+        }
+
+        try {
+            logger.info("Trying to removing old prayer times and add new ones 🧹");
+            await db.transaction(
+                async () => {
+                    await db.delete(prayertimesTable);
+                    await db.insert(prayertimesTable).values(validatedPrayerData);
+                }
+            );
+            logger.info("Prayer times saved successfully! ✅");
+        } catch (e) {
+            logger.error("Failed to save prayer times");
+            logger.error(e);
+            throw error(500, "Failed to save prayer times");
+        }        
 
         // Return success
         return {
