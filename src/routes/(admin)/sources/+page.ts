@@ -1,7 +1,7 @@
-import type { PageLoad } from './$types';
+import type { PageLoad } from "./$types";
 
 export const load = (async () => {
-    return  {
-        "title" : "Prayertime Sources",
-    }
+  return {
+    title: "Prayertime Sources",
+  };
 }) satisfies PageLoad;

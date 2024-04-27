@@ -1,7 +1,14 @@
 {
-  "name": "my-app",
-  "version": "0.0.1",
-  "private": true,
+  "name": "prayer_times_display",
+  "description": "Digital display solution for mosques, showing prayer times accurately and efficiently.",
+  "version": "0.5.4",
+  "author": "Ismail Sacic <ismail.sacic@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nextsalah/prayer-times-display/issues"
+  },
+  "homepage": "https://nextsalah.com",
+  "private": false,
   "scripts": {
     "dev": "vite dev",
     "start": "bun --bun run ./build/index.js",
@@ -9,13 +16,10 @@
     "preview": "vite preview",
     "migrate": "bun run ./db/migrate.ts",
     "generate": "drizzle-kit generate:sqlite --schema ./db/schema.ts",
-    "test": "bun run test:integration && bun run test:unit",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "prettier --check . && eslint .",
-    "format": "prettier --write .",
-    "test:integration": "playwright test",
-    "test:unit": "vitest"
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@playwright/test": "^1.28.1",
