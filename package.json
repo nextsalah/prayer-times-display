@@ -19,11 +19,10 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "prettier --check . && eslint .",
-    "test": "jest",
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@happy-dom/global-registrator": "^14.3.10",
+    "@playwright/test": "^1.28.1",
     "@sveltejs/adapter-auto": "^3.0.0",
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
@@ -56,9 +55,7 @@
   "type": "module",
   "dependencies": {
     "drizzle-orm": "^0.30.4",
-    "drizzle-zod": "^0.5.1",
     "pino": "^8.19.0",
-    "pino-pretty": "^11.0.0",
-    "remove": "^0.1.5"
+    "pino-pretty": "^11.0.0"
   }
 }
