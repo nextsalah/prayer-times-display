@@ -47,6 +47,6 @@
     $: title = relative ? dayjs(timestamp).format(format as string) : undefined;
 </script>
 
-<time {...$$restProps} {title} datetime={timestamp}>
+<time {...$$restProps} {title} datetime={timestamp} class={$$props.class}>
   {formatted}
 </time>
