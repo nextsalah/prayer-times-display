@@ -1,26 +1,20 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import type { ComponentType } from 'svelte';
-    import { error } from '@sveltejs/kit';
     import type { PageData } from './$types';
     import Placeholder from '$lib/themes/components/Placeholder.svelte';
-
     export let data: PageData;
 
-    let pageComponent: ComponentType | null = null;
+    type NullableComponent = ComponentType | null;
+    let pageComponent: NullableComponent = Placeholder;
 
     onMount(async () => {
-        try {
-            // Dynamically import the page component
-            const { default: component } = await import(`../../../lib/themes/collections/${data.componentPath}/page.svelte`);
-            pageComponent = component;
-        } catch (err) {
-            error(404, { message: (err as Error).message || 'Page not found' });
-        }
+        const componentModule = await import(`../../../lib/themes/collections/${data.componentPath}/page.svelte`);
+        pageComponent = componentModule.default;
     });
 </script>
 
-{#if pageComponent}
+{#if pageComponent !== Placeholder}
     <svelte:component this={pageComponent} {data} />
 {:else}
     <Placeholder />

@@ -10,7 +10,6 @@
 		<Time live={1_000} format={"HH:mm:ss"} />
 		<Time format={"YYYY-mm-dddd"} />
 	</header>
-	<p> Date: { data.prayerTimes[0].date }</p>
 	<p> { data.prayerTimes[0].fajr}</p>
 	<p> { data.prayerTimes[0].dhuhr}</p>
 	<p> { data.prayerTimes[0].asr}</p>
