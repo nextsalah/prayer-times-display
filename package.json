@@ -33,7 +33,7 @@
     "better-sqlite3": "^9.4.3",
     "bun-types": "^1.0.33",
     "daisyui": "^4.7.2",
-    "drizzle-kit": "^0.20.14",
+    "drizzle-kit": "^0.21.2",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.35.1",
@@ -54,6 +54,7 @@
   },
   "type": "module",
   "dependencies": {
+    "dayjs": "^1.11.11",
     "drizzle-orm": "^0.30.4",
     "pino": "^8.19.0",
     "pino-pretty": "^11.0.0"
