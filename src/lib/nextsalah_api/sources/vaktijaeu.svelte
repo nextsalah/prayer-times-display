@@ -5,11 +5,11 @@
     import vaktijaeu_logo from "$lib/assets/imgs/vaktijaeu.jpeg";
 
 
-    let country_selected: string;
-    let city_selected: string;
+    let country_selected: string = $state();
+    let city_selected: string = $state();
 
     type SelectOptionType = {name: string, value: string};
-    let all_cities: {[key: string]: SelectOptionType[]} = {};
+    let all_cities: {[key: string]: SelectOptionType[]} = $state({});
     let all_countries: SelectOptionType[] = [];
 
     const FormData: IFormData = {

@@ -8,7 +8,11 @@
     import type { SingleOptionLocation, ISingleOptionProps, IFormData } from "../interfaces";
         
     
-    export let SingleFormData: ISingleOptionProps;
+    interface Props {
+        SingleFormData: ISingleOptionProps;
+    }
+
+    let { SingleFormData }: Props = $props();
     const FormData = {
         ...SingleFormData,
         handleData: ( locations ) => handleFetchData(locations as SingleOptionLocation),
@@ -16,7 +20,7 @@
 
     type SingleOption = { value: string | number, name: string };
     let options: SingleOption[] = [];
-    let selected: string;
+    let selected: string = $state();
 
     // Get the options from the api
     const handleFetchData = (locations : SingleOptionLocation) => {
