@@ -17,6 +17,9 @@
 
   const SvelteComponent_1 = $derived(pageComponent);
 </script>
-  
 
-<SvelteComponent_1 data={data} />
+{#if pageComponent !== Placeholder}
+  <SvelteComponent_1 data={data} />
+{:else}
+    <Placeholder />
+{/if}
