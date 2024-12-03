@@ -4,8 +4,13 @@
 	import { onMount } from "svelte";
 	import NextSalahAPI from "../handler";
 
-    export let FormData: IFormData;
-    let FormHandlerProps: IFormHandlerProps = {};
+    interface Props {
+        FormData: IFormData;
+        children?: import('svelte').Snippet;
+    }
+
+    let { FormData, children }: Props = $props();
+    let FormHandlerProps: IFormHandlerProps = $state({});
     
     onMount(async () => {
         const response = await new NextSalahAPI(FormData.end_point).get_all_locations();
@@ -41,7 +46,7 @@
             </div>
             <FormHandler {FormHandlerProps} >
                 <input type="hidden" name="source" value={FormData.end_point} />
-                <slot />
+                {@render children?.()}
             </FormHandler>
         </div>
       </div>
