@@ -1,16 +1,28 @@
-import type { PageServerLoad } from "./$types";
-import { error } from "@sveltejs/kit";
+import type { PageServerLoad } from './$types';
+import { db } from '$lib/db/db.server';
+import { prayertimes } from '$lib/db/schema';
+import { lt, desc } from 'drizzle-orm';
+import { validatePrayerTimes } from '$lib/utils/dataValidation';
 
 export const load = (async () => {
-  const componentPath: string = "default";
+  const componentPath: string = 'default';
+
+  const prayerTimesList = await db.query.prayertimes.findMany({
+    where: lt(prayertimes.date, new Date()),
+    orderBy: [desc(prayertimes.date)],
+    limit: 3,
+  });
+
+  const validatedPrayerTimesList = validatePrayerTimes(prayerTimesList);
+
+  const prayerTimes = {
+    today: validatedPrayerTimesList[0],
+    tomorrow: validatedPrayerTimesList[1],
+    dayAfterTomorrow: validatedPrayerTimesList[2],
+  };
+
   return {
-    data: {
-      fajr: "04:00",
-      dhuhr: "13:00",
-      asr: "16:00",
-      maghrib: "19:00",
-      isha: "22:00",
-    },
+    prayerTimes: prayerTimes,
     componentPath: componentPath,
   };
 }) satisfies PageServerLoad;

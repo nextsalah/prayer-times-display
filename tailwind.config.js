@@ -1,8 +1,13 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: ["./src/**/*.{html,svelte,js,ts}"],
   theme: {
-    extend: {},
+    extend: {
+      screens: {
+        'portrait': { 'raw': '(orientation: portrait)' },
+        'landscape': { 'raw': '(orientation: landscape)' },
+      }
+    },
   },
-  plugins: [require("daisyui")],
+  plugins: [require('daisyui')],
 };
