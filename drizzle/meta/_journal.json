@@ -1,1 +1,13 @@
-{ "version": "5", "dialect": "sqlite", "entries": [] }
+{
+  "version": "5",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1733476453105,
+      "tag": "0000_stale_hitman",
+      "breakpoints": true
+    }
+  ]
+}

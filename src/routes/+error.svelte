@@ -9,11 +9,11 @@
         </g>
     </svg>
     <div class="message-box">
-      <h1 class="font-mono">404 ERROR</h1>
-      <p class="font-mono">Page not found</p>
+      <h1>404</h1>
+      <p>Page not found</p>
       <div class="buttons-con">
         <div class="action-link-wrap">
-            <a href="/" class="link-button font-mono">Go to Home Page</a>
+            <a href="/" class="link-button">Go to Home Page</a>
         </div>
       </div>
     </div>
@@ -49,14 +49,14 @@
     margin-top: -100px;
     margin-left: 50px;
     color: #fff;
-    font-family: Roboto;
+    font-family : 'Varela Round', sans-serif;
     font-weight: 300;
     }
     .message-box h1 {
     font-size: 40px;
     line-height: 46px;
     font-weight: 900;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-family:  'Varela Round', sans-serif;
     }
     .buttons-con .action-link-wrap {
     margin-top: 20px;
