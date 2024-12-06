@@ -1,11 +1,21 @@
+// tailwind.config.ts
 import type { Config } from "tailwindcss";
 
-export default {
-  content: ["./src/**/*.{html,js,svelte,ts}"],
-
+const config: Config = {
+  content: ["./src/**/*.{html,svelte,js,ts}"],
   theme: {
-    extend: {}
+    extend: {
+      screens: {
+        'portrait': { 'raw': '(orientation: portrait)' },
+        'landscape': { 'raw': '(orientation: landscape)' },
+      }
+    },
   },
+  plugins: [require('daisyui'), require("@tailwindcss/typography")],
+  daisyui: {
+    themes: true,
+    darkTheme: "dim",
+  }
+}
 
-  plugins: [require("@tailwindcss/typography")]
-} as Config;
+export default config
