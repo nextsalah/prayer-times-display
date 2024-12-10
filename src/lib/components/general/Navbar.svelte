@@ -1,28 +1,28 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import NextSalahLogo from "$lib/assets/svgs/nextsalah.svg";
+  import NextSalahLogo from "$lib/assets/imgs/nextsalah-logo.png";
   
   let isDarkMode = false;
   
   function toggleTheme() {
     isDarkMode = !isDarkMode;
-    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dim' : 'fantasy');
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dim' : 'nord');
   }
 
   onMount(() => {
     isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dim' : 'fantasy');
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dim' : 'nord');
     
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
       isDarkMode = e.matches;
-      document.documentElement.setAttribute('data-theme', isDarkMode ? 'dim' : 'fantasy');
+      document.documentElement.setAttribute('data-theme', isDarkMode ? 'dim' : 'nord');
     });
   });
 </script>
 <div class="navbar bg-base-100 text-base-content border-b border-base-200">
   <div class="flex-1">
     <a class="btn btn-ghost gap-2 normal-case text-xl" href="/">
-      <img src={NextSalahLogo} alt="NextSalah" class="h-8 w-8" />
+      <img src={NextSalahLogo} alt="NextSalah" class="h-10 w-10" />
       <span>NextSalah</span>
     </a>
   </div>
