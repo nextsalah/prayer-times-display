@@ -1,49 +1,119 @@
 <script lang="ts">
     import type { IFormData, IFormHandlerProps, ApiResponse, ILocation, IErrorResponse } from "$lib/nextsalah_api/interfaces";
     import FormHandler from "./FormHandler.svelte";
-	import { onMount } from "svelte";
-	import NextSalahAPI from "../handler";
+    import { onMount } from "svelte";
+    import NextSalahAPI from "../handler";
+    import { fade, slide } from 'svelte/transition';
+    import { ExternalLink } from 'lucide-svelte';
 
     export let FormData: IFormData;
     let FormHandlerProps: IFormHandlerProps = {};
+    let isSuccess = false;
     
     onMount(async () => {
-        const response = await new NextSalahAPI(FormData.end_point).get_all_locations();
-        // Test error handling
-        // response.error = { message: "NOT WORKING", statusCode: 500}
-        if (response.error) {
+        try {
+            const response = await new NextSalahAPI(FormData.end_point).get_all_locations();
+            
+            if (response.error) {
+                FormHandlerProps.fetchFinished = true;
+                FormHandlerProps.error = response.error.message;
+            } else if (response.data) {
+                FormData.handleData(response.data);
+                isSuccess = true;
+            }
+        } finally {
             FormHandlerProps.fetchFinished = true;
-            FormHandlerProps.error = response.error.message;
-        } else if (response.data) {
-            FormData.handleData(response.data);
         }
-        
-        FormHandlerProps.fetchFinished = true;
     });
 </script>
 
-<div class="flex flex-col gap-2">
-    <div class="card w-96 bg-base-100 shadow-xl">
-        <figure class="px-10 pt-10">
-            <img src={FormData.source_logo_src} alt="{FormData.source_name} logo" class="rounded-full w-20 h-20"/>
-        </figure>
-        <div class="card-body items-center text-center">
-            <div class="flex-1 min-w-0">
-                <p class="text-xl font-normal text-gray-900 truncate dark:text-white">
-                    {FormData.source_name}
-                </p>
-                <p class="text-sm text-gray-500 truncate dark:text-gray-400">
-                    <a href={FormData.source_link} target="_blank" rel="noreferrer" class="inline-flex items-center text-blue-400 hover:underline">
-                        Link to source
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 ml-1"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-                    </a>           
-                </p>
+<div class="flex flex-wrap gap-4 justify-center" in:fade={{ duration: 200 }}>
+    <div class="card w-96 bg-base-300 shadow-xl hover:shadow-2xl transition-all duration-300">
+        <!-- Loading State -->
+        {#if !FormHandlerProps.fetchFinished}
+            <div class="card-body items-center text-center p-6 min-h-[400px] flex justify-center">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="loading loading-spinner loading-lg text-primary"></div>
+                    <p class="text-base-content/60">Loading {FormData.source_name}...</p>
+                </div>
             </div>
-            <FormHandler {FormHandlerProps} >
-                <input type="hidden" name="source" value={FormData.end_point} />
-                <slot />
-            </FormHandler>
-        </div>
-      </div>
-</div> 
+        
+        <!-- Error State -->
+        {:else if FormHandlerProps.error}
+            <div class="card-body items-center text-center p-6 min-h-[400px] flex justify-center">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="font-bold text-lg text-error mb-2">Connection Error</h3>
+                        <p class="text-base-content/60">{FormHandlerProps.error}</p>
+                    </div>
+                    <button 
+                        class="btn btn-error btn-sm gap-2" 
+                        on:click={() => window.location.reload()}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Try Again
+                    </button>
+                </div>
+            </div>
 
+        <!-- Success State -->
+        {:else}
+            <div class="card-body items-center text-center p-6 min-h-[400px]">
+                {#if FormData.source_logo_src}
+                    <div class="avatar mb-4" in:slide={{ duration: 200 }}>
+                        <div class="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                            <img 
+                                src={FormData.source_logo_src} 
+                                alt="{FormData.source_name} logo"
+                                class="mask mask-circle"
+                            />
+                        </div>
+                    </div>
+                {/if}
+
+                <div class="space-y-3" in:slide={{ duration: 200, delay: 100 }}>
+                    <h2 class="card-title text-xl text-base-content justify-center">
+                        {FormData.source_name}
+                    </h2>
+                    
+                    {#if FormData.source_link}
+                        <a 
+                            href={FormData.source_link} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            class="link link-primary inline-flex items-center gap-1 text-sm hover:gap-2 transition-all"
+                        >
+                            Visit Source
+                            <ExternalLink size={16} />
+                        </a>
+                    {/if}
+
+                    {#if isSuccess}
+                        <div class="badge badge-success gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Connected
+                        </div>
+                    {/if}
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="w-full" in:slide={{ duration: 200, delay: 200 }}>
+                    <FormHandler {FormHandlerProps}>
+                        <input type="hidden" name="source" value={FormData.end_point} />
+                        <slot />
+                    </FormHandler>
+                </div>
+            </div>
+        {/if}
+    </div>
+</div>
