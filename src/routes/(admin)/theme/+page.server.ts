@@ -1,12 +1,33 @@
-import Theme, { FileHandler } from '$lib/themes/logic/handler';
+import Theme from '$themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from '../sources/$types';
 
 export const load = (async ({ url }: { url: URL }) => {
     try {
-        console.log('Loading theme configuration');
-        console.log("All themes: ", await Theme.getAllAvailableThemes());
-
+        const [theme, availableThemes] = await Promise.all([
+            Theme.loadTheme('default'),
+            Theme.getThemesList()
+        ]);
+        if (theme instanceof Error) {
+            return {
+                availableThemes,
+                error: theme.message,
+                themeName: 'default',
+                themeTemplate: null,
+                customSettings: null
+            };
+        }
+ 
+        // Handle theme reset
+        if (url.searchParams.get('reset') === 'true') {
+            const defaultSettings = theme.themeSettings;
+            throw redirect(302, '/theme');
+        }
+ 
+        return {
+            error: null,
+            availableThemes,
+        };
     } catch (err) {
         console.error('Failed to load theme:', err);
         throw error(500, 'Failed to load theme configuration');
@@ -23,9 +44,9 @@ export const actions: Actions = {
                 throw error(400, 'No theme was selected');
             }
 
-            if (!(await Theme.isValidTheme(themeFolder.toString()))) {
-                throw error(400, 'The selected theme is not valid');
-            }
+            // if (!(await Theme.isValidTheme(themeFolder.toString()))) {
+            //     throw error(400, 'The selected theme is not valid');
+            // }
 
             console.log('Selected theme:', themeFolder);
 

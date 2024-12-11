@@ -5,7 +5,7 @@ import {
   insertPrayerTime,
   prayertimes as prayertimesTable,
   type InsertPrayerTime,
-} from "$lib/db/schema";
+} from "$lib/db/schemas/prayer/prayer-times.schema";
 import NextSalahAPI from "$lib/nextsalah_api/handler";
 import { logger } from "$lib/server/logger";
 import { db } from "$lib/db/db.server";

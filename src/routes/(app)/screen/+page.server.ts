@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/db/db.server';
-import { prayertimes } from '$lib/db/schema';
+import { prayertimes } from '$lib/db/schemas/prayer/prayer-times.schema';
 import { lt, desc } from 'drizzle-orm';
 import { validatePrayerTimes } from '$lib/utils/dataValidation';
 
