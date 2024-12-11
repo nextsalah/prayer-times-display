@@ -5,9 +5,14 @@
   import Navbar from '$lib/components/general/Navbar.svelte';
   import { page } from '$app/stores';
   import { fade } from 'svelte/transition';
+  interface Props {
+    children?: import('svelte').Snippet;
+  }
+
+  let { children }: Props = $props();
 
   const excludeBottomNav = ['/controlpanel'];
-  $: shouldShowBottomNav = !excludeBottomNav.includes($page.url.pathname);
+  let shouldShowBottomNav = $derived(!excludeBottomNav.includes($page.url.pathname));
 </script>
 
 <HeadWrapper page_title={$page.data.title || ""} />
@@ -25,7 +30,7 @@
     in:fade={{ duration: 150 }}
   >
     <div class="py-6">
-      <slot />
+      {@render children?.()}
     </div>
   </main>
 

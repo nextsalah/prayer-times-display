@@ -8,30 +8,32 @@
     <div class="space-y-3">
         {#each navigation.items as section}
             <Motion 
-                let:motion 
+                 
                 whileHover={{ scale: 1.02 }} 
                 whileTap={{ scale: 0.98 }}
             >
-                <a
-                    href="/{section.slug}"
-                    class="card bg-base-300  shadow-sm hover:bg-base-300 transition-colors  border border-accent rounded-lg
-                    "
-                    use:motion
-                >
-                    <div class="card-body p-4 flex-row items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="{section.color} text-base-200 p-2 rounded-lg">
-                                <svelte:component this={section.icon} size={24} />
+                {#snippet children({ motion })}
+                                <a
+                        href="/{section.slug}"
+                        class="card bg-base-300  shadow-sm hover:bg-base-300 transition-colors  border border-accent rounded-lg
+                        "
+                        use:motion
+                    >
+                        <div class="card-body p-4 flex-row items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="{section.color} text-base-200 p-2 rounded-lg">
+                                    <section.icon size={24} />
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-medium text-base-content">{section.title}</div>
+                                    <div class="text-sm text-base-content/60">{section.description}</div>
+                                </div>
                             </div>
-                            <div class="text-left">
-                                <div class="font-medium text-base-content">{section.title}</div>
-                                <div class="text-sm text-base-content/60">{section.description}</div>
-                            </div>
+                            <ChevronRight class="text-base-content/40" />
                         </div>
-                        <ChevronRight class="text-base-content/40" />
-                    </div>
-                </a>
-            </Motion>
+                    </a>
+                                            {/snippet}
+                        </Motion>
         {/each}
     </div>
 </div>

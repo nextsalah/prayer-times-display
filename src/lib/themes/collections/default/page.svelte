@@ -1,7 +1,11 @@
 <script lang="ts">
     import Time from "$lib/themes/components/Time.svelte";
     import type { ScreenPageServerLoad } from "$lib/themes/constants/types";
-    export let data: ScreenPageServerLoad;
+    interface Props {
+        data: ScreenPageServerLoad;
+    }
+
+    let { data }: Props = $props();
 </script>
 
 <style>

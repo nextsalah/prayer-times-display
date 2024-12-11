@@ -1,8 +1,13 @@
-<script>
-    import 'tailwindcss/tailwind.css';   // Import Tailwind CSS
+<script lang="ts">
+    import 'tailwindcss/tailwind.css';
+    interface Props {
+        children?: import('svelte').Snippet;
+    }
+
+    let { children }: Props = $props();   // Import Tailwind CSS
 </script>
     
-<slot />
+{@render children?.()}
 
 <style>
      /* Reset the default browser styles*/

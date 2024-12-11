@@ -5,7 +5,7 @@
   import { browser } from '$app/environment';
   import { onMount } from 'svelte';
 
-  let isMobile = false;
+  let isMobile = $state(false);
 
   onMount(() => {
     const checkMobile = () => {
@@ -20,7 +20,7 @@
     };
   });
 
-  $: isActive = (path: string) => $page.url.pathname === path;
+  let isActive = $derived((path: string) => $page.url.pathname === path);
 </script>
 
 <div class="btm-nav btm-nav-lg bg-base-100 shadow-lg border-t border-base-200">
@@ -29,11 +29,10 @@
       class="flex flex-col items-center gap-1 px-2 hover:bg-base-200 transition-colors {
         isActive(item.href) ? 'active text-primary' : 'text-base-content'
       }"
-      on:click={() => goto(item.href)}
+      onclick={() => goto(item.href)}
     >
       <div class="indicator">
-        <svelte:component 
-          this={item.icon} 
+        <item.icon 
           size={isMobile ? 20 : 24} 
           class="transition-all duration-200"
         />

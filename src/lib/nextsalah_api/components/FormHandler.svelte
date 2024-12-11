@@ -1,13 +1,20 @@
 <script lang="ts">
+    import { preventDefault } from 'svelte/legacy';
+
     import type { IFormHandlerProps } from '../interfaces';
     import { deserialize } from '$app/forms';
 
-    export let FormHandlerProps: IFormHandlerProps = {
+    interface Props {
+        FormHandlerProps?: IFormHandlerProps;
+        children?: import('svelte').Snippet;
+    }
+
+    let { FormHandlerProps = $bindable({
         fetchFinished: false,
         error: "",
-    };
+    }), children }: Props = $props();
 
-    let isLoading: boolean = false;
+    let isLoading: boolean = $state(false);
 
     const handleSubmit = async (form: HTMLFormElement) => {
         isLoading = true;
@@ -45,13 +52,13 @@
 {#if FormHandlerProps.fetchFinished && !FormHandlerProps.error}
     <form 
         method="POST"
-        on:submit|preventDefault={ (event) =>  {
+        onsubmit={preventDefault((event) =>  {
             const form = event.target;
             if ( form instanceof HTMLFormElement ) {
                 handleSubmit(form);
             }
-        } } >
-        <slot />
+        })} >
+        {@render children?.()}
         <div class="mt-5">
             {#if isLoading}
                 <button class="btn btn-wide btn-accent">

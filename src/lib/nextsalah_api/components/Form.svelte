@@ -6,9 +6,14 @@
     import { fade, slide } from 'svelte/transition';
     import { ExternalLink } from 'lucide-svelte';
 
-    export let FormData: IFormData;
-    let FormHandlerProps: IFormHandlerProps = {};
-    let isSuccess = false;
+    interface Props {
+        FormData: IFormData;
+        children?: import('svelte').Snippet;
+    }
+
+    let { FormData, children }: Props = $props();
+    let FormHandlerProps: IFormHandlerProps = $state({});
+    let isSuccess = $state(false);
     
     onMount(async () => {
         try {
@@ -53,7 +58,7 @@
                     </div>
                     <button 
                         class="btn btn-error btn-sm gap-2" 
-                        on:click={() => window.location.reload()}
+                        onclick={() => window.location.reload()}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -110,7 +115,7 @@
                 <div class="w-full" in:slide={{ duration: 200, delay: 200 }}>
                     <FormHandler {FormHandlerProps}>
                         <input type="hidden" name="source" value={FormData.end_point} />
-                        <slot />
+                        {@render children?.()}
                     </FormHandler>
                 </div>
             </div>

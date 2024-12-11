@@ -3,7 +3,7 @@
   import NextSalahLogo from "$lib/assets/imgs/nextsalah-logo.png";
   import { goto } from '$app/navigation';
 
-  let isDarkMode = false;
+  let isDarkMode = $state(false);
   
   function toggleTheme() {
     isDarkMode = !isDarkMode;
@@ -22,7 +22,7 @@
 </script>
 <div class="navbar bg-base-100 text-base-content border-b border-base-200">
   <div class="flex-1">
-    <button class="btn btn-ghost gap-2 normal-case text-xl"  on:click={e => goto('/controlpanel')}>
+    <button class="btn btn-ghost gap-2 normal-case text-xl"  onclick={e => goto('/controlpanel')}>
       <img src={NextSalahLogo} alt="NextSalah" class="h-10 w-10" />
       <span>NextSalah</span>
     </button>
@@ -33,7 +33,7 @@
       <input 
         type="checkbox" 
         checked={isDarkMode}
-        on:change={toggleTheme} 
+        onchange={toggleTheme} 
       />
       
       <!-- Sun icon (shown in dark mode) -->
