@@ -12,7 +12,6 @@
                 whileHover={{ scale: 1.02 }} 
                 whileTap={{ scale: 0.98 }}
             >
-            <!-- border -->
                 <a
                     href="/{section.slug}"
                     class="card bg-base-300  shadow-sm hover:bg-base-300 transition-colors  border border-accent rounded-lg
