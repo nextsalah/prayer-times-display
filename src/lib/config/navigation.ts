@@ -8,9 +8,9 @@ import {
 export const navigation = {
     items: [
         {
-            slug: "display",
-            href: "/display",
-            title: "Display & Theme",
+            slug: "theme",
+            href: "/theme",
+            title: "Theme & Display",
             mobileTitle: "Theme",
             description: "Customize appearance and layout",
             icon: Palette,
