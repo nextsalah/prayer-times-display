@@ -16,7 +16,7 @@
     "build": "bunx --bun vite build",
     "preview": "vite preview",
     "migrate": "bun run ./src/lib/db/migrate.ts",
-    "generate": "drizzle-kit generate:sqlite --schema ./src/lib/db/schema.ts",
+    "generate": "timeout 10 drizzle-kit generate",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "prettier --check . && eslint .",

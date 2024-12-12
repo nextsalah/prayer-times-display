@@ -1,16 +1,19 @@
-import Theme from '$themes/logic/handler';
+import ThemeManager from '$themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from '../sources/$types';
+import { ThemeDB } from '$lib/db';
 
 export const load = (async ({ url }: { url: URL }) => {
     try {
-        const [theme, availableThemes] = await Promise.all([
-            Theme.loadTheme('default'),
-            Theme.getThemesList()
+        const [theme, availableThemeManagers] = await Promise.all([
+            ThemeManager.loadThemeManager('default'),
+            ThemeManager.getThemeManagersList()
         ]);
+
+        console.log('Theme:', (await ThemeDB.get()).themeName);
         if (theme instanceof Error) {
             return {
-                availableThemes,
+                availableThemeManagers,
                 error: theme.message,
                 themeName: 'default',
                 themeTemplate: null,
@@ -26,7 +29,7 @@ export const load = (async ({ url }: { url: URL }) => {
  
         return {
             error: null,
-            availableThemes,
+            availableThemeManagers,
         };
     } catch (err) {
         console.error('Failed to load theme:', err);
@@ -44,7 +47,7 @@ export const actions: Actions = {
                 throw error(400, 'No theme was selected');
             }
 
-            // if (!(await Theme.isValidTheme(themeFolder.toString()))) {
+            // if (!(await ThemeManager.isValidThemeManager(themeFolder.toString()))) {
             //     throw error(400, 'The selected theme is not valid');
             // }
 
@@ -54,11 +57,11 @@ export const actions: Actions = {
                 status: 200,
                 body: {
                     success: true,
-                    message: 'Theme Selected'
+                    message: 'ThemeManager Selected'
                 }
             };
         } catch (err) {
-            console.error('Theme selection failed:', err);
+            console.error('ThemeManager selection failed:', err);
             throw error(500, 'Failed to select theme');
         }
     },

@@ -8,6 +8,20 @@
       "when": 1733476453105,
       "tag": "0000_stale_hitman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1733926575897,
+      "tag": "0001_demonic_patch",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1733928496436,
+      "tag": "0002_bumpy_rhino",
+      "breakpoints": true
     }
   ]
 }

@@ -64,7 +64,7 @@ export class FileHandler {
 		}
 	}
 }
-class Theme {
+class ThemeManager {
     private folderName: string;
     private config: types.ConfigType;
     private themeTemplates: types.TemplatesType;
@@ -79,15 +79,15 @@ class Theme {
         this.themeTemplates = themeTemplates;
     }
 
-    // Renamed from create to loadTheme to better reflect what it does
-    static async loadTheme(themeName: string): Promise<Theme | Error> {
-        if (!(await Theme.isThemeAvailable(themeName))) {
-            return new Error(`Theme "${themeName}" not found`);
+    // Renamed from create to loadThemeManager to better reflect what it does
+    static async loadThemeManager(themeName: string): Promise<ThemeManager | Error> {
+        if (!(await ThemeManager.isThemeManagerAvailable(themeName))) {
+            return new Error(`ThemeManager "${themeName}" not found`);
         }
 
         try {
-            const themeConfig = await this.loadThemeConfig(themeName);
-            const themeTemplates = await this.loadThemeTemplates(themeName);
+            const themeConfig = await this.loadThemeManagerConfig(themeName);
+            const themeTemplates = await this.loadThemeManagerTemplates(themeName);
 
             if (!isConfigType(themeConfig)) {
                 return new Error(`Invalid configuration for theme "${themeName}"`);
@@ -97,7 +97,7 @@ class Theme {
                 return new Error(`Invalid templates for theme "${themeName}"`);
             }
 
-            return new Theme(themeName, themeConfig, themeTemplates);
+            return new ThemeManager(themeName, themeConfig, themeTemplates);
         } catch (error) {
             if (error instanceof Error) {
                 return new Error(`Failed to load theme "${themeName}": ${error.message}`);
@@ -106,8 +106,8 @@ class Theme {
         }
     }
 
-    // Renamed from getAllAvailableThemes to listInstalledThemes
-    static async listInstalledThemes(): Promise<string[]> {
+    // Renamed from getAllAvailableThemeManagers to listInstalledThemeManagers
+    static async listInstalledThemeManagers(): Promise<string[]> {
         try {
             const themesPath = `${getBasePath()}/themes/collections`;
             const themeDirectories = await readdir(themesPath);
@@ -118,16 +118,16 @@ class Theme {
         }
     }
 
-    // Renamed from isValidTheme to isThemeAvailable
-    static async isThemeAvailable(themeName: string): Promise<boolean> {
-        const installedThemes = await Theme.listInstalledThemes();
-        return installedThemes.includes(themeName);
+    // Renamed from isValidThemeManager to isThemeManagerAvailable
+    static async isThemeManagerAvailable(themeName: string): Promise<boolean> {
+        const installedThemeManagers = await ThemeManager.listInstalledThemeManagers();
+        return installedThemeManagers.includes(themeName);
     }
 
-    // Renamed from getConfig to loadThemeConfig
-    static async loadThemeConfig(themeName: string): Promise<types.ConfigType> {
+    // Renamed from getConfig to loadThemeManagerConfig
+    static async loadThemeManagerConfig(themeName: string): Promise<types.ConfigType> {
         try {
-            return await Theme.readFileJson(themeName, 'config.json');
+            return await ThemeManager.readFileJson(themeName, 'config.json');
         } catch (error) {
             if (error instanceof Error) {
                 throw new Error(`Failed to load config for theme "${themeName}": ${error.message}`);
@@ -136,10 +136,10 @@ class Theme {
         }
     }
 
-    // Renamed from getTemplate to loadThemeTemplates
-    static async loadThemeTemplates(themeName: string): Promise<types.TemplatesType> {
+    // Renamed from getTemplate to loadThemeManagerTemplates
+    static async loadThemeManagerTemplates(themeName: string): Promise<types.TemplatesType> {
         try {
-            const templates = await Theme.readFileJson(themeName, 'template.json');
+            const templates = await ThemeManager.readFileJson(themeName, 'template.json');
             if (!isTemplatesType(templates)) {
                 throw new Error('Invalid template format');
             }
@@ -152,12 +152,12 @@ class Theme {
         }
     }
 
-    // Renamed from AllThemes to getThemesList for consistency
-    static async getThemesList(): Promise<types.AllThemesType[]> {
-        const availableThemes = await Theme.listInstalledThemes();
+    // Renamed from AllThemeManagers to getThemeManagersList for consistency
+    static async getThemeManagersList(): Promise<types.AllThemesType[]> {
+        const availableThemeManagers = await ThemeManager.listInstalledThemeManagers();
         return await Promise.all(
-            availableThemes.map(async themeName => {
-                const config = await Theme.loadThemeConfig(themeName);
+            availableThemeManagers.map(async themeName => {
+                const config = await ThemeManager.loadThemeManagerConfig(themeName);
                 return { value: themeName, name: config.name };
             })
         );
@@ -216,4 +216,4 @@ class Theme {
     }
 }
 
-export default Theme;
+export default ThemeManager;
