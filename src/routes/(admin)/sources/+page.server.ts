@@ -9,10 +9,9 @@ import {
 import NextSalahAPI from "$lib/nextsalah_api/handler";
 import { logger } from "$lib/server/logger";
 import { db } from "$lib/db/db.server";
-import { prayerConfigService } from "$lib/db";
 
 export const load = async () => {
-    
+
 };
 
 export const actions: Actions = {

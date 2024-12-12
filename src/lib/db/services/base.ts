@@ -2,12 +2,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db.server';
 import { SQLiteTable } from 'drizzle-orm/sqlite-core';
 
-export class SingletonDB<T extends { id: number }> {
+export class SingletonDB<T extends object> {
     constructor(
         private table: SQLiteTable
     ) {}
 
-    async get(): Promise<T> {
+    async get(): Promise<Omit<T, 'id'>> {
         const result = await db
             .select()
             .from(this.table)
@@ -18,20 +18,21 @@ export class SingletonDB<T extends { id: number }> {
             return this.createDefault();
         }
 
-        return result[0] as T;
+        const { id, ...data } = result[0];
+        return data as Omit<T, 'id'>;
     }
 
-    private async createDefault(): Promise<T> {
-        // Insert with empty object - will use schema defaults
+    private async createDefault(): Promise<Omit<T, 'id'>> {
         const result = await db
             .insert(this.table)
             .values({})
             .returning();
 
-        return result[0] as T;
+        const { id, ...data } = result[0];
+        return data as Omit<T, 'id'>;
     }
 
-    async update(updates: Partial<Omit<T, 'id'>>): Promise<T> {
+    async update(updates: Partial<Omit<T, 'id'>>): Promise<Omit<T, 'id'>> {
         await db
             .update(this.table)
             .set(updates)
