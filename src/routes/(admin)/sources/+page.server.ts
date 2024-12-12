@@ -9,10 +9,10 @@ import {
 import NextSalahAPI from "$lib/nextsalah_api/handler";
 import { logger } from "$lib/server/logger";
 import { db } from "$lib/db/db.server";
-import { PrayerOptionDB } from "$lib/db";
+import { prayerConfigService } from "$lib/db";
 
 export const load = async () => {
-  console.log(await PrayerOptionDB.getAllPrayerOptions());
+    
 };
 
 export const actions: Actions = {

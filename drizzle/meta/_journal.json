@@ -22,6 +22,27 @@
       "when": 1733928496436,
       "tag": "0002_bumpy_rhino",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1734040350884,
+      "tag": "0003_steep_gambit",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1734042296385,
+      "tag": "0004_needy_husk",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1734043333979,
+      "tag": "0005_youthful_rocket_raccoon",
+      "breakpoints": true
     }
   ]
 }

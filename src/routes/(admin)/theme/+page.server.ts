@@ -1,7 +1,7 @@
 import ThemeManager from '$themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from '../sources/$types';
-import { ThemeDB } from '$lib/db';
+import { ThemeService } from '$lib/db';
 
 export const load = (async ({ url }: { url: URL }) => {
     try {
@@ -10,7 +10,7 @@ export const load = (async ({ url }: { url: URL }) => {
             ThemeManager.getThemeManagersList()
         ]);
 
-        console.log('Theme:', (await ThemeDB.get()).themeName);
+        console.log('Theme:', (await ThemeService.get()).themeName);
         if (theme instanceof Error) {
             return {
                 availableThemeManagers,

@@ -1,6 +1,6 @@
 import { SingletonDB } from './base';
 import { themeSettings, type ThemeSettings } from '../schemas';
 
-export const ThemeDB = new SingletonDB<ThemeSettings>(
+export const ThemeService = new SingletonDB<ThemeSettings>(
     themeSettings,
 );

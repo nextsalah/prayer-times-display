@@ -4,30 +4,38 @@ import { SQLiteTable } from 'drizzle-orm/sqlite-core';
 
 export class SingletonDB<T extends { id: number }> {
     constructor(
-        private table: SQLiteTable, // The table object
+        private table: SQLiteTable
     ) {}
 
     async get(): Promise<T> {
         const result = await db
             .select()
             .from(this.table)
-            .where(eq((this.table as any).id, 1)) // Cast to access 'id' safely
+            .where(eq((this.table as any).id, 1))
             .limit(1);
 
-        return (result[0] as T) ?? await this.createDefault();
+        if (!result.length) {
+            return this.createDefault();
+        }
+
+        return result[0] as T;
     }
 
     private async createDefault(): Promise<T> {
-        const defaultData = {} as T;
-        await db.insert(this.table).values(defaultData);
-        return defaultData;
+        // Insert with empty object - will use schema defaults
+        const result = await db
+            .insert(this.table)
+            .values({})
+            .returning();
+
+        return result[0] as T;
     }
 
     async update(updates: Partial<Omit<T, 'id'>>): Promise<T> {
         await db
             .update(this.table)
             .set(updates)
-            .where(eq((this.table as any).id, 1)); // Cast to access 'id' safely
+            .where(eq((this.table as any).id, 1));
 
         return this.get();
     }
