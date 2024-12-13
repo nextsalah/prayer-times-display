@@ -4,216 +4,217 @@ import type * as types from '../interfaces/types.ts';
 import { v4 as uuidv4 } from 'uuid';
 import { readdir } from "node:fs/promises";
 
-// Get the current working directory
-function getBasePath(): string {
+function getRootPath(): string {
     return process.cwd();
 }
 
-export class FileHandler {
-    static staticFolderPath = `${getBasePath()}/static`;
+export class Files {
+    static uploadPath = `${getRootPath()}/static/uploads`;
 
-    static async createFolderIfNotExists() {
-        const folderPath = `${FileHandler.staticFolderPath}/uploads`;
+    static async createUploadFolder() {
         try {
-            await Bun.file(folderPath).exists();
+            await Bun.file(this.uploadPath).exists();
         } catch {
-            await Bun.write(folderPath, '');
+            await Bun.write(this.uploadPath, '');
         }
     }
 
-    static async uploadFile(file: File) {
-        await FileHandler.createFolderIfNotExists();
+    static async saveFile(file: File) {
+        await this.createUploadFolder();
 
-        const fileID = uuidv4();
-        const fileName = `${fileID}-${file.name}`;
-        const filePath = `${FileHandler.staticFolderPath}/uploads/${fileName}`;
+        const id = uuidv4();
+        const filename = `${id}-${file.name}`;
+        const path = `${this.uploadPath}/${filename}`;
 
-        await Bun.write(filePath, file);
+        await Bun.write(path, file);
 
         return {
-            id: fileID,
+            id,
             name: file.name,
             type: file.type,
-            url: `/uploads/${fileName}`,
+            path: `/uploads/${filename}`,
         };
     }
 
-    static async deleteFile(filePath: string) {
-        const fullPath = `${FileHandler.staticFolderPath}/uploads/${filePath}`;
+    static async deleteFile(path: string) {
+        const fullPath = `${this.uploadPath}/${path}`;
         try {
             const file = Bun.file(fullPath);
             if (await file.exists()) {
-                await Bun.write(fullPath, ''); // Bun's way to delete
+                await Bun.write(fullPath, '');
             }
         } catch (error) {
-            console.error(`Failed to delete file: ${fullPath}`, error);
+            console.error(`Cannot delete file: ${fullPath}`, error);
         }
     }
 
-	static async clearUploadsFolder() {
-		try {
-			const uploadsFolderPath = `${FileHandler.staticFolderPath}/uploads`;
-			const glob = new Glob("*");
-			const files = await Array.fromAsync(glob.scan({ cwd: uploadsFolderPath }));
-			
-			await Promise.all(files.map(file => 
-				Bun.write(`${uploadsFolderPath}/${file}`, '')
-			));
-		} catch (error) {
-			console.error('Failed to clear uploads folder', error);
-		}
-	}
+    static async clearUploads() {
+        try {
+            const glob = new Glob("*");
+            const files = await Array.fromAsync(glob.scan({ cwd: this.uploadPath }));
+            
+            await Promise.all(files.map(file => 
+                Bun.write(`${this.uploadPath}/${file}`, '')
+            ));
+        } catch (error) {
+            console.error('Cannot clear uploads folder', error);
+        }
+    }
 }
-class ThemeManager {
-    private folderName: string;
+
+class Theme {
+    private folder: string;
     private config: types.ConfigType;
-    private themeTemplates: types.TemplatesType;
+    private template: types.TemplatesType;
 
     private constructor(
-        themeFolderName: string,
+        folder: string,
         config: types.ConfigType,
-        themeTemplates: types.TemplatesType,
+        template: types.TemplatesType,
     ) {
-        this.folderName = themeFolderName;
+        this.folder = folder;
         this.config = config;
-        this.themeTemplates = themeTemplates;
+        this.template = template;
     }
 
-    // Renamed from create to loadThemeManager to better reflect what it does
-    static async loadThemeManager(themeName: string): Promise<ThemeManager | Error> {
-        if (!(await ThemeManager.isThemeManagerAvailable(themeName))) {
-            return new Error(`ThemeManager "${themeName}" not found`);
+    static async load(name: string): Promise<Theme | Error> {
+        if (!(await this.exists(name))) {
+            return new Error(`Theme "${name}" not found`);
         }
 
         try {
-            const themeConfig = await this.loadThemeManagerConfig(themeName);
-            const themeTemplates = await this.loadThemeManagerTemplates(themeName);
+            const config = await this.loadConfig(name);
+            const template = await this.loadTemplate(name);
 
-            if (!isConfigType(themeConfig)) {
-                return new Error(`Invalid configuration for theme "${themeName}"`);
+            if (!isConfigType(config)) {
+                return new Error(`Bad config for theme "${name}"`);
             }
 
-            if (!isTemplatesType(themeTemplates)) {
-                return new Error(`Invalid templates for theme "${themeName}"`);
+            if (!isTemplatesType(template)) {
+                return new Error(`Bad template for theme "${name}"`);
             }
 
-            return new ThemeManager(themeName, themeConfig, themeTemplates);
+            return new Theme(name, config, template);
         } catch (error) {
             if (error instanceof Error) {
-                return new Error(`Failed to load theme "${themeName}": ${error.message}`);
+                return new Error(`Cannot load theme "${name}": ${error.message}`);
             }
-            return new Error(`Failed to load theme "${themeName}": unknown error`);
+            return new Error(`Cannot load theme "${name}"`);
         }
     }
 
-    // Renamed from getAllAvailableThemeManagers to listInstalledThemeManagers
-    static async listInstalledThemeManagers(): Promise<string[]> {
+    static async list(): Promise<string[]> {
         try {
-            const themesPath = `${getBasePath()}/themes/collections`;
-            const themeDirectories = await readdir(themesPath);
-            return themeDirectories;            
+            const themePath = `${getRootPath()}/themes/collections`;
+            return await readdir(themePath);            
         } catch (error) {
-            console.error('Error scanning themes directory:', error);
+            console.error('Cannot read themes folder:', error);
             return [];
         }
     }
 
-    // Renamed from isValidThemeManager to isThemeManagerAvailable
-    static async isThemeManagerAvailable(themeName: string): Promise<boolean> {
-        const installedThemeManagers = await ThemeManager.listInstalledThemeManagers();
-        return installedThemeManagers.includes(themeName);
+    static async exists(name: string): Promise<boolean> {
+        const themes = await this.list();
+        return themes.includes(name);
     }
 
-    // Renamed from getConfig to loadThemeManagerConfig
-    static async loadThemeManagerConfig(themeName: string): Promise<types.ConfigType> {
+    static async loadConfig(name: string): Promise<types.ConfigType> {
         try {
-            return await ThemeManager.readFileJson(themeName, 'config.json');
+            return await this.readJson(name, 'config.json');
         } catch (error) {
             if (error instanceof Error) {
-                throw new Error(`Failed to load config for theme "${themeName}": ${error.message}`);
+                throw new Error(`Cannot read config: ${error.message}`);
             }
-            throw new Error(`Failed to load config for theme "${themeName}": unknown error`);
+            throw new Error('Cannot read config');
         }
     }
 
-    // Renamed from getTemplate to loadThemeManagerTemplates
-    static async loadThemeManagerTemplates(themeName: string): Promise<types.TemplatesType> {
+    static async loadTemplate(name: string): Promise<types.TemplatesType> {
         try {
-            const templates = await ThemeManager.readFileJson(themeName, 'template.json');
-            if (!isTemplatesType(templates)) {
-                throw new Error('Invalid template format');
+            const template = await this.readJson(name, 'template.json');
+            if (!isTemplatesType(template)) {
+                throw new Error('Bad template format');
             }
-            return templates;
+            return template;
         } catch (error) {
             if (error instanceof Error) {
-                throw new Error(`Failed to load templates for theme "${themeName}": ${error.message}`);
+                throw new Error(`Cannot read template: ${error.message}`);
             }
-            throw new Error(`Failed to load templates for theme "${themeName}": unknown error`);
+            throw new Error('Cannot read template');
         }
     }
 
-    // Renamed from AllThemeManagers to getThemeManagersList for consistency
-    static async getThemeManagersList(): Promise<types.AllThemesType[]> {
-        const availableThemeManagers = await ThemeManager.listInstalledThemeManagers();
+    static async getAll(): Promise<types.AllThemesType[]> {
+        const themes = await this.list();
         return await Promise.all(
-            availableThemeManagers.map(async themeName => {
-                const config = await ThemeManager.loadThemeManagerConfig(themeName);
-                return { value: themeName, name: config.name };
+            themes.map(async name => {
+                const config = await this.loadConfig(name);
+                return { value: name, name: config.name, description: config.description };
             })
         );
     }
 
-    // Getters with more descriptive names
-    get themePath(): string {
-        return this.folderName;
+    get folderName(): string {
+        return this.folder;
     }
 
-    get themeAbsolutePath(): string {
-        return `${getBasePath()}/themes/collections/${this.folderName}`;
+    get fullPath(): string {
+        return `${getRootPath()}/themes/collections/${this.folder}`;
     }
 
-    get themeSettings(): types.DefaultTemplatesType {
+    get name(): string {
+        return this.config.name;
+    }
+
+    get description(): string {
+        return this.config.description;
+    }
+
+    get themeTemplate(): types.TemplatesType {
+        return this.template;
+    }
+
+    get themeConfig(): types.ConfigType {
+        return this.config;
+    }
+
+    get defaults(): types.DefaultSettingsType {
         return Object.fromEntries(
-            this.themeTemplates
+            this.template
                 .filter(setting => setting.value != null)
                 .map(setting => [setting.name, setting.value])
         );
     }
 
-     // Utility method for reading and parsing JSON files
-     private static async readFileJson(themeName: string, fileName: string): Promise<any> {
-        const filePath = `${getBasePath()}/themes/collections/${themeName}/${fileName}`;
+    private static async readJson(name: string, file: string): Promise<any> {
+        const path = `${getRootPath()}/themes/collections/${name}/${file}`;
         try {
-            const file = Bun.file(filePath);
-            return await file.json();
+            return await Bun.file(path).json();
         } catch (error) {
-            throw new Error(`Failed to read ${fileName} for theme "${themeName}": ${error instanceof Error ? error.message : 'unknown error'}`);
+            throw new Error(`Cannot read ${file}: ${error instanceof Error ? error.message : 'unknown error'}`);
         }
     }
 
-    // Utility method for reading text files
-    private static async readFile(themeName: string, fileName: string): Promise<string> {
-        const filePath = `${getBasePath()}/themes/collections/${themeName}/${fileName}`;
+    private static async readText(name: string, file: string): Promise<string> {
+        const path = `${getRootPath()}/themes/collections/${name}/${file}`;
         try {
-            const file = Bun.file(filePath);
-            return await file.text();
+            return await Bun.file(path).text();
         } catch (error) {
-            throw new Error(`Failed to read ${fileName} for theme "${themeName}": ${error instanceof Error ? error.message : 'unknown error'}`);
+            throw new Error(`Cannot read ${file}: ${error instanceof Error ? error.message : 'unknown error'}`);
         }
     }
 
-    // Utility method for safe JSON parsing with type checking
-    private static async safeJsonParse<T>(
-        guard: (o: unknown) => o is T,
+    private static async checkJson<T>(
+        isValid: (o: unknown) => o is T,
         text: string,
     ): Promise<types.ParseResult<T>> {
         try {
-            const parsed = JSON.parse(text);
-            return guard(parsed) ? { parsed, hasError: false } : { hasError: true };
+            const data = JSON.parse(text);
+            return isValid(data) ? { parsed: data, hasError: false } : { hasError: true };
         } catch {
             return { hasError: true };
         }
     }
 }
 
-export default ThemeManager;
+export default Theme;

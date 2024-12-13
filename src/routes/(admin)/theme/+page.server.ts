@@ -1,81 +1,79 @@
-import ThemeManager from '$themes/logic/handler';
+import Theme from '$themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from '../sources/$types';
 import { ThemeService } from '$lib/db';
 
 export const load = (async ({ url }: { url: URL }) => {
-    try {
-        const [theme, availableThemeManagers] = await Promise.all([
-            ThemeManager.loadThemeManager('default'),
-            ThemeManager.getThemeManagersList()
-        ]);
-
-        console.log('Theme:', (await ThemeService.get()).themeName);
-        if (theme instanceof Error) {
-            return {
-                availableThemeManagers,
-                error: theme.message,
-                themeName: 'default',
-                themeTemplate: null,
-                customSettings: null
-            };
-        }
- 
-        // Handle theme reset
-        if (url.searchParams.get('reset') === 'true') {
-            const defaultSettings = theme.themeSettings;
-            throw redirect(302, '/theme');
-        }
- 
-        return {
-            error: null,
-            availableThemeManagers,
-        };
-    } catch (err) {
-        console.error('Failed to load theme:', err);
-        throw error(500, 'Failed to load theme configuration');
+    // Get current theme settings
+    const themeSettings = await ThemeService.get();
+    
+    // Load the current theme
+    const currentTheme = await Theme.load(themeSettings.themeName);
+    if (currentTheme instanceof Error) {
+        throw error(400, 'Invalid theme');
     }
+
+    // Get list of all available themes
+    const themes = await Theme.getAll();
+
+    // Parse custom settings if they're stored as a string
+    const customSettings = typeof themeSettings.customSettings === 'string' 
+        ? JSON.parse(themeSettings.customSettings) 
+        : themeSettings.customSettings;
+    
+    // Handle reset request
+    if (url.searchParams.get('reset') === 'true') {
+        await ThemeService.update({ 
+            customSettings: JSON.stringify(currentTheme.defaults) 
+        });
+        throw redirect(302, '/theme');
+    }
+
+    return {
+        title: 'Themes',
+        themes: themes,
+        currentThemeName: currentTheme.name,
+        themeTemplate: currentTheme.themeTemplate,
+        customSettings: customSettings
+    };
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {
-    select: async ({ request }) => {
+    // Handle theme selection
+    changeTheme: async ({ request }) => {
         try {
-            const data = await request.formData();
-            const themeFolder = data.get('theme_folder');
+            const formData = await request.formData();
+            const themeName = formData.get('theme_name');
 
-            if (!themeFolder) {
-                throw error(400, 'No theme was selected');
+            if (!themeName) {
+                throw error(400, 'Please select a theme');
             }
 
-            // if (!(await ThemeManager.isValidThemeManager(themeFolder.toString()))) {
-            //     throw error(400, 'The selected theme is not valid');
-            // }
-
-            console.log('Selected theme:', themeFolder);
+            console.log('Changing theme to:', themeName);
 
             return {
                 status: 200,
                 body: {
                     success: true,
-                    message: 'ThemeManager Selected'
+                    message: 'Theme changed'
                 }
             };
         } catch (err) {
-            console.error('ThemeManager selection failed:', err);
-            throw error(500, 'Failed to select theme');
+            console.error('Failed to change theme:', err);
+            throw error(500, 'Could not change theme');
         }
     },
-
 };
 
-async function processFormData(data: FormData, prevSettings: any) {
-    const newSettings = { ...prevSettings };
+// Process theme settings form
+async function updateThemeSettings(formData: FormData, oldSettings: any) {
+    const newSettings = { ...oldSettings };
     
-    for (const [key, value] of data.entries()) {
-        // Skip invalid or special fields
+    for (const [key, value] of formData.entries()) {
+        // Skip empty values and system fields
         if (
             !value || 
-            key === 'theme_folder' || 
+            key === 'theme_name' || 
             key === 'touched' || 
             key === 'valid'
         ) {
@@ -84,25 +82,24 @@ async function processFormData(data: FormData, prevSettings: any) {
 
         // Handle file uploads (currently disabled)
         if (value instanceof File) {
-            throw error(400, 'File upload is not currently supported');
+            throw error(400, 'Files cannot be uploaded right now');
             
-            // Uncomment and modify this section to enable file uploads
-            /*
+            /* File upload code (for future use)
             if (value.size === 0) continue;
             
             const files = [];
-            const allFiles = data.getAll(key);
+            const uploadFiles = formData.getAll(key);
             
-            await FileHandler.clearUploadsFolder();
+            await FileManager.clearFiles();
             
-            for (const file of allFiles) {
+            for (const file of uploadFiles) {
                 if (file instanceof File) {
                     try {
-                        const uploadedFile = await FileHandler.uploadFile(file);
-                        files.push(uploadedFile);
+                        const savedFile = await FileManager.saveFile(file);
+                        files.push(savedFile);
                     } catch (err) {
-                        console.error('File upload failed:', err);
-                        throw error(400, 'Failed to upload file');
+                        console.error('Upload failed:', err);
+                        throw error(400, 'Could not upload file');
                     }
                 }
             }
@@ -112,7 +109,7 @@ async function processFormData(data: FormData, prevSettings: any) {
             */
         }
 
-        // Handle regular form values
+        // Save the form value
         newSettings[key] = value;
     }
 

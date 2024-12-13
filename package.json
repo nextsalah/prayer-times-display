@@ -23,6 +23,7 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "@ismail424/svelte-formly": "^2.0.3",
     "@playwright/test": "^1.49.1",
     "@sveltejs/adapter-auto": "^3.3.1",
     "@sveltejs/kit": "^2.10.1",

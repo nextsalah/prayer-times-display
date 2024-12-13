@@ -39,7 +39,7 @@ export function isConfigType(o: unknown): o is ConfigType {
 }
 
 export type TemplatesType = IField[];
-export type DefaultTemplatesType = { [key: string]: string | number | boolean | null | undefined };
+export type DefaultSettingsType = { [key: string]: string | number | boolean | null | undefined };
 export type PrayerTimeItem = {
   id: "fajr" | "sunrise" | "dhuhr" | "asr" | "maghrib" | "isha" | "fajr_tomorrow",
   name: string,
