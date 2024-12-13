@@ -1,4 +1,5 @@
 import { text, integer, sqliteTable } from "drizzle-orm/sqlite-core";
+import { z } from "zod";
 
 export const languageSettings = sqliteTable("language_settings", {
   id: integer("id").primaryKey().$default(() => 1),
@@ -14,4 +15,60 @@ export const languageSettings = sqliteTable("language_settings", {
   next: text("next").notNull().default("Next"),
 });
 
+const TEXT_REGEX = /^[\p{L}\s\-'.]+$/u;
+export const LanguageSchema = z.object({
+  id: z.number().optional(),
+  fajr: z.string()
+    .min(2, "Fajr name must be at least 2 characters")
+    .max(20, "Fajr name cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  sunrise: z.string()
+    .min(3, "Sunrise name must be at least 3 characters")
+    .max(20, "Sunrise name cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  dhuhr: z.string()
+    .min(2, "Dhuhr name must be at least 2 characters")
+    .max(20, "Dhuhr name cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  asr: z.string()
+    .min(2, "Asr name must be at least 2 characters")
+    .max(20, "Asr name cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  maghrib: z.string()
+    .min(3, "Maghrib name must be at least 3 characters")
+    .max(20, "Maghrib name cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  isha: z.string()
+    .min(2, "Isha name must be at least 2 characters")
+    .max(20, "Isha name cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  prayer: z.string()
+    .min(3, "Prayer label must be at least 3 characters")
+    .max(20, "Prayer label cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  iqamah: z.string()
+    .min(3, "Iqamah label must be at least 3 characters")
+    .max(20, "Iqamah label cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  begins: z.string()
+    .min(3, "Begins label must be at least 3 characters")
+    .max(20, "Begins label cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+  next: z.string()
+    .min(2, "Next label must be at least 2 characters")
+    .max(20, "Next label cannot exceed 20 characters")
+    .regex(TEXT_REGEX, "Please use only letters, spaces, and basic punctuation")
+    .trim(),
+});
+
 export type LanguageSettings = typeof languageSettings.$inferSelect;
+export type LanguageSettingsWithoutId = Omit<LanguageSettings, "id">;

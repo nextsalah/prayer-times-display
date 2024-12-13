@@ -13,11 +13,6 @@ export class PrayerConfigService extends SingletonDB<DbPrayerConfig> {
         super(prayerConfig);
     }
 
-    // Override the base get method
-    async get(): Promise<DbPrayerConfig> {
-        return super.get();
-    }
-
     // Get all prayer settings
     async getAll(): Promise<PrayerSettings> {
         const result = await this.get();
@@ -28,11 +23,6 @@ export class PrayerConfigService extends SingletonDB<DbPrayerConfig> {
     async getPrayer<P extends Prayer>(prayer: P): Promise<SettingsForPrayer<P>> {
         const settings = await this.getAll();
         return settings[prayer];
-    }
-
-    // Override the base update method
-    async update(updates: Partial<Omit<DbPrayerConfig, "id">>): Promise<DbPrayerConfig> {
-        return super.update(updates);
     }
 
     // Update settings for specific prayer

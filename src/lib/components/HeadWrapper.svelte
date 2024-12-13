@@ -1,9 +1,5 @@
 <script lang="ts">
-	interface Props {
-		page_title: string;
-	}
-
-	let { page_title }: Props = $props();
+	let { page_title = "" } : { page_title: string } = $props();
 </script>
 
 <svelte:head>

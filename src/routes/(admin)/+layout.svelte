@@ -1,21 +1,19 @@
 <script lang="ts">
-  import 'tailwindcss/tailwind.css';
   import HeadWrapper from '$lib/components/HeadWrapper.svelte';
   import BottomNavigation from '$lib/components/general/BottomNavigation.svelte';
   import Navbar from '$lib/components/general/Navbar.svelte';
   import { page } from '$app/stores';
   import { fade } from 'svelte/transition';
-  interface Props {
-    children?: import('svelte').Snippet;
-  }
 
-  let { children }: Props = $props();
+  let { children } = $props();
 
+  // Exclude pages from showing bottom navigation
   const excludeBottomNav = ['/controlpanel'];
   let shouldShowBottomNav = $derived(!excludeBottomNav.includes($page.url.pathname));
 </script>
 
-<HeadWrapper page_title={$page.data.title || ""} />
+<HeadWrapper page_title={$page.data.title} />
+
 <div class="min-h-screen flex flex-col bg-base-100"> <!-- Main background -->
   <!-- Header -->
   <header class="fixed top-0 left-0 right-0 z-50">
@@ -30,7 +28,7 @@
     in:fade={{ duration: 150 }}
   >
     <div class="py-6">
-      {@render children?.()}
+      {@render children()}
     </div>
   </main>
 
@@ -43,17 +41,3 @@
     </div>
   {/if}
 </div>
-
-<style lang="postcss">
-  /* Ensure content doesn't get hidden behind fixed elements */
-  main {
-    min-height: calc(100vh - theme(spacing.16) - theme(spacing.24));
-  }
-
-  /* Add iOS safe area support */
-  @supports (padding-bottom: env(safe-area-inset-bottom)) {
-    main {
-      padding-bottom: calc(theme(spacing.24) + env(safe-area-inset-bottom));
-    }
-  }
-</style>
