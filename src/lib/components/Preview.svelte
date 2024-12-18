@@ -11,7 +11,7 @@
 
 <div class="space-y-4">
     <div class="text-lg font-medium">
-        {previewText} Preview
+        {previewText} preview
         <p class="text-sm text-base-content/70 mt-1">View how your theme looks in different device orientations</p>
     </div>
 
