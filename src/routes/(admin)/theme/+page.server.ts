@@ -47,78 +47,36 @@ export const load = (async ({ url }: { url: URL }) => {
 
 export const actions: Actions = {
     // Handle theme selection
-    changeTheme: async ({ request }) => {
+    select: async ({ request }) => {
         try {
             const formData = await request.formData();
-            const themeName = formData.get('theme_name');
-
-            if (!themeName) {
-                throw error(400, 'Please select a theme');
+            let themeName = formData.get('theme_name');
+            if (!themeName || typeof themeName !== 'string') {
+                throw error(400, 'Please select a valid theme');
             }
 
-            console.log('Changing theme to:', themeName);
+            // lowercase the name, trim and do some basic validation
+            themeName = themeName.toLowerCase().trim().replace(/[^a-z0-9-]/g, '');
 
-            return {
-                status: 200,
-                body: {
-                    success: true,
-                    message: 'Theme changed'
-                }
-            };
+            // Load the new theme to verify it exists and get defaults
+            const newTheme = await Theme.load(themeName);
+            if (newTheme instanceof Error) {
+                throw error(400, 'Invalid theme selected');
+            }
+
+            // Update theme settings with new theme and its default settings
+            await ThemeService.update({
+                themeName: themeName,
+                customSettings: JSON.stringify(newTheme.defaults)
+            });
+
+            return { status: 200, body: { message: 'Theme updated' } };
         } catch (err) {
-            console.error('Failed to change theme:', err);
-            throw error(500, 'Could not change theme');
+            console.error('Failed to switch theme:', err);
+            if (err instanceof Error) {
+                throw error(500, err.message);
+            }
+            throw error(500, 'Failed to switch theme');
         }
     },
 };
-
-// Process theme settings form
-async function updateThemeSettings(formData: FormData, oldSettings: any) {
-    const newSettings = { ...oldSettings };
-    
-    for (const [key, value] of formData.entries()) {
-        // Skip empty values and system fields
-        if (
-            !value || 
-            key === 'theme_name' || 
-            key === 'touched' || 
-            key === 'valid'
-        ) {
-            continue;
-        }
-
-        // Handle file uploads (currently disabled)
-        if (value instanceof File) {
-            throw error(400, 'Files cannot be uploaded right now');
-            
-            /* File upload code (for future use)
-            if (value.size === 0) continue;
-            
-            const files = [];
-            const uploadFiles = formData.getAll(key);
-            
-            await FileManager.clearFiles();
-            
-            for (const file of uploadFiles) {
-                if (file instanceof File) {
-                    try {
-                        const savedFile = await FileManager.saveFile(file);
-                        files.push(savedFile);
-                    } catch (err) {
-                        console.error('Upload failed:', err);
-                        throw error(400, 'Could not upload file');
-                    }
-                }
-            }
-            
-            newSettings[key] = files;
-            continue;
-            */
-        }
-
-        // Save the form value
-        newSettings[key] = value;
-    }
-
-    return newSettings;
-}

@@ -149,7 +149,7 @@ class Theme {
         return await Promise.all(
             themes.map(async name => {
                 const config = await this.loadConfig(name);
-                return { name: config.name, description: config.description };
+                return { name: name, description: config.description };
             })
         );
     }

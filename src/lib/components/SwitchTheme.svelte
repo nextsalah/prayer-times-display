@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { XCircle, ArrowRight } from 'lucide-svelte';
+     import { XCircle, ArrowRight } from 'lucide-svelte';
     import Preview from '$lib/components/Preview.svelte';
     import type { AllThemesType } from '$themes/interfaces/types';
     
@@ -16,26 +16,43 @@
     let { themes, currentThemeName }: SwitchThemeProps = $props();
     let selectedTheme = $state('');
     let selectedThemeData = $state<Theme | null>(null);
+    let isLoading = $state(false);
+    let errorMessage = $state('');
     
     function handleThemeChange(event: Event) {
         const select = event.target as HTMLSelectElement;
         selectedTheme = select.value;
         selectedThemeData = themes.find(t => t.name === selectedTheme) ?? null;
+        errorMessage = '';
     }
     
     async function handleThemeSubmit(event: SubmitEvent) {
         event.preventDefault();
-        const form = event.target as HTMLFormElement;
-        const response = await fetch(form.action, {
-            method: 'POST',
-            body: new FormData(form)
-        });
+        errorMessage = '';
+        isLoading = true;
+        
+        try {
+            const formData = new FormData();
+            formData.append('theme_name', selectedTheme); // Only send theme_name
+
+            const response = await fetch('/theme?/select', {
+                method: 'POST',
+                body: formData
+            });
     
-        if (response.ok) {
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                throw new Error(data?.message || 'Failed to switch theme');
+            }
+            
             window.location.reload();
+        } catch (error) {
+            errorMessage = error instanceof Error ? error.message : 'Failed to switch theme';
+        } finally {
+            isLoading = false;
         }
     }
-    </script>
+</script>
     
     <!-- Trigger Button -->
     <label for="change_theme_modal" class="btn btn-outline gap-2">
@@ -55,14 +72,11 @@
             </div>
             
             <form 
-                method="POST"
-                action="/theme?/select"
                 class="space-y-6"
                 onsubmit={handleThemeSubmit}
             >
                 <select 
                     id="theme-select"
-                    name="theme_folder"
                     class="select select-lg select-bordered w-full"
                     value={selectedTheme}
                     onchange={handleThemeChange}
@@ -72,6 +86,7 @@
                         <option value={theme.name}>{theme.name}</option>
                     {/each}
                 </select>
+    
     
                 {#if selectedThemeData}
                     <div class="divider">Theme Preview</div>
@@ -83,13 +98,28 @@
                     </div>
     
                     <div class="modal-action flex justify-between">
-                        <label for="change_theme_modal" class="btn btn-ghost gap-2">
-                            <XCircle class="w-4 h-4" /> Cancel
-                        </label>
-                        <button type="submit" class="btn btn-primary gap-2">
-                            Apply {selectedThemeData.name}
-                            <ArrowRight class="w-4 h-4" />
-                        </button>
+                        <div class="flex items-center gap-2">
+                            {#if errorMessage}
+                                <span class="text-error text-sm">{errorMessage}</span>
+                            {/if}
+                        </div>
+                        <div class="flex gap-2">
+                            <label for="change_theme_modal" class="btn btn-ghost gap-2">
+                                <XCircle class="w-4 h-4" /> Cancel
+                            </label>
+                            <button 
+                                type="submit" 
+                                class="btn btn-primary gap-2"
+                                disabled={isLoading}
+                            >
+                                {#if isLoading}
+                                    <span class="loading loading-spinner"></span>
+                                {:else}
+                                    Apply {selectedThemeData.name}
+                                    <ArrowRight class="w-4 h-4" />
+                                {/if}
+                            </button>
+                        </div>
                     </div>
                 {/if}
             </form>
