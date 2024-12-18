@@ -12,7 +12,7 @@ export function isCustomTemplatesType(o: unknown): o is CustomTemplatesType {
   return true;
 }
 
-export  type AllThemesType ={ value: string; name: string; }
+export  type AllThemesType ={ name: string; description: string }[]
 
 export interface ConfigType {
   name: string

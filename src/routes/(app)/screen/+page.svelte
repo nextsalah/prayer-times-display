@@ -34,7 +34,7 @@
     onMount(async () => {
         try {
             const componentModule = await import(
-                `../../../lib/themes/collections/${data.componentPath}/page.svelte`
+                `../../../../themes/collections/${data.componentPath}/page.svelte`
             );
             pageComponent = componentModule.default;
         } catch (error) {

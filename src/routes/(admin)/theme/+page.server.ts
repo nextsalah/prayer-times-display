@@ -15,7 +15,9 @@ export const load = (async ({ url }: { url: URL }) => {
 
     // Get list of all available themes
     const themes = await Theme.getAll();
-
+    if (!themes) {
+        throw error(500, 'Could not load themes');
+    }
     // Parse custom settings if they're stored as a string
     const customSettings = typeof themeSettings.customSettings === 'string' 
         ? JSON.parse(themeSettings.customSettings) 
@@ -29,12 +31,17 @@ export const load = (async ({ url }: { url: URL }) => {
         throw redirect(302, '/theme');
     }
 
+    // Check if theme supports file uploads
+    const supportsFileUpload = currentTheme.hasFileUploadSupport();
+
     return {
         title: 'Themes',
         themes: themes,
         currentThemeName: currentTheme.name,
+        currentThemeDescription: currentTheme.description,
         themeTemplate: currentTheme.themeTemplate,
-        customSettings: customSettings
+        customSettings: customSettings,
+        supportsFileUpload: supportsFileUpload
     };
 }) satisfies PageServerLoad;
 

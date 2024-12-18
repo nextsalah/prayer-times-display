@@ -144,12 +144,12 @@ class Theme {
         }
     }
 
-    static async getAll(): Promise<types.AllThemesType[]> {
+    static async getAll(): Promise<types.AllThemesType> {
         const themes = await this.list();
         return await Promise.all(
             themes.map(async name => {
                 const config = await this.loadConfig(name);
-                return { value: name, name: config.name, description: config.description };
+                return { name: config.name, description: config.description };
             })
         );
     }
@@ -185,6 +185,11 @@ class Theme {
                 .map(setting => [setting.name, setting.value])
         );
     }
+    
+    // Check if the theme supports file uploads
+    hasFileUploadSupport(): boolean {
+        return this.template.some(field => field.type === 'file');
+    }
 
     private static async readJson(name: string, file: string): Promise<any> {
         const path = `${getRootPath()}/themes/collections/${name}/${file}`;
@@ -192,27 +197,6 @@ class Theme {
             return await Bun.file(path).json();
         } catch (error) {
             throw new Error(`Cannot read ${file}: ${error instanceof Error ? error.message : 'unknown error'}`);
-        }
-    }
-
-    private static async readText(name: string, file: string): Promise<string> {
-        const path = `${getRootPath()}/themes/collections/${name}/${file}`;
-        try {
-            return await Bun.file(path).text();
-        } catch (error) {
-            throw new Error(`Cannot read ${file}: ${error instanceof Error ? error.message : 'unknown error'}`);
-        }
-    }
-
-    private static async checkJson<T>(
-        isValid: (o: unknown) => o is T,
-        text: string,
-    ): Promise<types.ParseResult<T>> {
-        try {
-            const data = JSON.parse(text);
-            return isValid(data) ? { parsed: data, hasError: false } : { hasError: true };
-        } catch {
-            return { hasError: true };
         }
     }
 }
