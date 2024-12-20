@@ -1,15 +1,24 @@
 import { Glob } from 'bun';
-import { isTemplatesType, isConfigType, isCustomTemplatesType } from '../interfaces/types';
-import type * as types from '../interfaces/types.ts';
 import { v4 as uuidv4 } from 'uuid';
 import { readdir } from "node:fs/promises";
+import type { 
+  ThemeManifest, 
+  ThemeCustomizationForm,
+  ThemeUserSettings,
+  Theme as ThemeType,
+  ThemeList
+} from '../interfaces/types';
+import { 
+  isThemeManifest, 
+  isThemeCustomizationForm 
+} from '../interfaces/types';
 
 function getRootPath(): string {
     return process.cwd();
 }
 
-export class Files {
-    static uploadPath = `${getRootPath()}/static/uploads`;
+class FileManager {
+    private static uploadPath = `${getRootPath()}/static/uploads`;
 
     static async createUploadFolder() {
         try {
@@ -63,18 +72,18 @@ export class Files {
 }
 
 class Theme {
-    private folder: string;
-    private config: types.ConfigType;
-    private template: types.TemplatesType;
+    private readonly folderPath: string;
+    private readonly manifest: ThemeManifest;
+    private readonly customizationForm: ThemeCustomizationForm;
 
     private constructor(
-        folder: string,
-        config: types.ConfigType,
-        template: types.TemplatesType,
+        folderPath: string,
+        manifest: ThemeManifest,
+        customizationForm: ThemeCustomizationForm,
     ) {
-        this.folder = folder;
-        this.config = config;
-        this.template = template;
+        this.folderPath = folderPath;
+        this.manifest = manifest;
+        this.customizationForm = customizationForm;
     }
 
     static async load(name: string): Promise<Theme | Error> {
@@ -83,23 +92,21 @@ class Theme {
         }
 
         try {
-            const config = await this.loadConfig(name);
-            const template = await this.loadTemplate(name);
+            const manifest = await this.loadManifest(name);
+            const customizationForm = await this.loadCustomizationForm(name);
 
-            if (!isConfigType(config)) {
-                return new Error(`Bad config for theme "${name}"`);
+            if (!isThemeManifest(manifest)) {
+                return new Error(`Invalid manifest for theme "${name}"`);
             }
 
-            if (!isTemplatesType(template)) {
-                return new Error(`Bad template for theme "${name}"`);
+            if (!isThemeCustomizationForm(customizationForm)) {
+                return new Error(`Invalid customization form for theme "${name}"`);
             }
 
-            return new Theme(name, config, template);
+            return new Theme(name, manifest, customizationForm);
         } catch (error) {
-            if (error instanceof Error) {
-                return new Error(`Cannot load theme "${name}": ${error.message}`);
-            }
-            return new Error(`Cannot load theme "${name}"`);
+            const message = error instanceof Error ? error.message : 'unknown error';
+            return new Error(`Failed to load theme "${name}": ${message}`);
         }
     }
 
@@ -108,7 +115,7 @@ class Theme {
             const themePath = `${getRootPath()}/themes/collections`;
             return await readdir(themePath);            
         } catch (error) {
-            console.error('Cannot read themes folder:', error);
+            console.error('Failed to read themes directory:', error);
             return [];
         }
     }
@@ -118,87 +125,97 @@ class Theme {
         return themes.includes(name);
     }
 
-    static async loadConfig(name: string): Promise<types.ConfigType> {
+    static async loadManifest(name: string): Promise<ThemeManifest> {
         try {
-            return await this.readJson(name, 'config.json');
+            return await this.readJson(name, 'manifest.json') as ThemeManifest;
         } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Cannot read config: ${error.message}`);
-            }
-            throw new Error('Cannot read config');
+            const message = error instanceof Error ? error.message : 'unknown error';
+            throw new Error(`Failed to read manifest: ${message}`);
         }
     }
 
-    static async loadTemplate(name: string): Promise<types.TemplatesType> {
+    static async loadCustomizationForm(name: string): Promise<ThemeCustomizationForm> {
         try {
-            const template = await this.readJson(name, 'template.json');
-            if (!isTemplatesType(template)) {
-                throw new Error('Bad template format');
+            const form = await this.readJson(name, 'customization.json');
+            if (!isThemeCustomizationForm(form)) {
+                throw new Error('Invalid customization form format');
             }
-            return template;
+            return form;
         } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Cannot read template: ${error.message}`);
-            }
-            throw new Error('Cannot read template');
+            const message = error instanceof Error ? error.message : 'unknown error';
+            throw new Error(`Failed to read customization form: ${message}`);
         }
     }
 
-    static async getAll(): Promise<types.AllThemesType> {
+    static async getAllThemes(): Promise<ThemeList> {
         const themes = await this.list();
         return await Promise.all(
             themes.map(async name => {
-                const config = await this.loadConfig(name);
-                return { name: name, description: config.description };
+                const manifest = await this.loadManifest(name);
+                return { 
+                    value: name,
+                    name: manifest.name,
+                    description: manifest.description 
+                };
             })
         );
     }
 
     get folderName(): string {
-        return this.folder;
+        return this.folderPath;
     }
 
-    get fullPath(): string {
-        return `${getRootPath()}/themes/collections/${this.folder}`;
+    get absolutePath(): string {
+        return `${getRootPath()}/themes/collections/${this.folderPath}`;
     }
 
     get name(): string {
-        return this.config.name;
+        return this.manifest.name;
     }
 
     get description(): string {
-        return this.config.description;
+        return this.manifest.description;
     }
 
-    get themeTemplate(): types.TemplatesType {
-        return this.template;
+    get customization(): ThemeCustomizationForm {
+        return this.customizationForm;
     }
 
-    get themeConfig(): types.ConfigType {
-        return this.config;
+    get configuration(): ThemeManifest {
+        return this.manifest;
     }
 
-    get defaults(): types.DefaultSettingsType {
+    get defaultSettings(): ThemeUserSettings {
         return Object.fromEntries(
-            this.template
+            this.customizationForm
                 .filter(setting => setting.value != null)
                 .map(setting => [setting.name, setting.value])
         );
     }
+
+    get themeData(): ThemeType {
+        return {
+            value: this.folderName,
+            name: this.name,
+            description: this.description,
+            customizationForm: this.customizationForm,
+            manifest: this.manifest,
+        };
+    }
     
-    // Check if the theme supports file uploads
     hasFileUploadSupport(): boolean {
-        return this.template.some(field => field.type === 'file');
+        return this.customizationForm.some(field => field.type === 'file');
     }
 
-    private static async readJson(name: string, file: string): Promise<any> {
+    private static async readJson(name: string, file: string): Promise<unknown> {
         const path = `${getRootPath()}/themes/collections/${name}/${file}`;
         try {
             return await Bun.file(path).json();
         } catch (error) {
-            throw new Error(`Cannot read ${file}: ${error instanceof Error ? error.message : 'unknown error'}`);
+            const message = error instanceof Error ? error.message : 'unknown error';
+            throw new Error(`Failed to read ${file}: ${message}`);
         }
     }
 }
 
-export default Theme;
+export { Theme, FileManager };

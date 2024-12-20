@@ -1,70 +1,92 @@
 import type { IField } from "./field";
 
+// When parsing user uploads/inputs
 export type ParseResult<T> = 
-| { parsed: T; hasError: false; error?: undefined }
-| { parsed?: undefined; hasError: true; error?: unknown }
+  | { data: T; success: true; error?: never }
+  | { data?: never; success: false; error: unknown };
 
-export type CustomTemplatesType = { [key: string]:   string | number | boolean | null | undefined }
+// The user's theme customization values
+export type ThemeUserSettings = Record<string, string | number | boolean | null | undefined>;
 
-export function isCustomTemplatesType(o: unknown): o is CustomTemplatesType {
-  if (typeof o !== 'object') return false;
-  if (o === null) return false;
-  return true;
+export function isThemeUserSettings(value: unknown): value is ThemeUserSettings {
+  return typeof value === 'object' && value !== null;
 }
 
-export  type AllThemesType ={ name: string; description: string }[]
+// Basic theme listing shown in UI
+export type ThemeBasicInfo = {
+  value: string;
+  name: string;
+  description: string;
+};
 
-export interface ConfigType {
-  name: string
-  description: string
-  version: string
-  authors: { name: string; github_profile: string }[]
+export type ThemeList = ThemeBasicInfo[];
+
+// The manifest.json file that describes the theme
+export type ThemeManifest = {
+  name: string;
+  description: string;
+  version: string;
+  authors: {
+    name: string;
+    github_profile: string;
+  }[];
+};
+
+export function isThemeManifest(value: unknown): value is ThemeManifest {
+  if (typeof value !== 'object' || value === null) return false;
+
+  const manifest = value as ThemeManifest;
+  
+  return typeof manifest.name === 'string' &&
+         typeof manifest.description === 'string' &&
+         typeof manifest.version === 'string' &&
+         Array.isArray(manifest.authors) &&
+         manifest.authors.length > 0 &&
+         manifest.authors.every(author => 
+           typeof author.name === 'string' && 
+           typeof author.github_profile === 'string'
+         );
 }
 
-export function isConfigType(o: unknown): o is ConfigType {
-  if (typeof o !== 'object' || o === null) return false;
+// The form fields that define what users can customize
+export type ThemeCustomizationForm = IField[];
 
-  const config = o as ConfigType;
+// A complete loaded theme with all its files/info
+export type Theme = {
+  value: string;
+  name: string;
+  description: string;
+  customizationForm: ThemeCustomizationForm;
+  manifest: ThemeManifest;
+};
 
-  if (typeof config.name !== 'string') return false;
-  if (typeof config.description !== 'string') return false;
-  if (typeof config.version !== 'string') return false;
-  if (!Array.isArray(config.authors)) return false;
-  if (config.authors.length === 0) return false;
-  for (const author of config.authors) {
-    if (typeof author.name !== 'string') return false;
-    if (typeof author.github_profile !== 'string') return false;
-  }
-  return true;
-}
+// Default values for theme settings
+export type ThemeDefaults = Record<string, string | number | boolean | null | undefined>;
 
-export type TemplatesType = IField[];
-export type DefaultSettingsType = { [key: string]: string | number | boolean | null | undefined };
-export type PrayerTimeItem = {
-  id: "fajr" | "sunrise" | "dhuhr" | "asr" | "maghrib" | "isha" | "fajr_tomorrow",
-  name: string,
-  time_readable: string,
-  time: Date,
-  iqamah_readable: String | null,
-  iqamah: Date | null,    
-  showIqamah: boolean, 
-}
+// Prayer-specific types
+export type PrayerName = "fajr" | "sunrise" | "dhuhr" | "asr" | "maghrib" | "isha" | "fajr_tomorrow";
 
-export function isTemplatesType(o: unknown): o is TemplatesType {
-  if (!Array.isArray(o)) return false;
-  if (o.length === 0) return false;
-  for (const input of o) {
-    if (
-      !input.hasOwnProperty('type') ||
-      !input.hasOwnProperty('name') ||
-      !input.hasOwnProperty('attributes')
-    ) {
-      return false;
-    }
-    if (typeof input.type !== 'string') return false;
-    if (typeof input.name !== 'string') return false;
-    if (typeof input.attributes !== 'object') return false;
-  }
+export type Prayer = {
+  id: PrayerName;
+  name: string;
+  time_readable: string;
+  time: Date;
+  iqamah_readable: string | null;
+  iqamah: Date | null;    
+  showIqamah: boolean;
+};
 
-  return true;
+export function isThemeCustomizationForm(value: unknown): value is ThemeCustomizationForm {
+  if (!Array.isArray(value) || value.length === 0) return false;
+
+  return value.every(field => 
+    typeof field === 'object' &&
+    field !== null &&
+    'type' in field &&
+    'name' in field &&
+    'attributes' in field &&
+    typeof field.type === 'string' &&
+    typeof field.name === 'string' &&
+    typeof field.attributes === 'object'
+  );
 }

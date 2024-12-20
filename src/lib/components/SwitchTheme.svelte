@@ -1,7 +1,7 @@
 <script lang="ts">
-     import { XCircle, ArrowRight } from 'lucide-svelte';
+     import { XCircle, ArrowRight, RefreshCcwIcon } from 'lucide-svelte';
     import Preview from '$lib/components/Preview.svelte';
-    import type { AllThemesType } from '$themes/interfaces/types';
+    import type { ThemeList } from '$themes/interfaces/types';
     
     interface Theme {
         name: string;
@@ -9,7 +9,7 @@
     }
     
     interface SwitchThemeProps {
-        themes: AllThemesType;
+        themes: ThemeList,
         currentThemeName: string;
     }
     
@@ -22,7 +22,7 @@
     function handleThemeChange(event: Event) {
         const select = event.target as HTMLSelectElement;
         selectedTheme = select.value;
-        selectedThemeData = themes.find(t => t.name === selectedTheme) ?? null;
+        selectedThemeData = themes.find(t => t.value === selectedTheme) || null;
         errorMessage = '';
     }
     
@@ -57,7 +57,7 @@
     <!-- Trigger Button -->
     <label for="change_theme_modal" class="btn btn-outline gap-2">
         Change Theme
-        <ArrowRight class="w-4 h-4" />
+        <RefreshCcwIcon class="w-4 h-4" />
     </label>
     
     <!-- Modal -->
@@ -83,7 +83,7 @@
                 >
                     <option value="">Select a theme...</option>
                     {#each themes.filter(t => t.name !== currentThemeName) as theme}
-                        <option value={theme.name}>{theme.name}</option>
+                        <option value={theme.value}>{theme.name}</option>
                     {/each}
                 </select>
     

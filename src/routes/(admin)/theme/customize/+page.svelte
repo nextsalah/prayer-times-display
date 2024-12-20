@@ -1,61 +1,67 @@
 <script lang="ts">
     import { Formly, type IField } from '@ismail424/svelte-formly';
     import { onMount } from 'svelte';
+    import { Settings, Palette, Brush, RefreshCcw, Wand2, Zap } from 'lucide-svelte';
 
     let { data } = $props();
-    let fields: IField[] = $state([]);
+    let formFields: IField[] = $state([]);
     let isLoaded = $state(false);
+    let isSubmitting = $state(false);
+    let formly = $state<Formly | null>(null);
     
-    onMount(async () => {
-        if (data.themeTemplate) {
-            fields = data.themeTemplate.map(field => {
-                if (data.customSettings && field.name in data.customSettings) {
-                    if (field.type === 'file') {
-                        loadFiles(field, data.customSettings[field.name]);
-                    } else {
-                        field.value = data.customSettings[field.name];
-                    }
+    onMount(() => {
+        if (data.theme.customizationForm) {
+            formFields = data.theme.customizationForm.map(field => {
+                const userValue = data.userSettings?.[field.name];
+                if (userValue != null && field.type !== 'file') {
+                    field.value = userValue;
                 }
                 return field;
             });
+            isLoaded = true;
         }
-        isLoaded = true;
     });
 
-    async function loadFiles(field: IField, files: any[]) {
-        try {
-            const loadedFiles = await Promise.all(files.map(async (file) => {
-                const response = await fetch(file.url);
-                const blob = await response.blob();
-                return new File([blob], file.name, { type: file.type });
-            }));
-            field.value = loadedFiles;
-        } catch (error) {
-            console.error('Failed to load files:', error);
+    async function handleSubmit(event: CustomEvent<Record<string, unknown>>) { 
+        if (isSubmitting) {
+            return;
         }
-    }
 
-    async function handleSubmit({ detail }: any) {
+        isSubmitting = true;
+        const { detail } = event;
+        
         if (!detail.valid || Object.keys(detail).length <= 1) {
             return;
         }
 
+        // Create FormData from the form values
         const formData = new FormData();
         for (const [key, value] of Object.entries(detail)) {
-            if (Array.isArray(value)) {
-                value.forEach((file: File) => formData.append(key, file));
-            } else {
-                formData.append(key, value as string);
+            if (value != null && value !== '') {
+                formData.append(key, value.toString());
             }
         }
 
-        const response = await fetch('/theme?/save', {
-            method: 'POST',
-            body: formData
-        });
+        try {
+            const response = await fetch('?/save', {
+                method: 'POST',
+                body: formData
+            });
 
-        if (response.ok) {
-            window.location.reload();
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                throw new Error('Failed to save settings');
+            }
+        } catch (error) {
+            console.error('Failed to save theme settings:', error);
+        }
+    }
+
+
+    function handleReset() {
+        if (confirm('Are you sure you want to restore the default theme? All custom settings will be reset.')) {
+            window.location.href = '?reset=true';
         }
     }
 </script>
@@ -63,67 +69,58 @@
 <div class="container mx-auto max-w-3xl">
     <div class="card bg-base-100 shadow-lg">
         <div class="card-body">
+            <!-- Header -->
             <div class="flex items-center justify-between mb-6">
-                <h2 class="card-title flex gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    Customize Theme
+                <h2 class="card-title flex items-center gap-3">
+                    <Settings class="w-6 h-6" />
+                    <span>Theme Customization</span>
+                    <Brush class="w-5 h-5 text-primary" />
                 </h2>
-                <a href="/theme" class="btn btn-ghost">
-                    Back to Themes
+                <a href="/theme" class="btn btn-ghost btn-sm">
+                    Back
                 </a>
             </div>
 
+
             {#if isLoaded}
-                <div class="bg-base-200 rounded-box p-6">
-                    <Formly 
-                        {fields} 
-                        form_name="theme-settings" 
-                        on:submit={handleSubmit}
-                        btnSubmit={{
-                            text: 'Save Changes',
-                            classes: ['btn', 'btn-primary', 'w-full', 'sm:w-auto']
-                        }}
-                    />
-                </div>
+                <!-- Form Section -->
+                <Formly 
+                    bind:this={formly}
+                    fields={formFields}
+                    form_name="theme-settings"
+                    on:submit={handleSubmit}
+                    btnSubmit={{ 
+                        classes: [
+                            'btn', 
+                            'btn-primary', 
+                            'w-full', 
+                            'mt-4', 
+                            'mb-2',
+                            'flex',
+                            'items-center',
+                            'gap-2'
+                        ], 
+                        text: 'Apply Changes' 
+                    }}
+                    btnReset={{ classes: ['hidden'] }}
+                />
 
                 <div class="divider"></div>
 
-                <div class="flex justify-between">
-                    <a href="/theme" class="btn btn-ghost">
+                <!-- Custom Buttons -->
+                <div class="flex flex-wrap justify-between items-center">
+                    <a href="/theme" class="btn btn-ghost flex items-center gap-2">
                         Cancel
                     </a>
                     <button 
-                        class="btn btn-error"
-                        onclick={() => window.location.href='/theme?reset=true'}
+                        class="btn btn-error flex items-center gap-2"
+                        type="button"
+                        onclick={handleReset}
                     >
-                        Reset to Defaults
+                        <RefreshCcw class="w-4 h-4" /> Reset to Default
                     </button>
                 </div>
             {/if}
         </div>
     </div>
 </div>
-
-<style>
-:global(.formly-form input:not([type="file"])) {
-    @apply input input-bordered w-full;
-}
-
-:global(.formly-form select) {
-    @apply select select-bordered w-full;
-}
-
-:global(.formly-form textarea) {
-    @apply textarea textarea-bordered w-full;
-}
-
-:global(.formly-form label) {
-    @apply label label-text;
-}
-
-:global(.invalid-feedback) {
-    @apply text-error text-sm mt-1;
-}
-</style>

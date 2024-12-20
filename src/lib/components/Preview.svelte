@@ -5,13 +5,18 @@
     
     let { theme = '' }: PreviewProps = $props();
 
-    let previewUrl = $derived(theme === '' ? '/screen' : `/screen/${theme.toLowerCase()}`);
-    let previewText = $derived(theme === '' ? 'Default Theme' : theme);
+    const isDefault = (name: string) => {
+        return !name || name.toLowerCase().includes('default');
+    };
+
+    let previewUrl = $derived(isDefault(theme) ? '/screen' : `/screen/${theme.toLowerCase()}`);
+    let previewText = $derived(isDefault(theme) ? '' : theme);
+    
 </script>
 
 <div class="space-y-4">
     <div class="text-lg font-medium">
-        {previewText} preview
+        {previewText.charAt(0).toUpperCase() + previewText.slice(1)} preview 
         <p class="text-sm text-base-content/70 mt-1">View how your theme looks in different device orientations</p>
     </div>
 
