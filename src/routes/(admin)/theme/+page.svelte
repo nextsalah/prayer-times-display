@@ -43,33 +43,37 @@
                     </div>
                 </div>
                 <!-- Theme Actions -->
-                <div class="grid gap-4 mb-6" class:grid-cols-2={data.supportsFileUpload}>
-                    <a 
-                        href="/theme/customize" 
-                        class="btn btn-primary h-auto py-4 normal-case justify-start gap-4"
-                        data-sveltekit-reload
-                    >
-                        <Settings2 class="w-5 h-5" />
-                        <div class="text-left">
-                            <div class="font-medium">Customize Theme</div>
-                            <div class="text-xs opacity-90">Adjust theme settings</div>
-                        </div>
-                    </a>
-
-                    {#if data.supportsFileUpload}
+                    <div class="grid gap-4 mb-6" class:grid-cols-2={data.supportsFileUpload}>
                         <a 
-                            href="/theme/media" 
-                            class="btn btn-secondary h-auto py-4 normal-case justify-start gap-4"
+                            href="/theme/customize" 
+                            class="bg-base-100 hover:bg-base-200 transition-all duration-200 rounded-lg p-4 flex items-center gap-4 border border-base-200"
                             data-sveltekit-reload
                         >
-                            <Image class="w-5 h-5" />
+                            <div class="p-2.5 rounded-lg bg-primary/10">
+                                <Settings2 class="w-5 h-5 text-primary" />
+                            </div>
                             <div class="text-left">
-                                <div class="font-medium">Media Library</div>
-                                <div class="text-xs opacity-90">Manage theme images</div>
+                                <div class="font-medium text-base-content">Customize Theme</div>
+                                <div class="text-sm text-base-content/70">Adjust theme settings</div>
                             </div>
                         </a>
-                    {/if}
-                </div>
+
+                        {#if data.supportsFileUpload}
+                            <a 
+                                href="/theme/media" 
+                                class="bg-base-100 hover:bg-base-200 transition-all duration-200 rounded-lg p-4 flex items-center gap-4 border border-base-200"
+                                data-sveltekit-reload
+                            >
+                                <div class="p-2.5 rounded-lg bg-base-content/10">
+                                    <Image class="w-5 h-5 text-base-content" />
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-medium text-base-content">Media Library</div>
+                                    <div class="text-sm text-base-content/70">Manage theme images</div>
+                                </div>
+                            </a>
+                        {/if}
+                    </div>
 
                 <!-- Preview Controls -->
                 <div class="flex flex-col sm:flex-row gap-3 items-stretch">

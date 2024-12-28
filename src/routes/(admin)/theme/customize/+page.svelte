@@ -67,7 +67,7 @@
 </script>
 
 <div class="container mx-auto max-w-3xl">
-    <div class="card bg-base-100 shadow-lg">
+    <div class="card bg-base-200 shadow-lg">
         <div class="card-body">
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
@@ -92,7 +92,7 @@
                     btnSubmit={{ 
                         classes: [
                             'btn', 
-                            'btn-primary', 
+                            'btn-primary',
                             'w-full', 
                             'mt-4', 
                             'mb-2',
@@ -113,7 +113,7 @@
                         Cancel
                     </a>
                     <button 
-                        class="btn btn-error flex items-center gap-2"
+                        class="btn btn-error btn-outline flex items-center gap-2"
                         type="button"
                         onclick={handleReset}
                     >

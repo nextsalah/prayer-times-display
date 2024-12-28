@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { onMount } from "svelte";
+
     interface PreviewProps {
         theme?: string;
     }
@@ -9,8 +11,14 @@
         return !name || name.toLowerCase().includes('default');
     };
 
+    onMount(() => {
+        if (isDefault(theme)) {
+            theme = 'Default';
+        }
+    });
+
     let previewUrl = $derived(isDefault(theme) ? '/screen' : `/screen/${theme.toLowerCase()}`);
-    let previewText = $derived(isDefault(theme) ? '' : theme);
+    let previewText = $derived(isDefault(theme) ? 'default' : theme);
     
 </script>
 

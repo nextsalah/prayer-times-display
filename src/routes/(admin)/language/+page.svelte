@@ -32,7 +32,7 @@
     }
 </script>
 
-<div class="max-w-2xl mx-auto p-4">
+<div class="p-4">
     <div class="card bg-base-300 shadow-xl">
         <div class="card-body">
             <h2 class="card-title text-2xl mb-2">Language Settings</h2>
