@@ -11,13 +11,16 @@
     
     onMount(() => {
         if (data.theme.customizationForm) {
-            formFields = data.theme.customizationForm.map(field => {
-                const userValue = data.userSettings?.[field.name];
-                if (userValue != null && field.type !== 'file') {
-                    field.value = userValue;
-                }
-                return field;
-            });
+            // Filter out file type fields and map the remaining ones
+            formFields = data.theme.customizationForm
+                .filter(field => field.type !== 'file') // Skip file fields
+                .map(field => {
+                    const userValue = data.userSettings?.[field.name];
+                    if (userValue != null) {
+                        field.value = userValue;
+                    }
+                    return field;
+                });
             isLoaded = true;
         }
     });

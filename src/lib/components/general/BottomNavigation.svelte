@@ -21,7 +21,13 @@
     };
   });
 
-  let isActive = $derived((path: string) => $page.url.pathname === path);
+  let isActive = $derived((path: string) => {
+    // Ensure we don't match partial segments (e.g., /the shouldn't match /theme)
+    const currentPath = $page.url.pathname;
+    return path === '/' 
+      ? currentPath === '/'
+      : currentPath === path || currentPath.startsWith(`${path}/`);
+  });
 </script>
 
 <div class="btm-nav btm-nav-lg bg-base-200 shadow-lg border-t border-base-300">

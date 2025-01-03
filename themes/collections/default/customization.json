@@ -12,5 +12,23 @@
         },
         "rules": [ "required" ],
         "value": "بسم الله الرحمن الرحيم"
+    },
+    {
+        "type": "file",
+        "name": "name-file",
+        "attributes": {
+            "id": "id-field",
+            "classes": ["form-control"], 
+            "label": "Image" 
+        },
+        "extra": {
+            "multiple": true, 
+            "showPreview": true 
+        },
+        "rules": ["file"], 
+        "file": {
+            "extensions": ["jpg", "gif", "png"],
+            "maxSize": 5
+        }
     }
 ]

@@ -12,19 +12,19 @@ import {
   isThemeManifest, 
   isThemeCustomizationForm 
 } from '../interfaces/types';
+import path from 'node:path';
 
-function getRootPath(): string {
-    return process.cwd();
-}
+
+export const UPLOAD_BASE_PATH = process.env.UPLOADS_PATH || path.join(process.cwd(), 'uploads');
+const getRootPath = () => path.resolve(process.cwd());
 
 class FileManager {
-    private static uploadPath = `${getRootPath()}/static/uploads`;
 
     static async createUploadFolder() {
         try {
-            await Bun.file(this.uploadPath).exists();
+            await Bun.file(UPLOAD_BASE_PATH).exists();
         } catch {
-            await Bun.write(this.uploadPath, '');
+            await Bun.write(UPLOAD_BASE_PATH, '');
         }
     }
 
@@ -33,7 +33,7 @@ class FileManager {
 
         const id = uuidv4();
         const filename = `${id}-${file.name}`;
-        const path = `${this.uploadPath}/${filename}`;
+        const path = `${UPLOAD_BASE_PATH}/${filename}`;
 
         await Bun.write(path, file);
 
@@ -46,7 +46,7 @@ class FileManager {
     }
 
     static async deleteFile(path: string) {
-        const fullPath = `${this.uploadPath}/${path}`;
+        const fullPath = `${UPLOAD_BASE_PATH}/${path}`;
         try {
             const file = Bun.file(fullPath);
             if (await file.exists()) {
@@ -60,14 +60,96 @@ class FileManager {
     static async clearUploads() {
         try {
             const glob = new Glob("*");
-            const files = await Array.fromAsync(glob.scan({ cwd: this.uploadPath }));
+            const files = await Array.fromAsync(glob.scan({ cwd: UPLOAD_BASE_PATH }));
             
             await Promise.all(files.map(file => 
-                Bun.write(`${this.uploadPath}/${file}`, '')
+                Bun.write(`${UPLOAD_BASE_PATH}/${file}`, '')
             ));
         } catch (error) {
             console.error('Cannot clear uploads folder', error);
         }
+    }
+}
+
+class MediaService {
+    static async listMedia() {
+        try {
+            // Implement logic to list media files
+            // This might involve reading from a database or file system
+            return [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    static async uploadMedia(file: File) {
+        try {
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'];
+            if (!validTypes.includes(file.type)) {
+                throw new Error('Invalid file type');
+            }
+
+            // Validate file size (e.g., max 10MB)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                throw new Error('File size exceeds 10MB limit');
+            }
+
+            // Upload file using FileManager
+            const uploadResult = await FileManager.saveFile(file);
+
+            // Store media metadata (you'll need to implement this)
+            await this.storeMediaMetadata(uploadResult);
+
+            return uploadResult;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    static async storeMediaMetadata(uploadResult: { 
+        id: string; 
+        name: string; 
+        path: string; 
+        type: string; 
+    }) {
+        // Implement method to store media metadata in your database
+        // This is a placeholder - you'll need to adapt this to your specific database
+        console.log('Storing media metadata:', uploadResult);
+    }
+
+    static async deleteMedia(mediaId: string) {
+        try {
+            // Retrieve media metadata
+            const media = await this.getMediaMetadata(mediaId) as { path: string } | null;
+            
+            if (!media) {
+                throw new Error('Media not found');
+            }
+
+            // Delete file from uploads
+            await FileManager.deleteFile(media.path.split('/').pop()!);
+
+            // Remove metadata from database (implement this method)
+            await this.removeMediaMetadata(mediaId);
+
+            return { success: true };
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    static async getMediaMetadata(mediaId: string) {
+        // Implement method to retrieve media metadata from your database
+        // This is a placeholder
+        return null;
+    }
+
+    static async removeMediaMetadata(mediaId: string) {
+        // Implement method to remove media metadata from your database
+        // This is a placeholder
+        console.log('Removing media metadata:', mediaId);
     }
 }
 
@@ -218,4 +300,4 @@ class Theme {
     }
 }
 
-export { Theme, FileManager };
+export { Theme, FileManager , MediaService };
