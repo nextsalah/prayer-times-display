@@ -1,3 +1,7 @@
+import path from 'path';
+
+export const UPLOAD_BASE_PATH = path.join(process.cwd(), 'static', 'uploads');
+
 export interface prayerTimes{
     id: number;
     date: Date;

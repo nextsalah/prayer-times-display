@@ -4,7 +4,6 @@
     import { 
         PaintBucket, 
         Settings2, 
-        Image, 
         Maximize2, 
         Minimize2 
     } from 'lucide-svelte';
@@ -42,39 +41,17 @@
                         {/if}
                     </div>
                 </div>
+
                 <!-- Theme Actions -->
-                <div class="grid gap-4 mb-6 grid-cols-1 md:grid-cols-2">
+                <div class="flex flex-col sm:flex-row gap-3 items-stretch">
                     <a 
                         href="/theme/customize" 
-                        class="bg-base-100 hover:bg-base-200 transition-all duration-200 rounded-lg p-4 flex items-center gap-4 border border-base-200"
+                        class="btn btn-primary gap-2"
                     >
-                        <div class="p-2.5 rounded-lg bg-primary/10">
-                            <Settings2 class="w-5 h-5 text-primary" />
-                        </div>
-                        <div class="text-left">
-                            <div class="font-medium text-base-content">Customize Theme</div>
-                            <div class="text-sm text-base-content/70">Adjust theme settings</div>
-                        </div>
+                        <Settings2 class="w-4 h-4" />
+                        Customize Theme
                     </a>
-                
-                    {#if data.supportsFileUpload}
-                        <a 
-                            href="/theme/media" 
-                            class="bg-base-100 hover:bg-base-200 transition-all duration-200 rounded-lg p-4 flex items-center gap-4 border border-base-200"
-                        >
-                            <div class="p-2.5 rounded-lg bg-primary/10">
-                                <Image class="w-5 h-5 text-primary" />
-                            </div>
-                            <div class="text-left">
-                                <div class="font-medium text-base-content">Media Library</div>
-                                <div class="text-sm text-base-content/70">Manage theme images</div>
-                            </div>
-                        </a>
-                    {/if}
-                </div>
 
-                <!-- Preview Controls -->
-                <div class="flex flex-col sm:flex-row gap-3 items-stretch">
                     <button 
                         class="btn btn-outline gap-2" 
                         onclick={() => showPreview = !showPreview}

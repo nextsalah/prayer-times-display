@@ -1,10 +1,9 @@
-import { Theme } from '$themes/logic/handler';
+import { MediaService, Theme } from '$themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from '../$types';
 import { ThemeService } from '$lib/db';
 import type {  ThemeUserSettings } from '$themes/interfaces/types';
 import { logger } from "$lib/server/logger";
-
 
 export const load = (async ({ url }: { url: URL }) => {
     // Get stored theme settings
@@ -24,14 +23,14 @@ export const load = (async ({ url }: { url: URL }) => {
     
     // Handle settings reset request
     if (url.searchParams.get('reset') === 'true') {
-        const defaultSettings = activeTheme.defaultSettings;
+        await MediaService.clearUploads();
         await ThemeService.update({
-            customSettings: JSON.stringify(defaultSettings)
+            customSettings: JSON.stringify(activeTheme.defaultSettings)
         });
         logger.info('Theme settings reset to default');
         throw redirect(303, url.pathname);
     }
-
+    
     return {
         title: 'Customize Theme',
         theme: {
@@ -61,34 +60,44 @@ export const actions: Actions = {
             }
 
             // Build new settings object
-            let newSettings = { ...currentSettings };
+            const updatedSetting = { ...currentSettings };
+            await MediaService.clearUploads();
+            
+            // Process form entries
+            const processedKeys = new Set<string>();
 
             // Process form entries
             for (const [key, value] of formData.entries()) {
-                // Skip empty or special fields
-                if (
-                    value == null ||
-                    value === undefined ||
-                    value === '' ||
-                    key === 'theme_folder' ||
-                    key === 'touched' ||
-                    key === 'valid'
-                ) {
+                if (!value || key === 'touched' || key === 'valid') {
                     continue;
                 }
 
-                // Handle file uploads
-                if (value instanceof File) {
-                    throw error(400, 'File upload is not supported');
+                // Avoid processing the same key multiple times
+                if (processedKeys.has(key)) {
+                    continue;
                 }
+                processedKeys.add(key);
 
-                // Store the value
-                newSettings[key] = value;
+                try {
+                    if (value instanceof File && value.size > 0) {
+                        const FileMetadata = await MediaService.uploadFile(value);
+                        
+                        if (Array.isArray(updatedSetting[key])) {
+                            updatedSetting[key].push(FileMetadata);
+                        } else {
+                            updatedSetting[key] = [FileMetadata];
+                        }
+                    } else {
+                        updatedSetting[key] = value.toString();
+                    }
+                } catch (uploadError) {
+                    logger.error(`Error uploading file(s) for key: ${key}`, uploadError);
+                    throw error(400, `Error uploading file(s) for key: ${key}`);
+                }
             }
-
             // Save updated settings
             await ThemeService.update({
-                customSettings: JSON.stringify(newSettings)
+                customSettings: JSON.stringify(updatedSetting)
             });
 
             logger.info('Theme settings updated successfully');

@@ -6,7 +6,7 @@ export type ParseResult<T> =
   | { data?: never; success: false; error: unknown };
 
 // The user's theme customization values
-export type ThemeUserSettings = Record<string, string | number | boolean | null | undefined>;
+export type ThemeUserSettings = Record<string, string | number | boolean | FileMetadata[] | null | undefined>;
 
 export function isThemeUserSettings(value: unknown): value is ThemeUserSettings {
   return typeof value === 'object' && value !== null;
@@ -90,3 +90,14 @@ export function isThemeCustomizationForm(value: unknown): value is ThemeCustomiz
     typeof field.attributes === 'object'
   );
 }
+
+ 
+export type FileMetadata = {
+  id: string,
+  name: string,
+  path: string,
+  fullPath: string,
+  type: string,
+  size: number,
+  uploadedAt: string
+};

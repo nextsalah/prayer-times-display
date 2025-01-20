@@ -3,7 +3,7 @@ import { error, redirect, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from '../sources/$types';
 import { ThemeService } from '$lib/db';
 
-export const load = (async ({ url }: { url: URL }) => {
+export const load = (async () => {
     try {
         // Get stored theme settings
         const storedSettings = await ThemeService.get();
@@ -24,7 +24,6 @@ export const load = (async ({ url }: { url: URL }) => {
             title: 'Theme Settings',
             currentTheme: activeTheme.themeData,
             availableThemes,
-            supportsFileUpload: activeTheme.hasFileUploadSupport(),
         };
     } catch (err) {
         console.error('Failed to load theme page:', err);

@@ -1,30 +1,34 @@
 import { Glob } from 'bun';
 import { v4 as uuidv4 } from 'uuid';
-import { readdir } from "node:fs/promises";
-import type { 
-  ThemeManifest, 
-  ThemeCustomizationForm,
-  ThemeUserSettings,
-  Theme as ThemeType,
-  ThemeList
-} from '../interfaces/types';
+import { readdir, mkdir  } from "node:fs/promises";
 import { 
-  isThemeManifest, 
-  isThemeCustomizationForm 
+    isThemeCustomizationForm,
+  type ThemeManifest, 
+  type ThemeCustomizationForm,
+  type ThemeUserSettings,
+  type Theme as ThemeType,
+  type ThemeList,
+  isThemeManifest,
+  type FileMetadata,
 } from '../interfaces/types';
 import path from 'node:path';
+import { UPLOAD_BASE_PATH } from '../constants/types';
+import { existsSync, mkdirSync } from "fs";
 
 
-export const UPLOAD_BASE_PATH = process.env.UPLOADS_PATH || path.join(process.cwd(), 'uploads');
 const getRootPath = () => path.resolve(process.cwd());
 
 class FileManager {
 
-    static async createUploadFolder() {
+    static async createUploadFolder(): Promise<void> {
         try {
-            await Bun.file(UPLOAD_BASE_PATH).exists();
-        } catch {
-            await Bun.write(UPLOAD_BASE_PATH, '');
+            // Check if the folder exists
+            if (!existsSync(UPLOAD_BASE_PATH)) {
+                // Create the folder if it doesn't exist
+                mkdirSync(UPLOAD_BASE_PATH, { recursive: true });
+            } 
+        } catch (error) {
+            console.error("Failed to create uploads folder:", error);
         }
     }
 
@@ -41,7 +45,7 @@ class FileManager {
             id,
             name: file.name,
             type: file.type,
-            path: `/uploads/${filename}`,
+            path
         };
     }
 
@@ -72,85 +76,55 @@ class FileManager {
 }
 
 class MediaService {
-    static async listMedia() {
+    static async uploadFile(file: File) {
         try {
-            // Implement logic to list media files
-            // This might involve reading from a database or file system
-            return [];
-        } catch (error) {
-            return [];
-        }
-    }
-
-    static async uploadMedia(file: File) {
-        try {
-            // Validate file type
-            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'];
-            if (!validTypes.includes(file.type)) {
-                throw new Error('Invalid file type');
-            }
-
-            // Validate file size (e.g., max 10MB)
-            const maxSize = 10 * 1024 * 1024; // 10MB
+            // Maximum file size in byte, 10MB
+            const maxSize =  10 * 1024 * 1024;
             if (file.size > maxSize) {
-                throw new Error('File size exceeds 10MB limit');
+                throw new Error(`File size exceeds ${maxSize / (1024 * 1024)}MB limit`);
             }
 
-            // Upload file using FileManager
+            // Upload file
             const uploadResult = await FileManager.saveFile(file);
 
-            // Store media metadata (you'll need to implement this)
-            await this.storeMediaMetadata(uploadResult);
+            const relativePath = uploadResult.path.replace(UPLOAD_BASE_PATH, '/uploads');
 
-            return uploadResult;
+            // Prepare metadata
+            const fileMetadata = {
+                id: uploadResult.id,
+                name: uploadResult.name,
+                path: relativePath,
+                fullPath: uploadResult.path,
+                type: uploadResult.type,
+                size: file.size,
+                uploadedAt: new Date().toISOString()
+            } as FileMetadata;
+            // Retrieve current settings
+            return fileMetadata;
         } catch (error) {
+            console.error('File upload failed:', error);
             throw error;
         }
     }
 
-    static async storeMediaMetadata(uploadResult: { 
-        id: string; 
-        name: string; 
-        path: string; 
-        type: string; 
-    }) {
-        // Implement method to store media metadata in your database
-        // This is a placeholder - you'll need to adapt this to your specific database
-        console.log('Storing media metadata:', uploadResult);
-    }
-
-    static async deleteMedia(mediaId: string) {
+    static async deleteFile(path: string) {
         try {
-            // Retrieve media metadata
-            const media = await this.getMediaMetadata(mediaId) as { path: string } | null;
-            
-            if (!media) {
-                throw new Error('Media not found');
-            }
-
-            // Delete file from uploads
-            await FileManager.deleteFile(media.path.split('/').pop()!);
-
-            // Remove metadata from database (implement this method)
-            await this.removeMediaMetadata(mediaId);
-
-            return { success: true };
+            await FileManager.deleteFile(path);
         } catch (error) {
+            console.error('File deletion failed:', error);
             throw error;
         }
     }
 
-    static async getMediaMetadata(mediaId: string) {
-        // Implement method to retrieve media metadata from your database
-        // This is a placeholder
-        return null;
+    static async clearUploads() {
+        try {
+            await FileManager.clearUploads();
+        } catch (error) {
+            console.error('Failed to clear uploads:', error);
+            throw error;
+        }
     }
-
-    static async removeMediaMetadata(mediaId: string) {
-        // Implement method to remove media metadata from your database
-        // This is a placeholder
-        console.log('Removing media metadata:', mediaId);
-    }
+    
 }
 
 class Theme {

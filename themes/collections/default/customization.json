@@ -8,6 +8,7 @@
             "classes": [
                 "input input-bordered input-primary w-full"
             ], 
+            "label": "Footer Text",
             "placeholder": "Enter footer text"
         },
         "rules": [ "required" ],
@@ -17,15 +18,17 @@
         "type": "file",
         "name": "name-file",
         "attributes": {
-            "id": "id-field",
-            "classes": ["form-control"], 
-            "label": "Image" 
+            "id": "image-files",
+            "classes": [
+                "file-input file-input-bordered file-input-md w-full my-2"
+            ],
+            "label": "Upload File"
         },
         "extra": {
-            "multiple": true, 
+            "multiple": true,
             "showPreview": true 
         },
-        "rules": ["file"], 
+        "rules": ["file"],
         "file": {
             "extensions": ["jpg", "gif", "png"],
             "maxSize": 5
