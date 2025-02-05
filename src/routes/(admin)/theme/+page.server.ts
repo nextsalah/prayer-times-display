@@ -19,7 +19,6 @@ export const load = (async () => {
         if (!availableThemes?.length) {
             throw error(500, 'No themes available');
         }
-
         return {
             title: 'Theme Settings',
             currentTheme: activeTheme.themeData,

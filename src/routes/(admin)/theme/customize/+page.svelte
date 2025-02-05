@@ -19,34 +19,41 @@
                         const files = [];
                         for (const fileData of userValue as FileMetadata[]) {
                             try {
-                                if (!fileData.path || !fileData.type) {
-                                    throw new Error('Invalid file metadata');
-                                }
-                                const response = await fetch(fileData.path);
+                                if (!fileData.path) continue;
 
-                                if (!response.ok) {
-                                    throw new Error(`Failed to fetch image: ${fileData.path}`);
-                                }
+                                const response = await fetch(fileData.path);
+                                if (!response.ok) throw new Error(`Failed to fetch: ${fileData.path}`);
+
                                 const blob = await response.blob();
-                                files.push(new File([blob], fileData.name, { type: fileData.type }));
-                            } catch (error) {
-                                // Handle individual file fetch errors with fallback
-                                console.warn(`Failed to load image ${fileData.path}, using fallback`);
+                                files.push({
+                                    name: fileData.name,
+                                    size: fileData.size,
+                                    type: fileData.type,
+                                    url: fileData.path,
+                                    isStoredFile: true,
+                                    path: fileData.path,
+                                    fileId: fileData.id || `${fileData.name}-${Date.now()}-${fileData.size}`
+                                });
+                            } catch {
                                 const fallbackResponse = await fetch('/no_image_available.png');
                                 const fallbackBlob = await fallbackResponse.blob();
-                                files.push(new File([fallbackBlob], 'no_image_available.png', { type: 'image/png' }));
+                                files.push({
+                                    name: 'no_image_available.png',
+                                    type: 'image/png',
+                                    url: '/no_image_available.png',
+                                    isStoredFile: true,
+                                    path: '/no_image_available.png',
+                                    fileId: `fallback-${Date.now()}`
+                                });
                             }
                         }
-
                         field.value = files;
                     } catch (error) {
-                        console.error(`Error loading files for ${field.name}:`, error);
                         field.value = [];
                     }
                 } else {
                     field.value = userValue;
                 }
-            
             }
         }
         formFields = fields;
@@ -88,27 +95,27 @@
 
         const formData = new FormData();
         try {
-            Object.entries(filteredDetail).forEach(([key, value]: any) => {
-                if (value instanceof Array) {
-                    // Validate file uploads
-                    value.forEach((file: File) => {
-                        // Additional file validation
-                        if (!(file instanceof File)) {
-                            throw new Error(`Invalid file for key ${key}`);
+            for (const [key, value] of Object.entries(filteredDetail)) {
+                if (Array.isArray(value)) {
+                    // Handle file arrays
+                    value.forEach((item: any) => {
+                        if (item.blob) {
+                            // This is a new file with a blob
+                            formData.append(key, item.blob, item.name);
+                        } else if (!item.isStoredFile && item instanceof File) {
+                            // This is a direct File object
+                            formData.append(key, item, item.name);
                         }
-
-                        // Optional: Add file size limit (e.g., 5MB)
-                        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-                        if (file.size > MAX_FILE_SIZE) {
-                            throw new Error(`File ${file.name} exceeds 5MB limit`);
-                        }
-
-                        formData.append(key, file, file.name);
+                        // Skip stored files as they don't need to be uploaded again
                     });
+                } else if (value instanceof File) {
+                    // Handle single file
+                    formData.append(key, value, value.name);
                 } else {
-                    formData.append(key, value);
+                    // Handle non-file values
+                    formData.append(key, String(value));
                 }
-            });
+            }
 
             const response = await fetch('?/save', {
                 method: 'POST',
@@ -118,12 +125,12 @@
             if (response.ok) {
                 window.location.reload();
             } else {
-                // Try to parse error response
                 const errorResponse = await response.json().catch(() => null);
                 throw new Error(errorResponse?.message || 'Failed to save settings');
             }
         } catch (error) {
-            console.error(error);
+            console.error('Failed to save settings:', error);
+            // You might want to show an error message to the user here
         } finally {
             isSubmitting = false;
         }
@@ -166,7 +173,6 @@
                         text: isSubmitting ? 'Saving Changes...' : 'Apply Changes'
                     }}
                     btnReset={{ classes: ['hidden'] }}
-                    
                 />
 
                 <div class="divider"></div>
@@ -191,4 +197,3 @@
         </div>
     </div>
 </div>
-

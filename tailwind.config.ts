@@ -15,6 +15,7 @@ const config: Config = {
   daisyui: {
     themes: true,
     darkTheme: "dim",
+    logs: false,
   }
 }
 

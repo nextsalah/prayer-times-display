@@ -1,6 +1,7 @@
 import { Glob } from 'bun';
 import { v4 as uuidv4 } from 'uuid';
-import { readdir, mkdir  } from "node:fs/promises";
+import { readdir} from "node:fs/promises";
+import { unlink } from 'node:fs/promises';
 import { 
     isThemeCustomizationForm,
   type ThemeManifest, 
@@ -52,10 +53,7 @@ class FileManager {
     static async deleteFile(path: string) {
         const fullPath = `${UPLOAD_BASE_PATH}/${path}`;
         try {
-            const file = Bun.file(fullPath);
-            if (await file.exists()) {
-                await Bun.write(fullPath, '');
-            }
+            await unlink(fullPath);
         } catch (error) {
             console.error(`Cannot delete file: ${fullPath}`, error);
         }

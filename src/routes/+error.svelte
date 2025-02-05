@@ -2,7 +2,9 @@
 <script>
     import { page } from '$app/stores';
 </script>
-
+<svelte:head>
+    <title>NextSalah - Error {$page.status}</title>
+</svelte:head>
 <div class="min-h-screen bg-base-300 flex items-center justify-center p-4">
     <div class="max-w-4xl w-full flex flex-col-reverse md:flex-row items-center justify-center gap-8">
         <!-- Error Content -->

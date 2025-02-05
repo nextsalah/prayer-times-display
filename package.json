@@ -23,7 +23,6 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@ismail424/svelte-formly": "^2.0.18",
     "@playwright/test": "^1.49.1",
     "@sveltejs/adapter-auto": "^3.3.1",
     "@sveltejs/kit": "^2.16.0",
@@ -59,9 +58,10 @@
   },
   "type": "module",
   "dependencies": {
+    "@ismail424/svelte-formly": "^2.0.20",
     "dayjs": "^1.11.13",
     "drizzle-orm": "^0.30.10",
-    "drizzle-zod": "^0.5.1",
+    "drizzle-zod": "^0.7.0",
     "lucide-svelte": "^0.468.0",
     "mime": "^4.0.6",
     "pino": "^8.21.0",

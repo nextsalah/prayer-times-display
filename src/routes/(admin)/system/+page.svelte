@@ -67,7 +67,7 @@
 </script>
 
 <div class="container mx-auto p-4 max-w-4xl">
-  <h1 class="text-2xl font-bold mb-6">{data.title}</h1>
+  <h1 class="text-2xl font-bold mb-6">System Settings</h1>
 
   <!-- Tab Navigation -->
   <div class="tabs tabs-boxed mb-4">

@@ -2,7 +2,7 @@ import { MediaService, Theme } from '$themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from '../$types';
 import { ThemeService } from '$lib/db';
-import type {  ThemeUserSettings } from '$themes/interfaces/types';
+import type {  FileMetadata, ThemeUserSettings } from '$themes/interfaces/types';
 import { logger } from "$lib/server/logger";
 
 export const load = (async ({ url }: { url: URL }) => {
@@ -23,7 +23,6 @@ export const load = (async ({ url }: { url: URL }) => {
     
     // Handle settings reset request
     if (url.searchParams.get('reset') === 'true') {
-        await MediaService.clearUploads();
         await ThemeService.update({
             customSettings: JSON.stringify(activeTheme.defaultSettings)
         });
@@ -61,7 +60,6 @@ export const actions: Actions = {
 
             // Build new settings object
             const updatedSetting = { ...currentSettings };
-            await MediaService.clearUploads();
             
             // Process form entries
             const processedKeys = new Set<string>();
@@ -113,6 +111,48 @@ export const actions: Actions = {
         } catch (err) {
             logger.error('Failed to save theme settings:', err);
             throw error(500, err instanceof Error ? err.message : 'Failed to save settings');
+        }
+    },
+    delete: async ({ request }) => {
+        try {
+            const formData = await request.formData();
+            const fileUrl = formData.get('fileUrl')?.toString();
+            const fieldName = formData.get('fieldName')?.toString();
+            
+            if (!fileUrl || !fieldName) {
+                throw error(400, 'File URL and field name are required');
+            }
+
+            // Get current settings
+            const storedSettings = await ThemeService.get();
+            const currentSettings = typeof storedSettings.customSettings === 'string' 
+                ? JSON.parse(storedSettings.customSettings) 
+                : storedSettings.customSettings;
+
+            // Remove file reference from settings
+            if (Array.isArray(currentSettings[fieldName])) {
+                currentSettings[fieldName] = currentSettings[fieldName].filter(
+                    (file: FileMetadata) => file.path !== fileUrl
+                );
+            } else {
+                currentSettings[fieldName] = null;
+            }
+
+            // Delete physical file
+            await MediaService.deleteFile(fileUrl.replace('/uploads/', ''));
+            
+            // Update settings in database
+            await ThemeService.update({
+                customSettings: JSON.stringify(currentSettings)
+            });
+
+            return {
+                status: 200,
+                body: { success: true }
+            };
+        } catch (err) {
+            logger.error('Failed to delete file:', err);
+            throw error(500, err instanceof Error ? err.message : 'Failed to delete file');
         }
     }
 } satisfies Actions;

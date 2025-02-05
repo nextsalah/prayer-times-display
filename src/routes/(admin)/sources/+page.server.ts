@@ -11,7 +11,9 @@ import { logger } from "$lib/server/logger";
 import { db } from "$lib/db/db.server";
 
 export const load = async () => {
-
+  return {
+    title: "Sources", 
+  };
 };
 
 export const actions: Actions = {
