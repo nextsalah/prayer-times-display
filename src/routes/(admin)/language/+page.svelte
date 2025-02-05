@@ -1,7 +1,7 @@
 <script lang="ts">
     import { superForm } from 'sveltekit-superforms/client';
     import type { z } from 'zod';
-    import { LanguageSchema, type LanguageSettingsWithoutId } from '$lib/db/schemas';
+    import { LanguageSchema, type LanguageSchemaType } from '$lib/db/schemas';
     import { zod } from 'sveltekit-superforms/adapters';
     import { languageConfigs } from '$lib/config/languageConfiguration';
 
@@ -21,12 +21,12 @@
         return field.charAt(0).toUpperCase() + field.slice(1);
     }
 
-    function updateLanguage(settings: LanguageSettingsWithoutId) {
+    function updateLanguage(settings: LanguageSchemaType) {
         // Update all form fields except id
         Object.keys(settings).forEach(key => {
             form.update($form => ({
                 ...$form,
-                [key]: settings[key as keyof LanguageSettingsWithoutId]
+                [key]: settings[key as keyof LanguageSchemaType]
             }));
         });
     }

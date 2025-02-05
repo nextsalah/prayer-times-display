@@ -15,7 +15,7 @@ export const languageSettings = sqliteTable("language_settings", {
   next: text("next").notNull().default("Next"),
 });
 
-const TEXT_REGEX = /^[\p{L}\s\-'.]+$/u;
+const TEXT_REGEX = /^[a-zA-Z0-9\s.,!?'-]+$/;
 export const LanguageSchema = z.object({
   id: z.number().optional(),
   fajr: z.string()
@@ -70,5 +70,5 @@ export const LanguageSchema = z.object({
     .trim(),
 });
 
-export type LanguageSettings = typeof languageSettings.$inferSelect;
-export type LanguageSettingsWithoutId = Omit<LanguageSettings, "id">;
+// Create a type-safe validator
+export type LanguageSchemaType = z.infer<typeof LanguageSchema>;

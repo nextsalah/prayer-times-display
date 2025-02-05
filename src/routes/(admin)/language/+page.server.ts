@@ -5,14 +5,13 @@ import { zod } from 'sveltekit-superforms/adapters';
 import { superValidate } from 'sveltekit-superforms';
 import { fail } from '@sveltejs/kit';
 
-export const load: PageServerLoad = (async () => {
+export const load = (async () => {
     const language = await LanguageService.get();
-    const form = await superValidate(language, zod(LanguageSchema));
-    return {
+const form = await superValidate(language, zod(LanguageSchema));    return {
         title: "Language",
         form : form
     };
-});
+}) satisfies PageServerLoad;
 
 
 export const actions = {
