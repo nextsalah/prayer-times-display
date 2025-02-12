@@ -28,9 +28,7 @@ export const SystemSettingsSchema = z.object({
     'MMMM DD, YYYY'
   ]).default('DD/MM/YYYY'),
   showSeconds: z.boolean().default(true),
-  showMilliseconds: z.boolean().default(false),
   use24Hour: z.boolean().default(true),
-  timeStyle: z.enum(['short', 'medium', 'long']).default('medium')
 });
 
 // Types

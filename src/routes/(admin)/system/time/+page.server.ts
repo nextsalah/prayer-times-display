@@ -17,14 +17,20 @@ export const load = (async () => {
 export const actions = {
   default: async ({ request }) => {
     const form = await superValidate(request, zod(SystemSettingsSchema));
-    console.log('form:', form);
       
       if (!form.valid) {
           return fail(400, { form });
       }
 
       try {
-          const updatedSettings = await SystemService.update(form.data);
+        console.log('form.data:', form.data);
+          const updatedSettings = await SystemService.update({
+              timezone: form.data.timezone,
+              timeFormat: form.data.timeFormat,
+              dateFormat: form.data.dateFormat,
+              showSeconds: form.data.showSeconds,
+              use24Hour: form.data.use24Hour,
+          });
           const newForm = await superValidate(updatedSettings, zod(SystemSettingsSchema));
           return { form: newForm, success: true };
       } catch (e) {
