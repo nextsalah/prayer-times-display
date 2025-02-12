@@ -3,7 +3,11 @@
 </script>
 
 <svelte:head>
-	<title>NextSalah - {page_title} </title>
+	{#if page_title}
+		<title>NextSalah - {page_title} </title>
+	{:else}
+		<title>NextSalah</title>
+	{/if}
 	<!-- Character encoding -->
 	<meta charset="utf-8" />
 	

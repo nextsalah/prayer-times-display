@@ -27,6 +27,7 @@ export const load = (async () => {
     const form = await superValidate(settings, zod(VersionSettingsSchema));
     
     return {
+        title: 'Version Settings',
         form
     };
 }) satisfies PageServerLoad;

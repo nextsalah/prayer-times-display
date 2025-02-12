@@ -27,8 +27,8 @@
                     data-sveltekit-preload-data
                     class="
                         flex-1 flex items-center justify-center gap-3
-                        px-6 py-6 sm:py-8
-                        text-lg font-medium
+                        px-3 py-3 sm:py-4
+                        text-sm font-medium
                         border-b sm:border-b-4 border-transparent
                         {$page.url.pathname.includes(tab.id) 
                             ? 'bg-base-200 text-primary border-primary' 
