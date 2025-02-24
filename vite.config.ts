@@ -13,7 +13,7 @@ const config: UserConfig = {
         fs: {
             allow: ['..', '../themes']
         },
-        port: 3000,
+        port: 5000,
     },
     plugins: [
         sveltekit(),

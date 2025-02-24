@@ -2,36 +2,16 @@
     import { onMount } from 'svelte';
     import type { PageData } from './$types';
     import Placeholder from '$themes/components/Placeholder.svelte';
-
-    // Define a type for your component props
-    type ComponentProps = {
-        data: {
-            prayerTimes: {
-                today: PrayerDay;
-                tomorrow: PrayerDay;
-                dayAfterTomorrow: PrayerDay;
-            };
-            componentPath: string;
-        };
-    };
-
-    // Define the prayer day type
-    type PrayerDay = {
-        date: Date;
-        id: number;
-        fajr: string;
-        sunrise: string;
-        dhuhr: string;
-        asr: string;
-        maghrib: string;
-        isha: string;
-    };
+    import PrayerTimeCalculator from '$themes/logic/prayertime_calculator';
 
     let { data } = $props();
-
     let pageComponent = $state<typeof Placeholder | any>(Placeholder);
+    let calculator = $state<PrayerTimeCalculator | null>(null);
 
     onMount(async () => {
+        // Initialize prayer time calculator
+        calculator = new PrayerTimeCalculator(data.apiData);
+
         try {
             const componentModule = await import(
                 `../../../../themes/collections/${data.componentPath}/page.svelte`
@@ -44,9 +24,14 @@
     });
 </script>
 
+<svelte:head>
+    <title>Prayer Times Display</title>
+    <meta name="description" content="Prayer times display screen" />
+</svelte:head>
+
 {#if pageComponent !== Placeholder}
     {@const SvelteComponent = pageComponent}
-    <SvelteComponent {data} />
+    <SvelteComponent {data} calculator={calculator} />
 {:else}
     <Placeholder />
 {/if}

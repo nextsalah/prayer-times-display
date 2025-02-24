@@ -1,3 +1,4 @@
+import type { ApiData } from '../interfaces/api';
 import path from 'path';
 
 export const UPLOAD_BASE_PATH = path.join(process.cwd(), 'static', 'uploads');
@@ -12,6 +13,7 @@ export interface prayerTimes{
     maghrib: string;
     isha: string;
 };
+
 export type ScreenPageServerLoad = {
     prayerTimes: {
         today: prayerTimes;
@@ -19,4 +21,5 @@ export type ScreenPageServerLoad = {
         dayAfterTomorrow: prayerTimes;
     };
     componentPath: string;
+    apiData: ApiData;
 };

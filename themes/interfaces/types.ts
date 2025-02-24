@@ -76,6 +76,16 @@ export type Prayer = {
   showIqamah: boolean;
 };
 
+export interface PrayerTimeItem {
+    id: string;
+    name: string;
+    time: Date;
+    time_readable: string;
+    iqamah: Date | null;
+    iqamah_readable: string | null;
+    showIqamah: boolean;
+}
+
 export function isThemeCustomizationForm(value: unknown): value is ThemeCustomizationForm {
   if (!Array.isArray(value) || value.length === 0) return false;
 
