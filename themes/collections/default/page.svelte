@@ -3,13 +3,14 @@
     import type PrayerTimeCalculator from "../../logic/prayertime_calculator";
     import Time from "../../components/Time.svelte";
     import { countdownToTextSubscribe, nextPrayerTimeSubscribe } from "../../logic/prayertime_calculator";
-    
+ 
     interface Props {
-        data: ScreenPageServerLoad;
+        data: ScreenPageServerLoad<any>;
         calculator: PrayerTimeCalculator | null;
     }
 
     let { data, calculator }: Props = $props();
+    console.log(data.apiData.custom_settings)
     let nextPrayerTime = $state(null);
     let countdownToText = $state(null);
 

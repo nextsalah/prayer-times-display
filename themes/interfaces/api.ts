@@ -1,6 +1,9 @@
-export interface ApiData<T = any> {
+import type { SettingsFromFields } from '$themes/logic/theme-settings-manager';
+import type { IField } from '@ismail424/svelte-formly';
+
+export interface ApiData<T extends IField[]> {
     prayertimes:     Prayertimes;
-    custom_settings: T;
+    custom_settings: SettingsFromFields<T>;
     prayer_options:  PrayerOptions;
     settings:        Settings;
     language:        Language;

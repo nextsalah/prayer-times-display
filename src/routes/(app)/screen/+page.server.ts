@@ -86,7 +86,7 @@ export const load = (async () => {
   };
 
   // 5. Construct API data for the theme
-  const apiData: ApiData = {
+  const apiData: ApiData<typeof theme.themeData.customizationForm> = {
     prayertimes: {
       today: prayerTimes.today,
       tomorrow: prayerTimes.tomorrow,
