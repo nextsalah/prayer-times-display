@@ -1,4 +1,4 @@
-import type { IField } from "./field";
+import type { IField } from "@ismail424/svelte-formly";
 
 // When parsing user uploads/inputs
 export type ParseResult<T> = 
@@ -48,15 +48,13 @@ export function isThemeManifest(value: unknown): value is ThemeManifest {
          );
 }
 
-// The form fields that define what users can customize
-export type ThemeCustomizationForm = IField[];
 
 // A complete loaded theme with all its files/info
 export type Theme = {
   value: string;
   name: string;
   description: string;
-  customizationForm: ThemeCustomizationForm;
+  customizationForm: IField[];
   manifest: ThemeManifest;
 };
 
@@ -86,7 +84,7 @@ export interface PrayerTimeItem {
     showIqamah: boolean;
 }
 
-export function isThemeCustomizationForm(value: unknown): value is ThemeCustomizationForm {
+export function isThemeCustomizationForm(value: unknown): value is IField[] {
   if (!Array.isArray(value) || value.length === 0) return false;
 
   return value.every(field => 
@@ -101,7 +99,6 @@ export function isThemeCustomizationForm(value: unknown): value is ThemeCustomiz
   );
 }
 
- 
 export type FileMetadata = {
   id: string,
   name: string,

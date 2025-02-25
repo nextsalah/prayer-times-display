@@ -5,7 +5,6 @@ import { unlink } from 'node:fs/promises';
 import { 
     isThemeCustomizationForm,
   type ThemeManifest, 
-  type ThemeCustomizationForm,
   type ThemeUserSettings,
   type Theme as ThemeType,
   type ThemeList,
@@ -15,6 +14,7 @@ import {
 import path from 'node:path';
 import { UPLOAD_BASE_PATH } from '../constants/types';
 import { existsSync, mkdirSync } from "fs";
+import type { IField } from '@ismail424/svelte-formly';
 
 
 const getRootPath = () => path.resolve(process.cwd());
@@ -128,12 +128,12 @@ class MediaService {
 class Theme {
     private readonly folderPath: string;
     private readonly manifest: ThemeManifest;
-    private readonly customizationForm: ThemeCustomizationForm;
+    private readonly customizationForm: IField[];
 
     private constructor(
         folderPath: string,
         manifest: ThemeManifest,
-        customizationForm: ThemeCustomizationForm,
+        customizationForm: IField[],
     ) {
         this.folderPath = folderPath;
         this.manifest = manifest;
@@ -188,7 +188,7 @@ class Theme {
         }
     }
 
-    static async loadCustomizationForm(name: string): Promise<ThemeCustomizationForm> {
+    static async loadCustomizationForm(name: string): Promise<IField[]> {
         try {
             const form = await this.readJson(name, 'customization.json');
             if (!isThemeCustomizationForm(form)) {
@@ -231,7 +231,7 @@ class Theme {
         return this.manifest.description;
     }
 
-    get customization(): ThemeCustomizationForm {
+    get customization(): IField[] {
         return this.customizationForm;
     }
 

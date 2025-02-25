@@ -1,9 +1,14 @@
 import { MediaService, Theme } from '$themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
-import type { PageServerLoad } from '../$types';
+import type { PageServerLoad } from './$types';
 import { ThemeService } from '$lib/db';
-import type {  FileMetadata, ThemeUserSettings } from '$themes/interfaces/types';
+import type { FileMetadata, ThemeUserSettings } from '$themes/interfaces/types';
 import { logger } from "$lib/server/logger";
+import { 
+  mergeWithDefaults, 
+  validateFormData,
+  processFormData,
+} from '$themes/logic/theme-settings-manager';
 
 export const load = (async ({ url }: { url: URL }) => {
     // Get stored theme settings
@@ -16,10 +21,10 @@ export const load = (async ({ url }: { url: URL }) => {
         throw error(400, 'Failed to load active theme');
     }
 
-    // Parse user settings
-    const userSettings: ThemeUserSettings = typeof storedSettings.customSettings === 'string'
+    // Parse user settings from database
+    const rawUserSettings: ThemeUserSettings = typeof storedSettings.customSettings === 'string'
         ? JSON.parse(storedSettings.customSettings)
-        : storedSettings.customSettings;
+        : storedSettings.customSettings || {};
     
     // Handle settings reset request
     if (url.searchParams.get('reset') === 'true') {
@@ -29,6 +34,9 @@ export const load = (async ({ url }: { url: URL }) => {
         logger.info('Theme settings reset to default');
         throw redirect(303, url.pathname);
     }
+    
+    // Merge with defaults for any missing values
+    const userSettings = mergeWithDefaults(rawUserSettings, activeTheme.customization);
     
     return {
         title: 'Customize Theme',
@@ -49,8 +57,8 @@ export const actions: Actions = {
             // Get current settings and theme
             const storedSettings = await ThemeService.get();
             const currentSettings = typeof storedSettings.customSettings === 'string' 
-                ? JSON.parse(storedSettings.customSettings) 
-                : storedSettings.customSettings;
+                ? JSON.parse(storedSettings.customSettings) || {}
+                : storedSettings.customSettings || {};
             
             // Load theme for validation
             const activeTheme = await Theme.load(storedSettings.themeName);
@@ -58,44 +66,39 @@ export const actions: Actions = {
                 throw error(400, 'Invalid theme configuration');
             }
 
-            // Build new settings object
-            const updatedSetting = { ...currentSettings };
+            // Validate the form data
+            const validation = validateFormData(
+                Object.fromEntries(formData), 
+                activeTheme.customization
+            );
             
-            // Process form entries
-            const processedKeys = new Set<string>();
-
-            // Process form entries
-            for (const [key, value] of formData.entries()) {
-                if (!value || key === 'touched' || key === 'valid') {
-                    continue;
-                }
-
-                // Avoid processing the same key multiple times
-                if (processedKeys.has(key)) {
-                    continue;
-                }
-                processedKeys.add(key);
-
-                try {
-                    if (value instanceof File && value.size > 0) {
-                        const FileMetadata = await MediaService.uploadFile(value);
-                        
-                        if (Array.isArray(updatedSetting[key])) {
-                            updatedSetting[key].push(FileMetadata);
-                        } else {
-                            updatedSetting[key] = [FileMetadata];
-                        }
-                    } else {
-                        updatedSetting[key] = value.toString();
+            if (!validation.valid) {
+                return {
+                    status: 400,
+                    body: {
+                        success: false,
+                        errors: validation.errors
                     }
-                } catch (uploadError) {
-                    logger.error(`Error uploading file(s) for key: ${key}`, uploadError);
-                    throw error(400, `Error uploading file(s) for key: ${key}`);
-                }
+                };
             }
+
+            // Process the form data with file uploads
+            const processedData = await processFormData(
+                formData, 
+                activeTheme.customization,
+                // File uploader function
+                async (file: File) => await MediaService.uploadFile(file)
+            );
+
+            // Merge with current settings
+            const updatedSettings = {
+                ...currentSettings,
+                ...processedData
+            };
+
             // Save updated settings
             await ThemeService.update({
-                customSettings: JSON.stringify(updatedSetting)
+                customSettings: JSON.stringify(updatedSettings)
             });
 
             logger.info('Theme settings updated successfully');
@@ -126,16 +129,39 @@ export const actions: Actions = {
             // Get current settings
             const storedSettings = await ThemeService.get();
             const currentSettings = typeof storedSettings.customSettings === 'string' 
-                ? JSON.parse(storedSettings.customSettings) 
-                : storedSettings.customSettings;
+                ? JSON.parse(storedSettings.customSettings) || {}
+                : storedSettings.customSettings || {};
+                
+            // Load theme for field definitions
+            const activeTheme = await Theme.load(storedSettings.themeName);
+            if (activeTheme instanceof Error) {
+                throw error(400, 'Invalid theme configuration');
+            }
 
             // Remove file reference from settings
             if (Array.isArray(currentSettings[fieldName])) {
                 currentSettings[fieldName] = currentSettings[fieldName].filter(
                     (file: FileMetadata) => file.path !== fileUrl
                 );
+                
+                // If array is empty, check if we should use default value
+                if (currentSettings[fieldName].length === 0) {
+                    const defaultValue = activeTheme.customization.find(f => f.name === fieldName)?.value;
+                    if (defaultValue !== undefined) {
+                        currentSettings[fieldName] = defaultValue;
+                    } else {
+                        // If no default, remove the property
+                        delete currentSettings[fieldName];
+                    }
+                }
             } else {
-                currentSettings[fieldName] = null;
+                // Check if field has default value
+                const defaultValue = activeTheme.customization.find(f => f.name === fieldName)?.value;
+                if (defaultValue !== undefined) {
+                    currentSettings[fieldName] = defaultValue;
+                } else {
+                    delete currentSettings[fieldName];
+                }
             }
 
             // Delete physical file
