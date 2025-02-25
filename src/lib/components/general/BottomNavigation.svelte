@@ -1,68 +1,79 @@
-<!-- BottomNavigation.svelte -->
+<!-- Mobile Bottom Navigation -->
 <script lang="ts">
-  import { navigation } from '$lib/config/navigation';
-  import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
-  import { browser } from '$app/environment';
-  import { onMount } from 'svelte';
+    import { page } from '$app/stores';
+    import { navigation } from '$lib/config/navigation';
+    import { browser } from '$app/environment';
+    import { Motion } from 'svelte-motion';
+    
+    export let showOnHomePage = false; // Option to show on home/control panel
 
-  let isMobile = $state(false);
-
-  onMount(() => {
-    const checkMobile = () => {
-      isMobile = window.innerWidth < 768;
+    let isMobile = browser ? window.innerWidth < 768 : false;
+    
+    const navVariants = {
+        hidden: { y: 100, opacity: 0 },
+        visible: { 
+            y: 0, 
+            opacity: 1,
+            transition: {
+                type: 'spring',
+                stiffness: 300,
+                damping: 30
+            }
+        },
+        exit: { y: 100, opacity: 0 }
     };
     
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
+    // Check if we should show the navigation
+    $: isHomePage = $page.url.pathname === '/controlpanel';
+    $: showNav = !isHomePage || (isHomePage && showOnHomePage);
     
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  });
-
-  let isActive = $derived((path: string) => {
-    // Ensure we don't match partial segments (e.g., /the shouldn't match /theme)
-    const currentPath = $page.url.pathname;
-    return path === '/' 
-      ? currentPath === '/'
-      : currentPath === path || currentPath.startsWith(`${path}/`);
-  });
+    // Find the active item
+    $: activeSlug = navigation.items.find(item => 
+        $page.url.pathname.includes(item.slug)
+    )?.slug || '';
+    
+    if (browser) {
+        window.addEventListener('resize', () => {
+            isMobile = window.innerWidth < 768;
+        });
+    }
 </script>
 
-<div class="btm-nav btm-nav-lg bg-base-200 shadow-lg border-t border-base-300">
-  {#each navigation.items as item}
-    <button
-      class="group relative {
-        isActive(item.href) 
-          ? 'active text-primary' 
-          : 'text-base-content/80 hover:text-primary'
-      } transition-all duration-200"
-      onclick={() => goto(item.href)}
+{#if showNav}
+    <Motion 
+        variants={navVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        let:motion
     >
-      <div class="flex flex-col items-center gap-1 px-2">
-        <div class="indicator">
-          <item.icon 
-            size={isMobile ? 20 : 24} 
-            class="transition-all duration-200 {
-              isActive(item.href) 
-                ? '' 
-                : 'stroke-current group-hover:stroke-primary'
-            }"
-          />
+        <div 
+            class="fixed bottom-0 left-0 right-0 bg-base-100 shadow-lg border-t border-base-300 z-50"
+            use:motion
+        >
+            <div class="max-w-md mx-auto px-1">
+                <nav class="flex justify-between items-center">
+                    {#each navigation.items as item}
+                        <a
+                            href={item.href}
+                            class="flex flex-col items-center justify-center py-2 px-1 flex-1 transition-colors {activeSlug === item.slug ? 'text-primary' : 'text-base-content/60'}"
+                        >
+                            <div 
+                                class="rounded-full p-1.5 {activeSlug === item.slug ? 'bg-primary/10' : ''}"
+                            >
+                                <svelte:component 
+                                    this={item.icon} 
+                                    size={isMobile ? 20 : 24}
+                                    class={activeSlug === item.slug ? 'text-primary' : 'text-base-content/60'}
+                                />
+                            </div>
+                            <span class="text-xs mt-1">
+                                {isMobile ? item.mobileTitle : item.title}
+                            </span>
+                        </a>
+                    {/each}
+                </nav>
+            </div>
         </div>
-        {#if browser}
-          <span class="btm-nav-label md:text-xs truncate font-medium 
-            transition-all duration-200 group-hover:scale-105">
-            {isMobile ? item.mobileTitle : item.title}
-          </span>
-        {/if}
-      </div>
-
-      <!-- Hover/Active Indicator -->
-      <div class="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary scale-x-0 
-        transition-transform duration-200"
-      ></div>
-    </button>
-  {/each}
-</div>
+    </Motion>
+{/if}

@@ -2,51 +2,57 @@ import {
     Clock, 
     Settings, 
     Palette, 
-    Languages
+    Languages,
+    CalendarClock,
+    Layout,
+    Bell,
+    Monitor,
+    Sliders,
+    Globe
 } from 'lucide-svelte';
 
 export const navigation = {
     items: [
         {
+            slug: "sources",
+            href: "/sources",
+            title: "Prayer Times",
+            mobileTitle: "Prayers",
+            description: "Configure times, Iqamah and display options",
+            icon: Clock,
+            color: "bg-primary",
+            subItems: [
+                "Prayer Source",
+                "Iqamah Settings",
+                "Display Settings"
+            ]
+        },
+        {
             slug: "theme",
             href: "/theme",
-            title: "Theme & Display",
+            title: "Theme & Style",
             mobileTitle: "Theme",
             description: "Customize appearance and layout",
             icon: Palette,
             color: "bg-secondary",
             subItems: [
                 "Theme Selection",
-                "Background Settings",
-                "Screen Orientation"
+                "Colors & Fonts",
+                "Background"
             ]
         },
         {
-            slug: "sources",
-            href: "/sources",
-            title: "Prayer Times",
-            mobileTitle: "Times",
-            description: "Configure prayer times and Iqamah",
-            icon: Clock,
-            color: "bg-primary",
-            subItems: [
-                "Prayer Time Source",
-                "Iqamah Settings",
-                "Time Adjustments"
-            ]
-        },
-        {
-            slug: "language",
-            href: "/language",
-            title: "Language",
+            slug: "localization",
+            href: "/localization",
+            title: "Language & Format",
             mobileTitle: "Language",
-            description: "Set interface and prayer languages",
-            icon: Languages,
-            color: "bg-accent",
+            description: "Text, date and time formats",
+            icon: Globe,
+            color: "bg-info",
             subItems: [
                 "Interface Language",
-                "Prayer Text",
-                "Font Settings"
+                "Date Format",
+                "Time Format"
             ]
         },
         {
@@ -54,13 +60,13 @@ export const navigation = {
             href: "/system",
             title: "System",
             mobileTitle: "System",
-            description: "Updates and configurations",
+            description: "Updates and maintenance",
             icon: Settings,
-            color: "bg-info",
+            color: "bg-warning",
             subItems: [
-                "Check Updates",
-                "Backup Settings",
-                "System Info"
+                "Time Settings",
+                "Updates",
+                "Advanced"
             ]
         }
     ]

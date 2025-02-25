@@ -1,24 +1,24 @@
-<!-- NavigationMenu.svelte -->
+<!-- Control Panel Dashboard -->
 <script lang="ts">
-    import { Motion } from "svelte-motion";
     import { navigation } from '$lib/config/navigation';
-    import { ChevronRight } from "lucide-svelte";
+    import { Monitor, ArrowRight, RefreshCw, Palette, MoreHorizontal, Calendar, Clock, CheckCircle } from "lucide-svelte";
     import { browser } from '$app/environment';
 
-    let isMobile = browser ? window.innerWidth < 768 : false;
+    let isMobile = $state(browser ? window.innerWidth < 768 : false);
+    let showActions = $state(false);
 
-    const cardVariants = {
-        initial: { opacity: 0, y: 10 },
-        animate: { opacity: 1, y: 0 },
-        hover: {
-            scale: 1.01,
-            transition: { duration: 0.2 }
-        },
-        tap: {
-            scale: 0.99,
-            transition: { duration: 0.1 }
+    // Define the Globe component inline since it wasn't available directly in the imports
+    const Globe = {
+        // SVG markup for globe icon
+        render: (props) => {
+            const { size = 24, className = '' } = props;
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${className}"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
         }
     };
+
+    function toggleActions() {
+        showActions = !showActions;
+    }
 
     if (browser) {
         window.addEventListener('resize', () => {
@@ -28,102 +28,191 @@
 </script>
 
 <div class="min-h-screen bg-base-100">
-    <div class="p-4 md:p-6 max-w-4xl mx-auto">
-        <!-- Header Section -->
-        <header class="mb-8 text-center">
-            <h1 class="text-2xl md:text-3xl font-bold text-base-content mb-2">
-                Prayer Times Display
-            </h1>
-            <p class="text-base-content/90 max-w-xl mx-auto text-sm md:text-base">
-                Configure your prayer times display settings
-            </p>
-        </header>
-
-        <!-- Navigation Grid -->
-        <div class="grid gap-3 md:grid-cols-2">
-            {#each navigation.items as section}
-                <Motion
-                    variants={cardVariants}
-                    initial="initial"
-                    animate="animate"
-                    whileHover="hover"
-                    whileTap="tap"
-                    let:motion
-                >
-                    <a
-                        href={section.href}
-                        class="group block bg-base-200/80 hover:bg-base-300 
-                               rounded-lg border border-base-300 
-                               transition-all duration-200"
-                        use:motion
-                    >
-                        <div class="p-4">
-                            <div class="flex items-start gap-3">
-                                <!-- Icon with enhanced background -->
-                                <div class="p-2.5 rounded-lg {section.color} bg-opacity-25 shrink-0">
-                                    <svelte:component 
-                                        this={section.icon} 
-                                        size={24}
-                                        class="text-base-content"
-                                    />
-                                </div>
-
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center justify-between">
-                                        <div class="font-medium text-base-content text-lg">
-                                            {isMobile ? section.mobileTitle : section.title}
-                                        </div>
-                                        <ChevronRight 
-                                            size={18}
-                                            class="text-base-content/70 group-hover:text-base-content/90 
-                                                   transition-colors duration-200" 
-                                        />
-                                    </div>
-                                    <div class="text-sm text-base-content/80 mt-0.5">
-                                        {section.description}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Enhanced Sub-items -->
-                            {#if section.subItems && section.subItems.length > 0}
-                                <div class="mt-3 ml-11">
-                                    <div class="flex flex-wrap gap-1.5">
-                                        {#each section.subItems as subItem}
-                                            <span class="text-xs px-2 py-1 
-                                                       bg-base-content/15 
-                                                       text-base-content 
-                                                       rounded-md">
-                                                {subItem}
-                                            </span>
-                                        {/each}
-                                    </div>
-                                </div>
-                            {/if}
+    <!-- Preview section with minimal design -->
+    <div class="bg-base-200 pt-8 pb-10 px-4">
+        <div class="max-w-3xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-xl md:text-2xl font-bold">Control Panel</h1>
+                
+                <!-- Simple dropdown menu for actions -->
+                <div class="dropdown dropdown-end z-100">
+                    <button class="btn btn-sm btn-ghost" tabindex="0">
+                        <MoreHorizontal size={20} />
+                    </button>
+                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                        <li>
+                            <a href="/screen" target="_blank" rel="noopener" class="flex items-center gap-2">
+                                <Monitor size={16} />
+                                <span>Open Display</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/theme" class="flex items-center gap-2">
+                                <Palette size={16} />
+                                <span>Change Theme</span>
+                            </a>
+                        </li>
+                        <li>
+                            <button class="flex items-center gap-2">
+                                <RefreshCw size={16} />
+                                <span>Refresh Data</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Clean minimal screen preview with backlight glow effect -->
+            <div class="max-w-lg mx-auto mb-6 relative">
+                <div class="aspect-[16/9] rounded-lg shadow-lg relative overflow-hidden border border-base-300 bg-neutral-950">
+                    <!-- Subtle backlight glow -->
+                    <div class="absolute -inset-4 bg-primary/20 blur-xl"></div>
+                    
+                    <!-- Actual content area with scaled iframe -->
+                    <div class="absolute inset-0 overflow-hidden rounded-lg bg-base-100 z-10">
+                        <iframe 
+                            src="/screen" 
+                            title="Prayer Times Display" 
+                            class="w-full h-full border-0 scale-[0.6] origin-top-left"
+                            style="width: 166.7%; height: 166.7%; overflow: hidden;"
+                            scrolling="no"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Enhanced status indicator with more information -->
+            <div class="max-w-lg mx-auto bg-base-100 rounded-lg shadow-md border border-base-200 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="badge badge-lg badge-success gap-1">
+                            <CheckCircle size={12} />
+                            Active
                         </div>
-                    </a>
-                </Motion>
-            {/each}
-        </div>
-
-        <!-- Preview Button -->
-        <div class="mt-8 flex justify-center">
-            <a 
-                href="/screen" 
-                class="btn btn-primary btn-md normal-case px-8
-                       hover:scale-[1.02] active:scale-[0.98] 
-                       transition-transform duration-200"
-            >
-                Preview Display
-            </a>
+                        <span class="text-sm text-base-content/70">Last update: Today at 3:45 PM</span>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button class="btn btn-sm btn-ghost btn-circle" title="Refresh">
+                            <RefreshCw size={16} />
+                        </button>
+                        <a href="/theme" class="btn btn-sm btn-ghost btn-circle" title="Change Theme">
+                            <Palette size={16} />
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Current settings with icons -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="flex flex-col items-center gap-1 p-2 rounded-lg bg-base-200/50">
+                        <Palette size={16} class="text-primary" />
+                        <div class="text-[10px] text-base-content/70">Theme</div>
+                        <div class="font-medium text-xs">Light Green</div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 p-2 rounded-lg bg-base-200/50">
+                        <Calendar size={16} class="text-primary" />
+                        <div class="text-[10px] text-base-content/70">Prayer Source</div>
+                        <div class="font-medium text-xs">Muslim Pro</div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 p-2 rounded-lg bg-base-200/50">
+                        <!-- Using inline SVG for Globe since it might not be available -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        <div class="text-[10px] text-base-content/70">Language</div>
+                        <div class="font-medium text-xs">English</div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 p-2 rounded-lg bg-base-200/50">
+                        <Monitor size={16} class="text-primary" />
+                        <div class="text-[10px] text-base-content/70">Orientation</div>
+                        <div class="font-medium text-xs">Portrait</div>
+                    </div>
+                </div>
+                
+                <!-- Additional status info -->
+                <div class="mt-4 pt-3 border-t border-base-200 grid grid-cols-3 gap-2 text-xs text-base-content/70">
+                    <div class="flex items-center gap-1">
+                        <Clock size={14} />
+                        <span>Next prayer: Asr 15:43</span>
+                    </div>
+                    <div>IP: 192.168.1.10</div>
+                    <div>Version: 1.2.4</div>
+                </div>
+            </div>
         </div>
     </div>
+    
+    <main class="max-w-3xl mx-auto px-4 py-6 pb-16">
+        <!-- Settings cards with enhanced design -->
+        <div>
+            <h2 class="font-medium text-lg mb-3">Settings</h2>
+            <div class="grid grid-cols-1 gap-4 mb-6">
+                {#each navigation.items as section}
+                    <a 
+                        href={section.href}
+                        class="group relative bg-base-100 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 border border-base-200"
+                    >
+                        <!-- Color accent line -->
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5 {section.color}"></div>
+                        
+                        <div class="p-4 pl-6">
+                            <div class="flex items-center gap-4">
+                                <div class="rounded-full p-3 {section.color} bg-opacity-20">
+                                    <svelte:component 
+                                        this={section.icon} 
+                                        size={isMobile ? 20 : 22}
+                                        class={section.color.replace('bg-', 'text-')}
+                                    />
+                                </div>
+                                
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <h2 class="text-lg font-medium">
+                                            {section.title}
+                                        </h2>
+                                        <ArrowRight 
+                                            size={16} 
+                                            class="text-base-content/30 group-hover:text-primary transition-all duration-300 transform group-hover:translate-x-1" 
+                                        />
+                                    </div>
+                                    <p class="text-sm text-base-content/70 mt-1">
+                                        {section.description}
+                                    </p>
+                                    
+                                    <!-- Enhanced tag chips -->
+                                    {#if section.subItems?.length}
+                                        <div class="flex flex-wrap gap-2 mt-3">
+                                            {#each section.subItems as item}
+                                                <div class="badge {section.color.replace('bg-', 'badge-')} badge-sm text-xs font-medium">
+                                                    {item}
+                                                </div>
+                                            {/each}
+                                        </div>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                {/each}
+            </div>
+        </div>
+    </main>
 </div>
 
 <style>
-    /* Enhanced focus visibility */
     a:focus-visible {
         outline: 2px solid hsl(var(--p));
         outline-offset: 2px;
+    }
+
+    /* Hide scrollbars on iframe */
+    iframe {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE and Edge */
+    }
+    iframe::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
     }
 </style>
