@@ -1,3 +1,4 @@
+// base.ts
 import { eq } from 'drizzle-orm';
 import { db } from '../db.server';
 import { SQLiteTable } from 'drizzle-orm/sqlite-core';

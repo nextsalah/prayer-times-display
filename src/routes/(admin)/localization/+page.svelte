@@ -9,11 +9,11 @@
     const cards = [
         {
             title: "Language Settings",
-            description: "Change interface language and prayer text",
+            description: "Change the interface and prayer text language",
             icon: Languages,
             color: "bg-primary",
             href: "/localization/language",
-            items: ["Interface Language", "Prayer Names", "Font Settings"]
+            items: ["Interface Language", "Prayer Text Language"]
         },
         {
             title: "Date Format",
@@ -25,7 +25,7 @@
         },
         {
             title: "Time Format",
-            description: "Configure how times are displayed",
+            description: "Configure how time is displayed",
             icon: Clock,
             color: "bg-accent",
             href: "/localization/time",

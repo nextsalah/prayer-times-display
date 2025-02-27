@@ -2,17 +2,17 @@
   import HeadWrapper from '$lib/components/HeadWrapper.svelte';
   import BottomNavigation from '$lib/components/general/BottomNavigation.svelte';
   import Navbar from '$lib/components/general/Navbar.svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { fade } from 'svelte/transition';
 
   let { children } = $props();
 
   // Exclude pages from showing bottom navigation
   const excludeBottomNav = ['/controlpanel'];
-  let shouldShowBottomNav = $derived(!excludeBottomNav.includes($page.url.pathname));
+  let shouldShowBottomNav = $derived(!excludeBottomNav.includes(page.url.pathname));
 </script>
 
-<HeadWrapper page_title={$page.data.title} />
+<HeadWrapper page_title={page.data.title} />
 
 <div class="min-h-screen flex flex-col bg-base-100"> <!-- Main background -->
   <!-- Header -->

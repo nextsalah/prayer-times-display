@@ -1,241 +1,142 @@
 <!-- Language Settings Page -->
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { superForm } from 'sveltekit-superforms';
-    import { Languages, CheckCircle, ChevronLeft, Loader2, Edit, X, Save, Settings } from 'lucide-svelte';
-    import { SystemSettingsSchema, type LanguageSchemaType } from '$lib/db/schemas';
+    import { Languages, CheckCircle, ChevronLeft, Loader2, Save } from 'lucide-svelte';
+    import { LanguageSchema, type LanguageSchemaType } from '$lib/db/schemas';
     import { zod } from 'sveltekit-superforms/adapters';
-    import { languageConfigs, type LanguageConfig } from '$lib/config/languageConfiguration';
+    import { languageConfigs } from '$lib/config/languageConfiguration';
 
-    let { data } = $props();
+    const { data } = $props();
     
-    let loading = $state(true);
-    let saved = $state(false);
-    let currentCustomizations = $state<Partial<LanguageSchemaType>>(data.customizations || {});
-    let editingLanguage = $state<{code: string, config: LanguageConfig[keyof LanguageConfig]} | null>(null);
-
-    // Initialize the form with improved handling
-    const { form, enhance, submitting, delayed } = superForm(data.form, {
-        validators: zod(SystemSettingsSchema),
-        validationMethod: 'submit-only',
-        delayMs: 300,
+    const { form, enhance, submitting, errors } = superForm(data.form, {
+        validators: zod(LanguageSchema),
+        validationMethod: 'onblur',
+        dataType: 'json',
         resetForm: false,
-        onSubmit: ({ formData }) => {
-            // Add customizations to form data
-            if (editingLanguage && Object.keys(currentCustomizations).length > 0) {
-                Object.entries(currentCustomizations).forEach(([key, value]) => {
-                    if (value) formData.set(key, value);
-                });
-            }
-        },
         onResult: ({ result }) => {
             if (result.type === 'success') {
-                saved = true;
-                editingLanguage = null;
-                setTimeout(() => {
-                    saved = false;
-                }, 3000);
+                console.log('Language settings saved successfully');
             }
         }
     });
 
-    // Function to edit language settings
-    function editLanguageSettings(code: keyof typeof languageConfigs) {
-        const config = languageConfigs[code];
-        // Load any existing customizations for this language
-        currentCustomizations = data.customizations?.language_code === code 
-            ? { ...data.customizations }
-            : {};
-        delete currentCustomizations.id;
-        delete currentCustomizations.language_code;
-        editingLanguage = { code, config };
+    // Format field name for display
+    function formatLabel(field: string): string {
+        return field.charAt(0).toUpperCase() + field.slice(1);
     }
 
-    function updateCustomization(key: keyof LanguageSchemaType, value: string) {
-        if (value === languageConfigs[editingLanguage?.code || '']?.settings[key]) {
-            // If value is same as default, remove customization
-            delete currentCustomizations[key];
-        } else {
-            currentCustomizations[key] = value;
-        }
+    // Update form with selected language settings
+    function updateLanguage(code: string) {
+        const config = Object.values(languageConfigs).find(lang => lang.code === code);
+        if (!config) return;
+        
+        // Update language code
+        form.update($form => ({
+            ...$form,
+            language_code: code
+        }));
+        
+        // Update all language fields
+        Object.entries(config.settings).forEach(([key, value]) => {
+            form.update($form => ({
+                ...$form,
+                [key]: value
+            }));
+        });
     }
-
-    // Initialize
-    onMount(() => {
-        setTimeout(() => {
-            loading = false;
-        }, 500);
-    });
+    
+    // Get form fields excluding technical fields
+    function getDisplayFields() {
+        return Object.keys($form).filter(key => 
+            key !== 'id' && key !== 'language_code'
+        );
+    }
+    
+    // Determine if a language is active
+    function isLanguageActive(code: string): boolean {
+        return $form.language_code === code;
+    }
 </script>
 
-{#if loading}
-    <div class="container mx-auto p-4 max-w-4xl flex justify-center items-center min-h-[400px]">
-        <Loader2 class="h-12 w-12 animate-spin text-primary" />
-    </div>
-{:else}
-    <div class="container mx-auto p-4 max-w-4xl">
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-                <div class="flex items-center gap-2 mb-2">
-                    <a href="/localization" class="btn btn-ghost btn-sm btn-square">
-                        <ChevronLeft size={20} />
-                    </a>
-                    <h2 class="card-title">
-                        <Languages class="h-6 w-6 mr-1 text-primary" />
-                        Language Settings
-                    </h2>
-                </div>
-                <p class="text-base-content/70 ml-10">Choose interface language and customize translations</p>
-
-                <form method="POST" use:enhance class="space-y-6 mt-6">
-                    <!-- Language Selection -->
-                    <div class="form-control w-full">
-                        <h3 class="text-lg font-medium mb-4">Interface Language</h3>
-                        
-                        <div class="grid gap-3 mt-2">
-                            {#each Object.entries(languageConfigs) as [code, lang]}
-                                <div 
-                                    class="relative flex rounded-lg
-                                          border bg-base-200 p-4 
-                                          {$form.language === code ? 'border-primary bg-primary/10' : 'border-base-300'}
-                                          transition-colors"
-                                >
-                                    <label class="flex-1 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="language"
-                                            value={code}
-                                            class="sr-only"
-                                            bind:group={$form.language}
-                                        />
-                                        <div class="flex items-center justify-between">
-                                            <span class="flex items-center gap-2">
-                                                <svelte:component this={lang.flag} class="w-8 h-6" />
-                                                <span class="text-base font-medium text-base-content">
-                                                    {lang.name}
-                                                </span>
-                                                <span class="badge badge-sm">{lang.code}</span>
-                                            </span>
-                                            
-                                            {#if $form.language === code}
-                                                <CheckCircle class="h-5 w-5 text-primary" />
-                                            {/if}
-                                        </div>
-                                    </label>
-                                    
-                                    <div class="flex items-center ml-3">
-                                        <button 
-                                            type="button" 
-                                            class="btn btn-sm btn-ghost btn-square"
-                                            onclick={() => editLanguageSettings(code)}
-                                            title="Customize translations"
-                                        >
-                                            <Edit size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            {/each}
-                        </div>
-                    </div>
-
-                    <!-- Edit Language Dialog -->
-                    {#if editingLanguage}
-                        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                            <div class="bg-base-100 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                                <div class="flex items-center justify-between mb-6">
-                                    <div class="flex items-center gap-3">
-                                        <svelte:component this={editingLanguage.config.flag} class="w-8 h-6" />
-                                        <h3 class="text-lg font-bold">Customize {editingLanguage.config.name} Translations</h3>
-                                    </div>
-                                    <button 
-                                        type="button" 
-                                        class="btn btn-sm btn-ghost btn-square"
-                                        onclick={() => editingLanguage = null}
-                                    >
-                                        <X size={20} />
-                                    </button>
-                                </div>
-
-                                <div class="space-y-4">
-                                    {#each Object.entries(editingLanguage.config.settings) as [key, defaultValue]}
-                                        <div class="form-control w-full">
-                                            <label class="label">
-                                                <span class="label-text capitalize">{key}</span>
-                                                <span class="label-text-alt text-base-content/60">Default: {defaultValue}</span>
-                                            </label>
-                                            <div class="flex gap-2">
-                                                <input 
-                                                    type="text" 
-                                                    class="input input-bordered flex-1" 
-                                                    placeholder={defaultValue}
-                                                    value={currentCustomizations[key as keyof LanguageSchemaType] ?? defaultValue}
-                                                    oninput={(e) => updateCustomization(key as keyof LanguageSchemaType, e.currentTarget.value)}
-                                                />
-                                                {#if currentCustomizations[key as keyof LanguageSchemaType]}
-                                                    <button 
-                                                        type="button"
-                                                        class="btn btn-ghost btn-square"
-                                                        title="Reset to default"
-                                                        onclick={() => updateCustomization(key as keyof LanguageSchemaType, defaultValue)}
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
-                                                {/if}
-                                            </div>
-                                        </div>
-                                    {/each}
-                                </div>
-
-                                <div class="mt-8 flex justify-end gap-2">
-                                    <button 
-                                        type="button" 
-                                        class="btn"
-                                        onclick={() => editingLanguage = null}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        type="submit"
-                                        class="btn btn-primary"
-                                    >
-                                        <Save size={16} class="mr-2" />
-                                        Save Changes
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    {/if}
-
-                    <!-- Submit Button -->
-                    <div class="mt-8 flex justify-end">
-                        <button 
-                            type="submit"
-                            class="btn btn-primary w-full sm:w-auto" 
-                            disabled={$submitting}
-                        >
-                            {#if $submitting}
-                                <Loader2 class="h-4 w-4 mr-2 animate-spin" />
-                                Saving...
-                            {:else if $delayed}
-                                <Loader2 class="h-4 w-4 mr-2 animate-spin" />
-                                Checking...
-                            {:else if saved}
-                                <CheckCircle class="h-4 w-4 mr-2" />
-                                Saved!
-                            {:else}
-                                <Settings class="h-4 w-4 mr-2" />
-                                Save Settings
-                            {/if}
-                        </button>
-                    </div>
-                </form>
+<div class="container mx-auto p-4 max-w-4xl">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex items-center gap-2 mb-2">
+                <a href="/localization" class="btn btn-ghost btn-sm btn-square">
+                    <ChevronLeft size={20} />
+                </a>
+                <h2 class="card-title">
+                    <Languages class="h-6 w-6 mr-1 text-primary" />
+                    Language Settings
+                </h2>
             </div>
+            <p class="text-base-content/70 ml-10">Choose interface language and customize translations</p>
+
+            <form method="POST" use:enhance class="space-y-6 mt-6">
+                <!-- Language Selection Buttons -->
+                <div class="form-control w-full">
+                    <h3 class="text-lg font-medium mb-4">Choose a language</h3>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        {#each Object.values(languageConfigs) as lang}
+                            <button 
+                                type="button"
+                                class="btn {isLanguageActive(lang.code) ? 'btn-primary' : 'btn-outline'} gap-2"
+                                onclick={() => updateLanguage(lang.code)}
+                            >
+                                <lang.flag class="w-6 h-4" />
+                                {lang.name}
+                                {#if isLanguageActive(lang.code)}
+                                    <CheckCircle class="h-4 w-4" />
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+                
+                <!-- Hidden language code field -->
+                <input type="hidden" name="language_code" bind:value={$form.language_code} />
+
+                <!-- Form Fields -->
+                <div class="form-control w-full">
+                    <h3 class="text-lg font-medium mb-4">Customize translations</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {#each getDisplayFields() as field}
+                            <div class="form-control w-full">
+                                <label for={field} class="label">
+                                    <span class="label-text">{formatLabel(field)}</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id={field}
+                                    name={field}
+                                    bind:value={$form[field as keyof typeof $form]}
+                                    class="input input-bordered w-full {$errors[field as keyof typeof $errors] ? 'input-error' : ''}"
+                                />
+                                {#if $errors[field as keyof typeof $errors]}
+                                    <span class="label-text-alt text-error">{$errors[field as keyof typeof $errors]}</span>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="mt-8 flex justify-end">
+                    <button 
+                        type="submit"
+                        class="btn btn-primary gap-2" 
+                        disabled={$submitting}
+                    >
+                        {#if $submitting}
+                            <Loader2 class="h-5 w-5 animate-spin" />
+                            Saving...
+                        {:else}
+                            <Save class="h-5 w-5" />
+                            Save Settings
+                        {/if}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
-{/if}
-
-<style>
-    :global(.flag-icon) {
-        border-radius: 2px;
-    }
-</style>
+</div>

@@ -21,6 +21,7 @@ export const navigation = {
             description: "Configure times, Iqamah and display options",
             icon: Clock,
             color: "bg-primary",
+            badgeColor: "badge-primary",
             subItems: [
                 "Prayer Source",
                 "Iqamah Settings",
@@ -35,6 +36,7 @@ export const navigation = {
             description: "Customize appearance and layout",
             icon: Palette,
             color: "bg-secondary",
+            badgeColor: "badge-secondary",
             subItems: [
                 "Theme Selection",
                 "Colors & Fonts",
@@ -46,13 +48,14 @@ export const navigation = {
             href: "/localization",
             title: "Language & Format",
             mobileTitle: "Language",
-            description: "Text, date and time formats",
+            description: "Customize language, date, and time settings",
             icon: Globe,
             color: "bg-info",
+            badgeColor: "badge-info",
             subItems: [
-                "Interface Language",
-                "Date Format",
-                "Time Format"
+                "Language",
+                "Date & Time",
+                "Location"
             ]
         },
         {
@@ -63,8 +66,8 @@ export const navigation = {
             description: "Updates and maintenance",
             icon: Settings,
             color: "bg-warning",
+            badgeColor: "badge-warning",
             subItems: [
-                "Time Settings",
                 "Updates",
                 "Advanced"
             ]

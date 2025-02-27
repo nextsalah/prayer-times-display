@@ -1,10 +1,11 @@
-import type { PageServerLoad } from './$types';
 import { z } from 'zod';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { fail } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
 
-const VersionSettingsSchema = z.object({
+// Move the schema definition to be compatible with SvelteKit exports
+const versionSettingsSchema = z.object({
     currentVersion: z.string(),
     updateAvailable: z.boolean(),
     autoUpdate: z.boolean(),
@@ -13,28 +14,29 @@ const VersionSettingsSchema = z.object({
     secureUpdates: z.boolean(),
 });
 
-export const load = (async () => {
-    // Replace this with your actual data fetching
-    const settings: Partial<z.infer<typeof VersionSettingsSchema>> = {
+export const load: PageServerLoad = async () => {
+    // Provide a default object that matches the schema exactly
+    const defaultSettings = {
         currentVersion: '1.0.0',
-        updateAvailable: true,
+        updateAvailable: false,
         autoUpdate: true,
         betaUpdates: false,
         updateChannel: 'stable',
         secureUpdates: true,
-    };
+    } as const;
 
-    const form = await superValidate(settings, zod(VersionSettingsSchema));
+    // Use superValidate with the default object
+    const form = await superValidate(defaultSettings, zod(versionSettingsSchema));
     
     return {
         title: 'Version Settings',
         form
     };
-}) satisfies PageServerLoad;
+};
 
 export const actions = {
     default: async ({ request }) => {
-        const form = await superValidate(request, zod(VersionSettingsSchema));
+        const form = await superValidate(request, zod(versionSettingsSchema));
         
         if (!form.valid) {
             return fail(400, { form });
@@ -55,4 +57,4 @@ export const actions = {
             });
         }
     }
-};
+} satisfies Actions;

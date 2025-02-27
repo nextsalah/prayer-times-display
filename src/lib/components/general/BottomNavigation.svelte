@@ -52,23 +52,24 @@
             use:motion
         >
             <div class="max-w-md mx-auto px-1">
-                <nav class="flex justify-between items-center">
+                <nav class="flex justify-between items-stretch">
                     {#each navigation.items as item}
                         <a
                             href={item.href}
-                            class="flex flex-col items-center justify-center py-2 px-1 flex-1 transition-colors {activeSlug === item.slug ? 'text-primary' : 'text-base-content/60'}"
+                            class="flex flex-col items-center justify-center py-3 px-1 flex-1 transition-colors {activeSlug === item.slug ? 'text-primary' : 'text-base-content/60'}"
+                            aria-current={activeSlug === item.slug ? 'page' : undefined}
                         >
                             <div 
-                                class="rounded-full p-1.5 {activeSlug === item.slug ? 'bg-primary/10' : ''}"
+                                class="rounded-full p-1.5 mb-1 {activeSlug === item.slug ? 'bg-primary/10' : ''}"
                             >
                                 <svelte:component 
                                     this={item.icon} 
-                                    size={isMobile ? 20 : 24}
+                                    size={isMobile ? 20 : 22}
                                     class={activeSlug === item.slug ? 'text-primary' : 'text-base-content/60'}
                                 />
                             </div>
-                            <span class="text-xs mt-1">
-                                {isMobile ? item.mobileTitle : item.title}
+                            <span class="text-xs text-center w-full truncate px-1">
+                                { item.title}
                             </span>
                         </a>
                     {/each}
@@ -77,3 +78,17 @@
         </div>
     </Motion>
 {/if}
+
+<style>
+    /* Ensure consistent height for navigation items */
+    nav a {
+        min-height: 64px;
+    }
+    
+    /* Force text centering */
+    nav a span {
+        display: block;
+        text-align: center;
+        line-height: 1.2;
+    }
+</style>

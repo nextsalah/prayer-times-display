@@ -2,34 +2,40 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { superForm } from 'sveltekit-superforms';
-    import { CalendarClock, CheckCircle, ChevronLeft, Loader2 } from 'lucide-svelte';
-    import { SystemSettingsSchema } from '$lib/db/schemas';
+    import { CalendarClock, CheckCircle, ChevronLeft, Loader2, Save, AlertTriangle } from 'lucide-svelte';
+    import { DateSettingsSchema } from '$lib/db/schemas';
     import { zod } from 'sveltekit-superforms/adapters';
+    import type { PageData } from './$types';
 
     let { data } = $props();
     
     let loading = $state(true);
     let saved = $state(false);
+    let formError = $state<string | null>(null);
 
     // Initialize the form
-    const { form, enhance, submitting, delayed } = superForm(data.form, {
-        validators: zod(SystemSettingsSchema),
+    const { form, enhance, submitting, delayed, errors } = superForm(data.form, {
+        validators: zod(DateSettingsSchema),
         validationMethod: 'submit-only',
         delayMs: 300,
         resetForm: false,
         onResult: ({ result }) => {
             if (result.type === 'success') {
                 saved = true;
+                formError = null;
                 setTimeout(() => {
                     saved = false;
                 }, 3000);
+            } else if (result.type === 'failure') {
+                // Check if there's a specific error message in the result
+                formError = result.data?.error ?? 'An unexpected error occurred';
             }
         }
     });
-  
+
     // Current date preview
     let currentDate = $state('');
-    let previewDates = $state([]);
+    let previewDates = $state<Array<{label: string, value: string, example: string}>>([]);
 
     function updateDatePreviews() {
         const now = new Date();
@@ -67,6 +73,11 @@
 
     // Initialize and cleanup timer
     onMount(() => {
+        // Check for any initial error from server load
+        if (data.error) {
+            formError = data.error;
+        }
+        
         updateDatePreviews();
         setTimeout(() => {
             loading = false;
@@ -100,10 +111,17 @@
                 </div>
                 <p class="text-base-content/70 ml-10">Choose how dates are displayed on the prayer screen</p>
 
+                {#if formError}
+                    <div role="alert" class="alert alert-error mb-4">
+                        <AlertTriangle class="h-6 w-6" />
+                        <span>{formError}</span>
+                    </div>
+                {/if}
+
                 <form method="POST" use:enhance class="space-y-6 mt-6">
                     <!-- Date Format Selection -->
                     <div class="grid gap-3 mt-2">
-                        {#each previewDates as format, i}
+                        {#each previewDates as format}
                             <label 
                                 class="relative flex cursor-pointer flex-col rounded-lg
                                       border bg-base-200 p-4 hover:bg-base-300 
@@ -136,23 +154,22 @@
                         {/each}
                     </div>
 
+                    {#if $errors.dateFormat}
+                        <p class="text-error text-sm mt-2">{$errors.dateFormat}</p>
+                    {/if}
+
                     <!-- Submit Button -->
                     <div class="mt-8 flex justify-end">
                         <button 
                             type="submit"
-                            class="btn btn-primary w-full sm:w-auto" 
+                            class="btn btn-primary gap-2 w-full sm:w-auto" 
                             disabled={$submitting}
                         >
                             {#if $submitting}
-                                <Loader2 class="h-4 w-4 mr-1 animate-spin" />
+                                <Loader2 class="h-5 w-5 animate-spin" />
                                 Saving...
-                            {:else if $delayed}
-                                <Loader2 class="h-4 w-4 mr-1 animate-spin" />
-                                Checking...
-                            {:else if saved}
-                                <CheckCircle class="h-4 w-4 mr-1" />
-                                Saved!
                             {:else}
+                                <Save class="h-5 w-5" />
                                 Save Settings
                             {/if}
                         </button>

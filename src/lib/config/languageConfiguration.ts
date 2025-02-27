@@ -1,16 +1,16 @@
-import type { LanguageSettingsWithoutId } from "$lib/db/schemas";
+import type { LanguageSchemaType } from "$lib/db/schemas";
 import type { Component } from 'svelte';
 import { 
     Gb, Sa, Ba, Tr, Se, Pk, De, Fr, Es, It, Pt, Nl, Pl, Ru, Dk, No, Fi, 
     Id, My, Bn, Th, Kr, Jp, Cn, In
 } from 'svelte-flag-icons';
 
-type LanguageConfig = {
+export type LanguageConfig = {
     [key: string]: {
         name: string;
         code: string;
         flag: Component;
-        settings: LanguageSettingsWithoutId;
+        settings: Omit<LanguageSchemaType, 'id' | 'language_code'>;
     }
 };
 
@@ -181,6 +181,12 @@ export function getAvailableLanguages() {
 }
 
 // Helper function to get settings for a specific language
-export function getLanguageSettings(language: string): LanguageSettingsWithoutId | undefined {
+export function getLanguageSettings(language: string): Omit<LanguageSchemaType, 'id' | 'language_code'> | undefined {
     return languageConfigs[language]?.settings;
+}
+
+// Helper function to get a language config by code
+export function getLanguageConfigByCode(code: string) {
+    const entry = Object.entries(languageConfigs).find(([_, config]) => config.code === code);
+    return entry ? entry[1] : undefined;
 }

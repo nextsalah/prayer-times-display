@@ -14,6 +14,7 @@ const config: UserConfig = {
             allow: ['..', '../themes']
         },
         port: 5000,
+        allowedHosts: ['.ngrok-free.app']
     },
     plugins: [
         sveltekit(),

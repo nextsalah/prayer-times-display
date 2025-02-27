@@ -2,31 +2,42 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { superForm } from 'sveltekit-superforms';
-    import { Clock, CheckCircle, ChevronLeft, Loader2 } from 'lucide-svelte';
-    import { SystemSettingsSchema } from '$lib/db/schemas';
+    import { Clock, CheckCircle, ChevronLeft, Loader2, Save, AlertTriangle } from 'lucide-svelte';
+    import { TimeSettingsSchema } from '$lib/db/schemas';
     import { zod } from 'sveltekit-superforms/adapters';
 
     let { data } = $props();
     
     let loading = $state(true);
     let saved = $state(false);
+    let formError = $state<string | null>(null);
 
     // Initialize the form with default values merged with any existing data
-    const { form, enhance, submitting, delayed } = superForm(data.form, {
-        validators: zod(SystemSettingsSchema),
+    const { form, enhance, submitting, delayed, errors } = superForm(data.form ?? {
+        // Default values
+        use24Hour: false,
+        showSeconds: false,
+        timezone: 'auto'
+    }, {
+        validators: zod(TimeSettingsSchema),
+        dataType: 'json',
         validationMethod: 'submit-only',
         delayMs: 300,
         resetForm: false,
         onResult: ({ result }) => {
             if (result.type === 'success') {
                 saved = true;
+                formError = null;
                 setTimeout(() => {
                     saved = false;
                 }, 3000);
+            } else if (result.type === 'failure') {
+                // Check if there's a specific error message in the result
+                formError = result.data?.error ?? 'An unexpected error occurred';
             }
         }
     });
-  
+            
     // Reactive time and date strings
     let currentTime = $state('');
     let timeInterval: ReturnType<typeof setInterval>;
@@ -45,6 +56,11 @@
 
     // Initialize and cleanup timer
     onMount(() => {
+        // Check for any initial error from server load
+        if (data.error) {
+            formError = data.error;
+        }
+
         updateTime();
         timeInterval = setInterval(updateTime, 1000);
         setTimeout(() => {
@@ -101,6 +117,13 @@
                     </h2>
                 </div>
                 <p class="text-base-content/70 ml-10">Choose how times are displayed on the prayer screen</p>
+
+                {#if formError}
+                    <div role="alert" class="alert alert-error mb-4">
+                        <AlertTriangle class="h-6 w-6" />
+                        <span>{formError}</span>
+                    </div>
+                {/if}
 
                 <form method="POST" use:enhance class="space-y-6 mt-6">
                     <!-- Time Display Preview -->
@@ -166,19 +189,14 @@
                     <div class="mt-8 flex justify-end">
                         <button 
                             type="submit"
-                            class="btn btn-primary w-full sm:w-auto" 
+                            class="btn btn-primary gap-2 w-full sm:w-auto" 
                             disabled={$submitting}
                         >
                             {#if $submitting}
-                                <Loader2 class="h-4 w-4 mr-1 animate-spin" />
+                                <Loader2 class="h-5 w-5 animate-spin" />
                                 Saving...
-                            {:else if $delayed}
-                                <Loader2 class="h-4 w-4 mr-1 animate-spin" />
-                                Checking...
-                            {:else if saved}
-                                <CheckCircle class="h-4 w-4 mr-1" />
-                                Saved!
                             {:else}
+                                <Save class="h-5 w-5" />
                                 Save Settings
                             {/if}
                         </button>
