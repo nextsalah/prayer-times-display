@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const languageSettings = sqliteTable("language_settings", {
   id: integer("id").primaryKey().$default(() => 1),
+  language_code: text("language_code").notNull().default("en"),
   fajr: text("fajr").notNull().default("Fajr"),
   sunrise: text("sunrise").notNull().default("Sunrise"),
   dhuhr: text("dhuhr").notNull().default("Dhuhr"),
@@ -18,6 +19,7 @@ export const languageSettings = sqliteTable("language_settings", {
 const TEXT_REGEX = /^[a-zA-Z0-9\s.,!?'-]+$/;
 export const LanguageSchema = z.object({
   id: z.number().optional(),
+  language_code: z.string().min(2).max(5),
   fajr: z.string()
     .min(2, "Fajr name must be at least 2 characters")
     .max(20, "Fajr name cannot exceed 20 characters")

@@ -1,47 +1,55 @@
 import type { PageServerLoad, Actions } from './$types';
-import { SystemService } from '$lib/db';
+import { SystemService, languageService } from '$lib/db';
 import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
-import { SystemSettingsSchema } from '$lib/db/schemas';
+import { SystemSettingsSchema, LanguageSchema } from '$lib/db/schemas';
+import { languageConfigs } from '$lib/config/languageConfiguration';
 
 export const load: PageServerLoad = async () => {
     const systemSettings = await SystemService.get();
+    
+    // Load any existing customizations
+    const customizations = await languageService.getCustomizations(currentLanguage);
     
     // Create form with current system settings
     const form = await superValidate(systemSettings, zod(SystemSettingsSchema));
     
     return {
-        form
+        form,
+        customizations
     };
 };
 
 export const actions: Actions = {
     default: async ({ request }) => {
-        const form = await superValidate(request, zod(SystemSettingsSchema));
-        
-        if (!form.valid) {
-            return fail(400, { form });
-        }
-        
+        const formData = await request.formData();
+        const selectedLanguage = formData.get('language') as string;
+        const customizations = Object.fromEntries(
+            Array.from(formData.entries())
+                .filter(([key]) => key !== 'language' && key !== 'touched' && key !== 'valid')
+        );
+
         try {
-            // Update only language-related settings we know exist
-            // Check if these fields exist in the form data before updating
-            const updateData: Record<string, any> = {};
-            
-            if ('language' in form.data) {
-                updateData.language = form.data.language;
+            // Only save customizations that differ from defaults
+            const defaultSettings = languageConfigs[selectedLanguage]?.settings || {};
+            const customizedValues = Object.fromEntries(
+                Object.entries(customizations)
+                    .filter(([key, value]) => value !== defaultSettings[key])
+            );
+
+            if (Object.keys(customizedValues).length > 0) {
+                await languageService.saveCustomizations(selectedLanguage, {
+                    language_code: selectedLanguage,
+                    ...customizedValues
+                });
             }
-            
-            if ('useArabicPrayerNames' in form.data) {
-                updateData.useArabicPrayerNames = form.data.useArabicPrayerNames;
-            }
-            
-            await SystemService.update(updateData);
-            
-            return { form };
+
+            const form = await superValidate(formData, zod(SystemSettingsSchema));
+            return { form, success: true };
         } catch (error) {
             console.error('Error updating language settings:', error);
+            const form = await superValidate(formData, zod(SystemSettingsSchema));
             return fail(500, { form, error: 'Failed to update language settings' });
         }
     }

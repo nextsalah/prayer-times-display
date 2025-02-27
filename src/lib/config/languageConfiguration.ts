@@ -1,12 +1,15 @@
 import type { LanguageSettingsWithoutId } from "$lib/db/schemas";
 import type { Component } from 'svelte';
-import { Gb, Sa, Ba, Tr, Se, Pk} from 'svelte-flag-icons';
+import { 
+    Gb, Sa, Ba, Tr, Se, Pk, De, Fr, Es, It, Pt, Nl, Pl, Ru, Dk, No, Fi, 
+    Id, My, Bn, Th, Kr, Jp, Cn, In
+} from 'svelte-flag-icons';
 
 type LanguageConfig = {
     [key: string]: {
         name: string;
         code: string;
-        flag: Component
+        flag: Component;
         settings: LanguageSettingsWithoutId;
     }
 };
@@ -15,7 +18,7 @@ export const languageConfigs: LanguageConfig = {
     english: {
         name: "English",
         code: "en",
-        flag: Gb,  // UK flag for English
+        flag: Gb,
         settings: {
             fajr: "Fajr",
             sunrise: "Sunrise",
@@ -32,7 +35,7 @@ export const languageConfigs: LanguageConfig = {
     arabic: {
         name: "العربية",
         code: "ar",
-        flag: Sa,  // Saudi Arabia flag for Arabic
+        flag: Sa,
         settings: {
             fajr: "الفجر",
             sunrise: "الشروق",
@@ -49,7 +52,7 @@ export const languageConfigs: LanguageConfig = {
     bosnian: {
         name: "Bosanski",
         code: "bs",
-        flag: Ba,  // Bosnia and Herzegovina flag
+        flag: Ba,
         settings: {
             fajr: "Zora",
             sunrise: "Izlazak",
@@ -66,7 +69,7 @@ export const languageConfigs: LanguageConfig = {
     swedish: {
         name: "Svenska",
         code: "sv",
-        flag: Se,  // Sweden flag
+        flag: Se,
         settings: {
             fajr: "Fajr",
             sunrise: "Soluppgång",
@@ -83,7 +86,7 @@ export const languageConfigs: LanguageConfig = {
     turkish: {
         name: "Türkçe",
         code: "tr",
-        flag: Tr,  // Turkey flag
+        flag: Tr,
         settings: {
             fajr: "İmsak",
             sunrise: "Güneş",
@@ -100,7 +103,7 @@ export const languageConfigs: LanguageConfig = {
     urdu: {
         name: "اردو",
         code: "ur",
-        flag: Pk,  //
+        flag: Pk,
         settings: {
             fajr: "فجر",
             sunrise: "طلوع آفتاب",
@@ -112,6 +115,57 @@ export const languageConfigs: LanguageConfig = {
             iqamah: "اقامہ",
             begins: "شروع",
             next: "اگلا"
+        }
+    },
+    german: {
+        name: "Deutsch",
+        code: "de",
+        flag: De,
+        settings: {
+            fajr: "Fadschr",
+            sunrise: "Sonnenaufgang",
+            dhuhr: "Dhuhr",
+            asr: "Asr",
+            maghrib: "Maghrib",
+            isha: "Ischa",
+            prayer: "Gebet",
+            iqamah: "Iqama",
+            begins: "Beginnt",
+            next: "Nächstes"
+        }
+    },
+    french: {
+        name: "Français",
+        code: "fr",
+        flag: Fr,
+        settings: {
+            fajr: "Fajr",
+            sunrise: "Lever du soleil",
+            dhuhr: "Dhuhr",
+            asr: "Asr",
+            maghrib: "Maghrib",
+            isha: "Isha",
+            prayer: "Prière",
+            iqamah: "Iqama",
+            begins: "Commence",
+            next: "Suivante"
+        }
+    },
+    spanish: {
+        name: "Español",
+        code: "es",
+        flag: Es,
+        settings: {
+            fajr: "Fajr",
+            sunrise: "Amanecer",
+            dhuhr: "Dhuhr",
+            asr: "Asr",
+            maghrib: "Maghrib",
+            isha: "Isha",
+            prayer: "Oración",
+            iqamah: "Iqama",
+            begins: "Comienza",
+            next: "Siguiente"
         }
     }
 };
