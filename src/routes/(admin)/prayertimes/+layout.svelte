@@ -1,16 +1,18 @@
-<script lang="ts">
+<script>
     import { ChevronLeft } from "lucide-svelte";
-    import { page } from '$app/stores';
+    import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';
-  
-    // Show back button on any page except the index
-    const showBackButton = $derived($page.url.pathname !== '/prayertimes');
-  
+    
+    // Get the props
+    let { children } = $props();
+    
+    // Using runes for reactive state
+    let showBackButton = $derived(page.url.pathname !== '/prayertimes');
+    
     function goBack() {
         goto('/prayertimes');
     }
-    let props = $props();
 </script>
 
 {#if showBackButton}
@@ -24,4 +26,4 @@
     </button>
 {/if}
 
-{@render props.children()}
+{@render children()}

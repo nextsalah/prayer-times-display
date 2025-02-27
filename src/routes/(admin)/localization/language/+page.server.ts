@@ -14,6 +14,7 @@ export const load: PageServerLoad = async () => {
         const form = await superValidate(localization.language, zod(LanguageSchema));
         
         return {
+            title: 'Language Settings',
             form,
             currentLanguageCode: localization.language?.language_code || 'en'
         };

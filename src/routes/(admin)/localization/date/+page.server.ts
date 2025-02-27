@@ -10,6 +10,7 @@ export const load: PageServerLoad = async () => {
         const localization = await localizationService.getLocalization();
         const form = await superValidate(localization.dateSettings, zod(DateSettingsSchema));
         return {
+            title: 'Date Settings',
             form,
             currentLanguageCode: localization.language?.language_code || 'en'
         };

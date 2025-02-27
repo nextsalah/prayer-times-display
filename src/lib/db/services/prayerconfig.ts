@@ -22,7 +22,7 @@ export class PrayerConfigService extends SingletonDB<DbPrayerConfig> {
     // Get settings for specific prayer
     async getPrayer<P extends Prayer>(prayer: P): Promise<SettingsForPrayer<P>> {
         const settings = await this.getAll();
-        return settings[prayer];
+        return settings[prayer] as SettingsForPrayer<P>;
     }
 
     // Update settings for specific prayer
@@ -31,11 +31,19 @@ export class PrayerConfigService extends SingletonDB<DbPrayerConfig> {
         updates: Partial<SettingsForPrayer<P>>
     ): Promise<PrayerSettings> {
         const settings = await this.getAll();
+        
+        // Ensure we're working with a proper object for this prayer
+        if (!settings[prayer]) {
+            settings[prayer] = {} as SettingsForPrayer<P>;
+        }
+        
+        // Merge the updates with existing settings
         settings[prayer] = { 
             ...settings[prayer], 
             ...updates 
-        };
+        } as SettingsForPrayer<P>;
         
+        // Save the updated settings
         await this.update({ settings: JSON.stringify(settings) });
         return settings;
     }
