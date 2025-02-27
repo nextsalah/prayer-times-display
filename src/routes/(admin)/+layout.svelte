@@ -14,10 +14,10 @@
 
 <HeadWrapper page_title={page.data.title} />
 
-<div class="min-h-screen flex flex-col bg-base-100"> <!-- Main background -->
+<div class="min-h-screen flex flex-col bg-gradient-to-b from-base-200 to-base-300">
   <!-- Header -->
   <header class="fixed top-0 left-0 right-0 z-50">
-    <nav class="bg-base-200 border-b border-base-300"> <!-- Navbar with slight contrast -->
+    <nav class="bg-base-100/95 backdrop-blur-sm border-b border-base-300/50"> <!-- Semi-transparent nav -->
       <Navbar />
     </nav>
   </header>
@@ -35,7 +35,7 @@
   <!-- Bottom Navigation -->
   {#if shouldShowBottomNav}
     <div class="fixed bottom-0 left-0 right-0 z-50">
-      <div class="bg-base-200 border-t border-base-300"> <!-- Bottom nav with same treatment as top -->
+      <div class="bg-base-100/95 backdrop-blur-sm border-t border-base-300/50"> <!-- Matching bottom nav -->
         <BottomNavigation />
       </div>
     </div>

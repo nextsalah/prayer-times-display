@@ -33,7 +33,7 @@
 </script>
 
 <div class="flex flex-wrap gap-4 justify-center" in:fade={{ duration: 200 }}>
-    <div class="card w-96 bg-base-300 shadow-xl hover:shadow-2xl transition-all duration-300">
+    <div class="card w-96 bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300">
         <!-- Loading State -->
         {#if !FormHandlerProps.fetchFinished}
             <div class="card-body items-center text-center p-6 min-h-[400px] flex justify-center">

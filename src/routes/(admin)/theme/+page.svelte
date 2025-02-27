@@ -14,7 +14,7 @@
 
 <div class="p-4 rounded-lg">
     <div class="container mx-auto max-w-5xl">
-        <div class="card bg-base-300 shadow-lg border border-base-200">
+        <div class="card bg-base-100 shadow-lg border border-base-200">
             <div class="card-body p-6">
                 <!-- Theme Information -->
                 <div class="bg-base-100 rounded-lg p-4 mb-6">

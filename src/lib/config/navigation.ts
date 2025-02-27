@@ -14,8 +14,8 @@ import {
 export const navigation = {
     items: [
         {
-            slug: "sources",
-            href: "/sources",
+            slug: "prayertimes",
+            href: "/prayertimes",
             title: "Prayer Times",
             mobileTitle: "Prayers",
             description: "Configure times, Iqamah and display options",

@@ -20,7 +20,7 @@
 
     type SingleOption = { value: string | number, name: string };
     let options: SingleOption[] = [];
-    let selected: string = $state();
+    let selected: string = $state('');
 
     // Get the options from the api
     const handleFetchData = (locations : SingleOptionLocation) => {
