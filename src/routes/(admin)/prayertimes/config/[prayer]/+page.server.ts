@@ -6,17 +6,19 @@ import { zod } from 'sveltekit-superforms/adapters';
 import { fail } from '@sveltejs/kit';
 import { z } from 'zod';
 
-// Create a validation schema that includes all possible fields
-const formValidationSchema = z.object({
+// Base schema for all prayers
+const baseFormSchema = z.object({
     showIqamah: z.boolean(),
     iqamah: z.number().int().min(0).max(60),
-    iqamahAfterPrayer: z.boolean(),
     offset: z.number().int().min(-60).max(60),
     isFixed: z.boolean(),
-    fixedTime: z.string(),
-    // These are for Fajr but we include them in the schema for all prayers
-    calculateIqamahFromSunrise: z.boolean().optional().default(false),
-    sunriseOffset: z.number().int().min(-120).max(0).optional().default(0)
+    fixedTime: z.string().default("00:00"),
+});
+
+// Extended schema for Fajr prayer
+const fajrFormSchema = baseFormSchema.extend({
+    calculateIqamahFromSunrise: z.boolean().default(false),
+    sunriseOffset: z.number().int().min(-120).max(0).default(-30),
 });
 
 export const load = (async ({ params }) => {
@@ -28,37 +30,53 @@ export const load = (async ({ params }) => {
             throw new Error(`Invalid prayer name: ${prayerName}`);
         }
         
+        // Get prayer settings from database
         const settings = await prayerConfigService.getPrayer(prayerName);
         
-        // Create a copy of settings to avoid type errors
-        const enhancedSettings = { ...settings } as any;
+        // Choose the correct validation schema based on prayer type
+        const schema = prayerName === 'fajr' ? fajrFormSchema : baseFormSchema;
         
-        // For Fajr, ensure the specific fields are present with default values if missing
+        // Ensure fixedTime has a default value
+        let enhancedSettings = { 
+            ...settings,
+            fixedTime: settings.fixedTime || "00:00"
+        };
+        
+        // Add Fajr-specific defaults if needed
         if (prayerName === 'fajr') {
-            if (typeof enhancedSettings.calculateIqamahFromSunrise !== 'boolean') {
-                enhancedSettings.calculateIqamahFromSunrise = false;
-            }
-            
-            if (typeof enhancedSettings.sunriseOffset !== 'number') {
-                enhancedSettings.sunriseOffset = -30;
-            }
+            const fajrSettings = enhancedSettings as typeof enhancedSettings & {
+                calculateIqamahFromSunrise?: boolean;
+                sunriseOffset?: number;
+            };
+            fajrSettings.calculateIqamahFromSunrise = 
+                fajrSettings.calculateIqamahFromSunrise ?? false;
+            fajrSettings.sunriseOffset = 
+                fajrSettings.sunriseOffset ?? -30;
+            enhancedSettings = fajrSettings;
         }
         
-        const form = await superValidate(enhancedSettings, zod(formValidationSchema));
+        // Validate form with the appropriate schema
+        const form = await superValidate(enhancedSettings, zod(schema));
         
         return {
             title: prayerName.charAt(0).toUpperCase() + prayerName.slice(1),
             prayerName,
             form,
+            isFajr: prayerName === 'fajr'
         };
     } catch (error) {
         console.error('Error loading prayer settings:', error);
-        const form = await superValidate(zod(formValidationSchema));
+        
+        // Choose schema based on prayer name even in error case
+        const isFajr = params.prayer === 'fajr';
+        const schema = isFajr ? fajrFormSchema : baseFormSchema;
+        const form = await superValidate(zod(schema));
         
         return {
             title: params.prayer,
             prayerName: params.prayer as Prayer,
             form,
+            isFajr,
             error: "Failed to load prayer settings"
         };
     }
@@ -68,9 +86,12 @@ export const actions = {
     default: async ({ request, params }) => {
         const formData = await request.formData();
         const prayerName = params.prayer as Prayer;
+        const isFajr = prayerName === 'fajr';
         
         try {
-            const form = await superValidate(formData, zod(formValidationSchema));
+            // Select the appropriate schema based on prayer type
+            const schema = isFajr ? fajrFormSchema : baseFormSchema;
+            const form = await superValidate(formData, zod(schema));
             
             // Manual validation for fixedTime if isFixed is true
             if (form.data.isFixed && (!form.data.fixedTime || !form.data.fixedTime.match(/^([01]?\d|2[0-3]):[0-5]\d$/))) {
@@ -84,27 +105,32 @@ export const actions = {
                 return fail(400, { form });
             }
             
-            // Create an update object with the form data and make it partially optional
-            const updateData: Partial<typeof form.data> = { ...form.data };
+            // If not using fixed time, ensure fixedTime has a default value but don't save it
+            if (!form.data.isFixed) {
+                form.data.fixedTime = "00:00";
+            }
+            
+            // Create a typed update object based on form data
+            const updateData = { ...form.data };
             
             // Ensure proper types for all fields
             updateData.showIqamah = Boolean(updateData.showIqamah);
             updateData.iqamah = Number(updateData.iqamah);
-            updateData.iqamahAfterPrayer = Boolean(updateData.iqamahAfterPrayer);
             updateData.offset = Number(updateData.offset);
             updateData.isFixed = Boolean(updateData.isFixed);
             
-            // For non-Fajr prayers, remove Fajr-specific fields before saving
-            if (prayerName !== 'fajr') {
-                delete updateData.calculateIqamahFromSunrise;
-                delete updateData.sunriseOffset;
-            } else {
-                // For Fajr, ensure the specific fields are properly typed and present
-                updateData.calculateIqamahFromSunrise = Boolean(updateData.calculateIqamahFromSunrise);
-                updateData.sunriseOffset = Number(updateData.sunriseOffset || 0);
-            }
+            // Add type field to match the schema
+            const dataWithType = {
+                ...updateData,
+                type: prayerName
+            };
             
-            console.log(`Updating ${prayerName} settings:`, updateData);
+            // For Fajr, ensure the specific fields are properly typed and present
+            if (isFajr && 'calculateIqamahFromSunrise' in updateData) {
+                const fajrData = updateData as z.infer<typeof fajrFormSchema>;
+                fajrData.calculateIqamahFromSunrise = Boolean(fajrData.calculateIqamahFromSunrise);
+                fajrData.sunriseOffset = Number(fajrData.sunriseOffset || -30);
+            }
             
             // Update prayer settings
             await prayerConfigService.updatePrayer(prayerName, updateData);
@@ -116,7 +142,10 @@ export const actions = {
             
         } catch (error) {
             console.error('Error updating prayer settings:', error);
-            const form = await superValidate(formData, zod(formValidationSchema));
+            
+            // Select the appropriate schema based on prayer type
+            const schema = isFajr ? fajrFormSchema : baseFormSchema;
+            const form = await superValidate(formData, zod(schema));
             
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             return fail(500, { 

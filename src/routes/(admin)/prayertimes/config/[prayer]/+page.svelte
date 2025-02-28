@@ -1,25 +1,58 @@
-<script>
+<script lang="ts">
     import { superForm } from 'sveltekit-superforms/client';
     import { 
         Clock, 
         AlarmCheck, 
-        Timer, 
-        ArrowUpDown, 
         Lock, 
         Sunrise,
-        Info,
         CheckCircle,
-        AlertCircle
+        AlertCircle,
+        ChevronDown
     } from 'lucide-svelte';
     
     let { data } = $props();
-
-    // Use a regular variable since we don't need reactivity for this static check
-    const isFajr = data.prayerName?.toLowerCase() === 'fajr';
     
+    // Type the form properly based on prayer type
     const { form, enhance, errors, submitting, message } = superForm(data.form, {
         resetForm: false,
         taintedMessage: 'You have unsaved changes. Are you sure you want to leave?',
+    });
+    
+    // Helper for type-safe access to Fajr fields
+    function isFajrCalculateFromSunrise() {
+        if (!data.isFajr) return false;
+        return ($form as any).calculateIqamahFromSunrise ?? false;
+    }
+    
+    // Helper for type-safe binding to Fajr fields
+    function updateFajrCalculateFromSunrise(value: boolean) {
+        if (!data.isFajr) return;
+        ($form as any).calculateIqamahFromSunrise = value;
+    }
+    
+    // Helper for type-safe access to sunriseOffset
+    function getFajrSunriseOffset() {
+        if (!data.isFajr) return 0;
+        return ($form as any).sunriseOffset ?? -30;
+    }
+    
+    // Helper for type-safe binding to sunriseOffset
+    function updateFajrSunriseOffset(value: number) {
+        if (!data.isFajr) return;
+        ($form as any).sunriseOffset = value;
+    }
+    
+    // Helper for type-safe access to sunrise offset errors
+    function getSunriseOffsetError() {
+        if (!data.isFajr) return null;
+        return ($errors as any).sunriseOffset;
+    }
+    
+    // Ensure valid default value for fixedTime
+    $effect(() => {
+        if (!$form.isFixed && (!$form.fixedTime || $form.fixedTime === "")) {
+            $form.fixedTime = "00:00";
+        }
     });
     
     // UI feedback states
@@ -39,292 +72,401 @@
         }
     });
     
-    // Form section component for better organization
-    const FormSection = ({ title, description = '' }) => {
-        return `
-            <div class="border-b border-base-300 pb-2 mb-4">
-                <h3 class="text-lg font-medium">${title}</h3>
-                ${description ? `<p class="text-sm text-base-content/70">${description}</p>` : ''}
-            </div>
-        `;
+    // Time formatting utility
+    function formatTime(time: string): string {
+        try {
+            const [hours, minutes] = time.split(':').map(Number);
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        } catch (e) {
+            return time;
+        }
+    }
+    
+    
+    // Generate example prayer and iqamah times for visualization
+    let baseTime = $state("6:00");
+    let calculatedTime = $state("");
+    let iqamahTime = $state("");
+    
+    // Prayer time maps for visualization
+    const prayerDefaultTimes = {
+        fajr: "5:15",
+        dhuhr: "12:30",
+        asr: "15:45",
+        maghrib: "18:20",
+        isha: "20:00"
     };
+    
+    // Sunrise time for Fajr visualization
+    let sunriseTime = $state("7:00");
+    
+    // Advanced settings panel state
+    let advancedSettingsOpen = $state(false);
+    
+    // Update visualizer times whenever form values change
+    $effect(() => {
+        try {
+            // Set base time based on prayer
+            baseTime = prayerDefaultTimes[data.prayerName] || "6:00";
+            
+            // Split base time into hours and minutes
+            let [hours, minutes] = baseTime.split(':').map(Number);
+            
+            // Apply offset if not using fixed time
+            if (!$form.isFixed) {
+                let newMinutes = minutes + ($form.offset || 0);
+                let hourAdjust = Math.floor(newMinutes / 60);
+                
+                // Handle minute overflow/underflow
+                if (newMinutes >= 60 || newMinutes < 0) {
+                    newMinutes = ((newMinutes % 60) + 60) % 60;
+                    hours += hourAdjust;
+                    
+                    // Keep hours in 24-hour format
+                    hours = ((hours % 24) + 24) % 24;
+                }
+                
+                calculatedTime = `${hours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+            } else {
+                // Use fixed time
+                calculatedTime = $form.fixedTime;
+            }
+            
+            // Calculate Iqamah time
+            if ($form.showIqamah) {
+                // For Fajr with sunrise calculation
+                if (data.isFajr && isFajrCalculateFromSunrise()) {
+                    // Parse sunrise time
+                    let [sunriseHours, sunriseMinutes] = sunriseTime.split(':').map(Number);
+                    
+                    // Apply sunrise offset
+                    const offsetMinutes = getFajrSunriseOffset();
+                    let totalMinutes = (sunriseHours * 60 + sunriseMinutes) + offsetMinutes;
+                    
+                    // Handle negative time
+                    if (totalMinutes < 0) totalMinutes += 24 * 60;
+                    
+                    const iqamahHours = Math.floor(totalMinutes / 60) % 24;
+                    const iqamahMinutes = totalMinutes % 60;
+                    
+                    iqamahTime = `${iqamahHours.toString().padStart(2, '0')}:${iqamahMinutes.toString().padStart(2, '0')}`;
+                } else {
+                    // Standard iqamah calculation: prayer time + iqamah delay
+                    let [iqamahHours, iqamahMinutes] = calculatedTime.split(':').map(Number);
+                    let totalMinutes = (iqamahHours * 60 + iqamahMinutes) + ($form.iqamah || 0);
+                    
+                    // Handle overnight
+                    if (totalMinutes >= 24 * 60) totalMinutes -= 24 * 60;
+                    
+                    const newIqamahHours = Math.floor(totalMinutes / 60);
+                    const newIqamahMinutes = totalMinutes % 60;
+                    
+                    iqamahTime = `${newIqamahHours.toString().padStart(2, '0')}:${newIqamahMinutes.toString().padStart(2, '0')}`;
+                }
+            } else {
+                iqamahTime = "";
+            }
+        } catch (e) {
+            console.error("Error calculating visualizer times:", e);
+        }
+    });
 </script>
 
-<div class="bg-base-100 p-6 rounded-xl border border-base-300 max-w-2xl mx-auto mb-8">
-    <header class="mb-6">
-        <h2 class="text-2xl font-bold">{data.title.charAt(0).toUpperCase() + data.title.slice(1)} Settings</h2>
-        <p class="text-base-content/70">Configure prayer time settings and Iqamah preferences</p>
-        <!-- Debug info - remove in production -->
-        <p class="text-xs text-base-content/50 mt-2">Prayer Type: {isFajr ? 'Fajr' : 'Other'}</p>
-    </header>
-
-    {#if data.error}
-        <div class="alert alert-error mb-6">
-            <AlertCircle size={20} />
-            <span>{data.error}</span>
-        </div>
-    {/if}
-
-    {#if showSuccessMessage && $message?.success}
-        <div class="alert alert-success mb-6 animate-in fade-in slide-in-from-top duration-300">
-            <CheckCircle size={20} />
-            <span>{$message.success}</span>
-        </div>
-    {/if}
-
-    {#if showErrorMessage && $message?.error}
-        <div class="alert alert-error mb-6 animate-in fade-in slide-in-from-top duration-300">
-            <AlertCircle size={20} />
-            <span>{$message.error}</span>
-        </div>
-    {/if}
-
-    <form method="POST" use:enhance class="space-y-8">
-        <!-- Prayer Time Section -->
-        {@html FormSection({ 
-            title: 'Prayer Time Settings', 
-            description: 'Adjust how the prayer time is calculated or displayed'
-        })}
-    
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Offset field -->
-            <div class="form-control w-full">
-                <label for="offset" class="label">
-                    <span class="label-text flex items-center gap-2">
-                        <ArrowUpDown size={18} class="text-primary" />
-                        Time Offset (minutes)
-                    </span>
-                </label>
-                <input
-                    type="number"
-                    id="offset"
-                    name="offset"
-                    bind:value={$form.offset}
-                    class="input input-bordered w-full"
-                    min="-60"
-                    max="60"
-                    disabled={$submitting}
-                />
-                {#if $errors.offset}
-                    <label class="label text-error text-sm">{$errors.offset}</label>
-                {/if}
-                <p class="text-xs text-base-content/60 mt-1">
-                    Positive values delay prayer time, negative values advance it
-                </p>
+<div class="bg-base-100 p-4 md:p-8 rounded-xl border border-base-300 shadow-sm max-w-2xl mx-auto overflow-hidden">
+    <!-- Header with visual enhancement -->
+    <div class="flex flex-col gap-4 mb-8">
+        <div class="flex items-center gap-3">
+            <div class="bg-primary bg-opacity-10 p-2.5 rounded-lg">
+                <Clock class="text-primary" size={22} />
             </div>
-
-            <!-- Fixed Time Toggle -->
-            <div class="form-control w-full">
-                <label for="isFixed" class="label">
-                    <span class="label-text flex items-center gap-2">
-                        <Lock size={18} class="text-primary" />
-                        Use Fixed Time
-                    </span>
-                </label>
-                <div class="flex items-center gap-3">
-                    <input
-                        type="checkbox"
-                        id="isFixed"
-                        name="isFixed"
-                        bind:checked={$form.isFixed}
-                        class="toggle toggle-primary"
-                        disabled={$submitting}
-                    />
-                    <span class="text-sm">
-                        {$form.isFixed ? 'Using fixed time' : 'Using calculated time'}
-                    </span>
+            <h2 class="text-2xl font-bold">{data.title} Settings</h2>
+        </div>
+        
+        <!-- Time Preview Card -->
+        <div class="bg-gradient-to-r from-base-200/40 to-base-200/70 backdrop-blur-sm rounded-xl p-4 md:p-5 mt-2 border border-base-300/50">
+            <div class="flex flex-wrap justify-center items-center gap-4 md:gap-10">
+                <div class="text-center">
+                    <div class="text-xs uppercase tracking-wide text-base-content/60 mb-1.5">Prayer</div>
+                    <div class="font-semibold text-xl">{formatTime(calculatedTime)}</div>
                 </div>
-                <p class="text-xs text-base-content/60 mt-1">
-                    Override calculated prayer time with your own scheduled time
-                </p>
-            </div>
-        </div>
-
-        <!-- Fixed Time Input (conditionally shown) -->
-        {#if $form.isFixed}
-            <div class="form-control w-full max-w-xs animate-in fade-in slide-in-from-top duration-300">
-                <label for="fixedTime" class="label">
-                    <span class="label-text flex items-center gap-2">
-                        <Clock size={18} class="text-primary" />
-                        Fixed Time
-                    </span>
-                </label>
-                <input
-                    type="time"
-                    id="fixedTime"
-                    name="fixedTime"
-                    bind:value={$form.fixedTime}
-                    class="input input-bordered w-full"
-                    disabled={$submitting}
-                />
-                {#if $errors.fixedTime}
-                    <label class="label text-error text-sm">{$errors.fixedTime}</label>
+                
+                {#if $form.showIqamah}
+                    <!-- Arrow connecting times -->
+                    <div class="text-base-content/30">→</div>
+                    
+                    <div class="text-center">
+                        <div class="text-xs uppercase tracking-wide text-base-content/60 mb-1.5">Iqamah</div>
+                        <div class="font-semibold text-xl text-primary">{formatTime(iqamahTime)}</div>
+                    </div>
+                {/if}
+                
+                {#if data.isFajr}
+                    {#if $form.showIqamah}
+                        <div class="h-full w-px bg-base-content/10 mx-2 hidden md:block"></div>
+                        <div class="w-full md:hidden border-t border-base-content/10 my-2"></div>
+                        <div class="text-center">
+                            <div class="text-xs uppercase tracking-wide text-base-content/60 mb-1.5">Sunrise</div>
+                            <div class="font-semibold text-xl text-amber-500">{formatTime(sunriseTime)}</div>
+                        </div>
+                    {/if}
                 {/if}
             </div>
-        {/if}
-        
-        <!-- Iqamah Section -->
-        {@html FormSection({ 
-            title: 'Iqamah Settings', 
-            description: 'Configure how Iqamah times are calculated and displayed'
-        })}
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Show Iqamah Toggle -->
-            <div class="form-control w-full">
-                <label for="showIqamah" class="label">
-                    <span class="label-text flex items-center gap-2">
-                        <AlarmCheck size={18} class="text-primary" />
-                        Show Iqamah Time
-                    </span>
-                </label>
-                <div class="flex items-center gap-3">
-                    <input
-                        type="checkbox"
-                        id="showIqamah"
-                        name="showIqamah"
-                        bind:checked={$form.showIqamah}
-                        class="toggle toggle-primary"
-                        disabled={$submitting}
-                    />
-                    <span class="text-sm">
-                        {$form.showIqamah ? 'Iqamah time will be displayed' : 'Iqamah time hidden'}
-                    </span>
+        </div>
+    </div>
+  
+    <!-- Alerts with improved animations -->
+    {#if data.error || showSuccessMessage || showErrorMessage}
+        <div class="mb-6 space-y-3">
+            {#if data.error}
+                <div class="alert alert-error shadow-sm">
+                    <AlertCircle size={18} />
+                    <span class="font-medium">{data.error}</span>
                 </div>
-            </div>
+            {/if}
             
-            <!-- Iqamah After Prayer Toggle -->
-            <div class="form-control w-full">
-                <label for="iqamahAfterPrayer" class="label">
-                    <span class="label-text flex items-center gap-2">
-                        <Timer size={18} class="text-primary" />
-                        Iqamah Method
-                    </span>
-                </label>
-                <div class="flex items-center gap-3">
-                    <input
-                        type="checkbox"
-                        id="iqamahAfterPrayer"
-                        name="iqamahAfterPrayer"
-                        bind:checked={$form.iqamahAfterPrayer}
-                        class="toggle toggle-primary"
-                        disabled={$submitting}
-                    />
-                    <span class="text-sm">
-                        {$form.iqamahAfterPrayer ? 'Minutes after prayer time' : 'Custom calculation'}
-                    </span>
+            {#if showSuccessMessage && $message?.success}
+                <div class="alert alert-success shadow-sm animate-in fade-in duration-300">
+                    <CheckCircle size={18} />
+                    <span class="font-medium">{$message.success}</span>
                 </div>
-            </div>
-        </div>
-        
-        {#if $form.showIqamah}
-            <div class="form-control w-full max-w-xs animate-in fade-in slide-in-from-top duration-300">
-                <label for="iqamah" class="label">
-                    <span class="label-text flex items-center gap-2">
-                        <Timer size={18} class="text-primary" />
-                        Iqamah Delay (minutes)
-                    </span>
-                </label>
-                <input
-                    type="number"
-                    id="iqamah"
-                    name="iqamah"
-                    bind:value={$form.iqamah}
-                    class="input input-bordered w-full"
-                    min="0"
-                    max="60"
-                    disabled={$submitting}
-                />
-                {#if $errors.iqamah}
-                    <label class="label text-error text-sm">{$errors.iqamah}</label>
-                {/if}
-                <p class="text-xs text-base-content/60 mt-1">
-                    Minutes to wait after prayer time before Iqamah
-                </p>
-            </div>
-        {/if}
-        
-        <!-- Fajr-specific settings - Only show for Fajr prayer -->
-        {#if isFajr}
-            {@html FormSection({ 
-                title: 'Fajr-Specific Settings', 
-                description: 'Special settings applicable only to Fajr prayer'
-            })}
+            {/if}
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Calculate from Sunrise Toggle -->
-                <div class="form-control w-full">
-                    <label for="calculateIqamahFromSunrise" class="label">
-                        <span class="label-text flex items-center gap-2">
-                            <Sunrise size={18} class="text-primary" />
-                            Calculate from Sunrise
+            {#if showErrorMessage && $message?.error}
+                <div class="alert alert-error shadow-sm animate-in fade-in duration-300">
+                    <AlertCircle size={18} />
+                    <span class="font-medium">{$message.error}</span>
+                </div>
+            {/if}
+        </div>
+    {/if}
+  
+    <form method="POST" use:enhance>
+        <div class="card bg-base-200/20 border border-base-200 shadow-sm">
+            <div class="card-body">
+                <!-- Iqamah Settings Section -->
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="shrink-0 bg-primary bg-opacity-10 p-1.5 rounded-md">
+                        <AlarmCheck size={16} class="text-primary" />
+                    </div>
+                    <h3 class="text-base font-medium">Iqamah Configuration</h3>
+                </div>
+            
+                <!-- Iqamah Toggle with improved styling -->
+                <div class="form-control bg-base-100/50 p-3 rounded-lg border border-base-300/40">
+                    <label class="label cursor-pointer justify-between">
+                        <span class="flex items-center gap-2 text-base-content/80">
+                            Show Iqamah Time
                         </span>
-                    </label>
-                    <div class="flex items-center gap-3">
                         <input
                             type="checkbox"
-                            id="calculateIqamahFromSunrise"
-                            name="calculateIqamahFromSunrise"
-                            bind:checked={$form.calculateIqamahFromSunrise}
+                            name="showIqamah"
+                            bind:checked={$form.showIqamah}
                             class="toggle toggle-primary"
                             disabled={$submitting}
                         />
-                        <span class="text-sm">
-                            {$form.calculateIqamahFromSunrise ? 'Based on sunrise time' : 'Based on Fajr time'}
-                        </span>
-                    </div>
-                    <p class="text-xs text-base-content/60 mt-1">
-                        Useful when Iqamah should be at a specific time before sunrise
-                    </p>
+                    </label>
                 </div>
                 
-                <!-- Sunrise Offset Input (conditionally shown) -->
-                {#if $form.calculateIqamahFromSunrise}
-                    <div class="form-control w-full animate-in fade-in slide-in-from-top duration-300">
-                        <label for="sunriseOffset" class="label">
-                            <span class="label-text flex items-center gap-2">
-                                <ArrowUpDown size={18} class="text-primary" />
-                                Minutes Before Sunrise
-                            </span>
-                        </label>
-                        <input
-                            type="number"
-                            id="sunriseOffset"
-                            name="sunriseOffset"
-                            bind:value={$form.sunriseOffset}
-                            class="input input-bordered w-full"
-                            min="-120"
-                            max="0"
-                            disabled={$submitting}
-                        />
-                        {#if $errors.sunriseOffset}
-                            <label class="label text-error text-sm">{$errors.sunriseOffset}</label>
+                <!-- Iqamah Delay Input - Improved layout -->
+                {#if $form.showIqamah}
+                    <div class="form-control mt-3 p-3 bg-base-100/30 rounded-lg border border-base-200">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                            <span class="text-base-content/70 whitespace-nowrap">Delay:</span>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <input
+                                    type="number"
+                                    id="iqamah"
+                                    name="iqamah"
+                                    bind:value={$form.iqamah}
+                                    class="input input-bordered input-sm w-20"
+                                    min="0"
+                                    max="60"
+                                    disabled={$submitting || (data.isFajr && isFajrCalculateFromSunrise())}
+                                />
+                                <span class="text-sm text-base-content/70">minutes after prayer time</span>
+                            </div>
+                        </div>
+                        {#if $errors.iqamah}
+                            <div class="text-error text-sm mt-2 ml-1">{$errors.iqamah}</div>
                         {/if}
-                        <p class="text-xs text-base-content/60 mt-1">
-                            Negative values represent minutes before sunrise (e.g., -30 = 30 minutes before)
-                        </p>
                     </div>
                 {/if}
-            </div>
-        {/if}
-
-        <!-- Form Actions -->
-        <div class="flex items-center justify-between pt-4 border-t border-base-300">
-            <div class="flex items-center text-base-content/70">
-                <Info size={16} class="mr-2" />
-                <span class="text-sm">Changes will be applied immediately</span>
-            </div>
-            <div class="space-x-2">
-                <button type="reset" class="btn btn-outline" disabled={$submitting}>Reset</button>
-                <button type="submit" class="btn btn-primary" disabled={$submitting}>
-                    {#if $submitting}
-                        <span class="loading loading-spinner loading-xs"></span>
-                        Saving...
-                    {:else}
-                        Save Changes
+                
+                <!-- Fajr-specific Settings with improved UI -->
+                {#if data.isFajr && $form.showIqamah}
+                    <div class="divider my-4"></div>
+                    
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="shrink-0 bg-amber-500 bg-opacity-10 p-1.5 rounded-md">
+                            <Sunrise size={16} class="text-amber-500" />
+                        </div>
+                        <h3 class="text-base font-medium">Fajr Special Settings</h3>
+                    </div>
+                    
+                    <div class="form-control bg-base-100/50 p-3 rounded-lg border border-base-300/40">
+                        <label class="label cursor-pointer justify-between">
+                            <span class="flex items-center gap-2 text-base-content/80">
+                                Calculate from Sunrise
+                            </span>
+                            <input
+                                type="checkbox"
+                                name="calculateIqamahFromSunrise"
+                                checked={isFajrCalculateFromSunrise()}
+                                onchange={(e) => updateFajrCalculateFromSunrise(e.currentTarget.checked)}
+                                class="toggle toggle-primary"
+                                disabled={$submitting}
+                            />
+                        </label>
+                    </div>
+                    
+                    {#if isFajrCalculateFromSunrise()}
+                        <div class="grid gap-4 mt-3 p-4 bg-base-100/30 rounded-lg border border-base-200">
+                            <!-- Test Sunrise Time -->
+                            <div class="form-control">
+                                <label for="sunriseTime" class="label flex-wrap">
+                                    <span class="label-text">Test with sunrise at</span>
+                                    <span class="label-text-alt text-xs">For preview only</span>
+                                </label>
+                                <input
+                                    type="time"
+                                    id="sunriseTime"
+                                    bind:value={sunriseTime}
+                                    class="input input-bordered input-sm w-full"
+                                />
+                            </div>
+                            
+                            <!-- Minutes Before Sunrise -->
+                            <div class="form-control">
+                                <label for="sunriseOffset" class="label">
+                                    <span class="label-text">Minutes before sunrise</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    id="sunriseOffset"
+                                    name="sunriseOffset"
+                                    value={getFajrSunriseOffset()}
+                                    oninput={(e) => updateFajrSunriseOffset(parseInt(e.currentTarget.value))}
+                                    class="input input-bordered input-sm w-full"
+                                    min="-120"
+                                    max="0"
+                                    disabled={$submitting}
+                                />
+                                {#if getSunriseOffsetError()}
+                                    <div class="text-error text-sm mt-1">{getSunriseOffsetError()}</div>
+                                {/if}
+                            </div>
+                        </div>
                     {/if}
-                </button>
+                {/if}
+                
+                <!-- Advanced Settings -->
+                <div class="divider my-4"></div>
+                
+                <!-- Improved collapsible section -->
+                <div class="bg-base-100/50 rounded-lg border border-base-300/40">
+                    <button 
+                        type="button" 
+                        class="w-full p-3 flex items-center justify-between text-left focus:outline-none"
+                        onclick={() => advancedSettingsOpen = !advancedSettingsOpen}
+                    >
+                        <div class="flex items-center gap-2">
+                            <div class="shrink-0 bg-secondary bg-opacity-10 p-1.5 rounded-md">
+                                <Clock class="text-secondary" size={16} />
+                            </div>
+                            <span class="font-medium text-base-content/80">Advanced Prayer Time Settings</span>
+                        </div>
+                        <ChevronDown 
+                            size={18} 
+                            class="transition-transform duration-200" 
+                            style={advancedSettingsOpen ? "transform: rotate(180deg)" : ""}
+                        />
+                    </button>
+                    
+                    {#if advancedSettingsOpen}
+                        <div class="p-4 pt-2 border-t border-base-200">
+                            <div class="form-control mt-2">
+                                <label class="label cursor-pointer justify-between">
+                                    <span class="flex items-center gap-2 text-base-content/80">
+                                        <Lock size={16} class="text-secondary" />
+                                        Use fixed time
+                                    </span>
+                                    <input
+                                        type="checkbox"
+                                        name="isFixed"
+                                        bind:checked={$form.isFixed}
+                                        class="toggle toggle-secondary toggle-sm"
+                                        disabled={$submitting}
+                                    />
+                                </label>
+                            </div>
+                            
+                            <div class="mt-3 p-3 bg-base-100/30 rounded-lg border border-base-200">
+                                {#if $form.isFixed}
+                                    <div class="form-control">
+                                        <label for="fixedTime" class="label">
+                                            <span class="label-text">Fixed time</span>
+                                        </label>
+                                        <input
+                                            type="time"
+                                            id="fixedTime"
+                                            name="fixedTime"
+                                            bind:value={$form.fixedTime}
+                                            class="input input-bordered input-sm w-full"
+                                            disabled={$submitting}
+                                            required={$form.isFixed}
+                                        />
+                                        {#if $errors.fixedTime}
+                                            <div class="text-error text-sm mt-1">{$errors.fixedTime}</div>
+                                        {/if}
+                                    </div>
+                                {:else}
+                                    <div class="form-control">
+                                        <label for="offset" class="label">
+                                            <span class="label-text">Time offset (minutes)</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="offset"
+                                            name="offset"
+                                            bind:value={$form.offset}
+                                            class="input input-bordered input-sm w-full"
+                                            min="-60"
+                                            max="60"
+                                            disabled={$submitting}
+                                        />
+                                        {#if $errors.offset}
+                                            <div class="text-error text-sm mt-1">{$errors.offset}</div>
+                                        {/if}
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
+                    {/if}
+                </div>
             </div>
+        </div>
+        
+        <!-- Form Actions with improved styling -->
+        <div class="flex flex-col sm:flex-row sm:justify-end mt-6 gap-3">
+            <button 
+                type="reset" 
+                class="btn btn-outline btn-sm w-full sm:w-auto px-4" 
+                disabled={$submitting}
+            >
+                Reset
+            </button>
+            <button 
+                type="submit" 
+                class="btn btn-primary btn-sm w-full sm:w-auto px-6" 
+                disabled={$submitting}
+            >
+                {#if $submitting}
+                    <span class="loading loading-spinner loading-xs"></span>
+                    Saving...
+                {:else}
+                    Save Changes
+                {/if}
+            </button>
         </div>
     </form>
 </div>

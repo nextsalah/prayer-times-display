@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const;
 export type Prayer = typeof PRAYERS[number];
 
-// Base settings schema and type
+// Base settings schema for all prayers
 const baseSettingsSchema = z.object({
   showIqamah: z.boolean(),
   iqamah: z.number().int().min(0).max(60),
@@ -14,38 +14,56 @@ const baseSettingsSchema = z.object({
   fixedTime: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:mm)')
 });
 
-type BaseSettings = z.infer<typeof baseSettingsSchema>;
+// Common base type for all prayer settings
+interface BasePrayerSettings {
+  showIqamah: boolean;
+  iqamah: number;
+  offset: number;
+  isFixed: boolean;
+  fixedTime: string;
+}
 
-// Fajr specific schema and type
-const fajrSpecificSchema = z.object({
+// Fajr-specific schema with additional fields
+export const fajrSettingsSchema = baseSettingsSchema.extend({
   type: z.literal('fajr'),
   calculateIqamahFromSunrise: z.boolean(),
   sunriseOffset: z.number().int().min(-120).max(0)
 });
 
-// Schemas for each prayer type
-const fajrSchema = baseSettingsSchema.merge(fajrSpecificSchema);
-const regularPrayerSchema = baseSettingsSchema.extend({
+// Schemas for regular prayers
+export const regularPrayerSchema = baseSettingsSchema.extend({
   type: z.enum(['dhuhr', 'asr', 'maghrib', 'isha'])
 });
 
 // Combined prayer schema for validation
 export const prayerSettingsSchema = z.discriminatedUnion('type', [
-  fajrSchema,
+  fajrSettingsSchema,
   regularPrayerSchema
 ]);
 
-// Types derived from schemas
-type FajrSettings = z.infer<typeof fajrSchema>;
-type RegularPrayerSettings = z.infer<typeof regularPrayerSchema>;
+// Specific types
+export interface FajrSettings extends BasePrayerSettings {
+  type: 'fajr';
+  calculateIqamahFromSunrise: boolean;
+  sunriseOffset: number;
+}
 
-// Improved settings type
+export interface RegularPrayerSettings extends BasePrayerSettings {
+  type: 'dhuhr' | 'asr' | 'maghrib' | 'isha';
+}
+
+// Type mapping for all prayers
 export type PrayerSettings = {
-  [K in Prayer]: K extends 'fajr' ? FajrSettings : RegularPrayerSettings;
+  fajr: FajrSettings;
+  dhuhr: RegularPrayerSettings;
+  asr: RegularPrayerSettings;
+  maghrib: RegularPrayerSettings;
+  isha: RegularPrayerSettings;
 };
 
-// Helper type to get settings type for a specific prayer
-export type SettingsForPrayer<P extends Prayer> = PrayerSettings[P];
+// Helper type to get settings for a specific prayer
+export type SettingsForPrayer<P extends Prayer> = 
+  P extends 'fajr' ? FajrSettings : RegularPrayerSettings;
 
 // Factory function for default settings
 function createDefaultSettings(): PrayerSettings {
@@ -54,7 +72,6 @@ function createDefaultSettings(): PrayerSettings {
       type: 'fajr',
       showIqamah: true,
       iqamah: 20,
-      iqamahAfterPrayer: true,
       offset: 0,
       isFixed: false,
       fixedTime: "05:30",
@@ -65,7 +82,6 @@ function createDefaultSettings(): PrayerSettings {
       type: 'dhuhr',
       showIqamah: true,
       iqamah: 15,
-      iqamahAfterPrayer: true,
       offset: 0,
       isFixed: false,
       fixedTime: "13:30"
@@ -74,7 +90,6 @@ function createDefaultSettings(): PrayerSettings {
       type: 'asr',
       showIqamah: true,
       iqamah: 15,
-      iqamahAfterPrayer: true,
       offset: 0,
       isFixed: false,
       fixedTime: "16:30"
@@ -83,7 +98,6 @@ function createDefaultSettings(): PrayerSettings {
       type: 'maghrib',
       showIqamah: true,
       iqamah: 10,
-      iqamahAfterPrayer: true,
       offset: 0,
       isFixed: false,
       fixedTime: "19:30"
@@ -92,7 +106,6 @@ function createDefaultSettings(): PrayerSettings {
       type: 'isha',
       showIqamah: true,
       iqamah: 15,
-      iqamahAfterPrayer: true,
       offset: 0,
       isFixed: false,
       fixedTime: "21:00"

@@ -19,7 +19,7 @@
             description: "Set detailed configurations including iqamah times",
             icon: Clock,
             color: "bg-secondary",
-            href: "/prayertimes/config",
+            href: "/prayertimes/config/fajr",
             items: ["Iqamah Time", "Prayer Adjustments", "Notification Options"]
         },
     ];

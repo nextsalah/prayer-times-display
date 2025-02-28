@@ -17,7 +17,7 @@
 
 {#if showBackButton}
     <button 
-        on:click={goBack} 
+        onclick={goBack} 
         class="mb-4 text-base-content/50 hover:text-base-content flex items-center gap-1.5 text-sm transition-colors duration-200"
         transition:fade={{ duration: 150 }}
     >
