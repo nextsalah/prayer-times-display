@@ -20,7 +20,7 @@
 
     type SingleOption = { value: string | number, name: string };
     let options: SingleOption[] = [];
-    let selected: string = $state();
+    let selected: string = $state('');
 
     // Get the options from the api
     const handleFetchData = (locations : SingleOptionLocation) => {
@@ -37,17 +37,26 @@
 
 
 <Form {FormData}>
-    <label>
-        {FormData.select_label}
+    <div class="form-control w-full">
+        <label class="label" for="country-select">
+            <span class="label-text text-base-content">
+                {FormData.select_label}
+            </span>
+        </label>
         <select 
-            class="mt-2" 
+            id="country-select"
+            class="select select-bordered w-full focus:select-primary"
             bind:value={selected} 
             name={FormData.selected_key}
             required={true}
         >
+            <option value="" disabled selected>Choose a country from the list</option>
             {#each options as option}
                 <option value={option.value}>{option.name}</option>
             {/each}
         </select>
-    </label>
+        <label class="label" for="country-select">
+            <span class="label-text-alt text-base-content/60">Select your country to get prayer times</span>
+        </label>
+    </div>
 </Form>

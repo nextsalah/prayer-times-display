@@ -1,8 +1,7 @@
-import type { RequestHandler } from "./$types";
-import { redirect } from "@sveltejs/kit";
+// src/routes/+server.ts
+import { redirect } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 
-
-// redirect to / => /sources
 export const GET: RequestHandler = async () => {
-  return redirect(302, "/sources");
+    throw redirect(307, '/controlpanel');
 };

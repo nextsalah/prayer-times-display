@@ -1,25 +1,40 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import type { ComponentType } from 'svelte';
     import type { PageData } from './$types';
-    import Placeholder from '$lib/themes/components/Placeholder.svelte';
-  interface Props {
-    data: PageData;
-  }
+    import Placeholder from '$themes/components/Placeholder.svelte';
+    import PrayerTimeCalculator from '$themes/logic/prayertime_calculator';
 
-  let { data }: Props = $props();
+    let { data } = $props();
+    let pageComponent = $state<typeof Placeholder | any>(Placeholder);
+    let calculator = $state<PrayerTimeCalculator | null>(null);
 
     let pageComponent: new (...args: any[]) => SvelteComponent = $state(Placeholder);
     onMount(async () => {
-        const componentModule = await import(`../../../lib/themes/collections/${data.componentPath}/page.svelte`);
-        pageComponent = componentModule.default;
+        // Initialize prayer time calculator
+        calculator = new PrayerTimeCalculator(data.apiData);
+
+        try {
+            const componentModule = await import(
+                `../../../../themes/collections/${data.componentPath}/page.svelte`
+            );
+            pageComponent = componentModule.default;
+        } catch (error) {
+            console.error('Error loading component:', error);
+            pageComponent = Placeholder;
+        }
     });
 
   const SvelteComponent_1 = $derived(pageComponent);
 </script>
 
+<svelte:head>
+    <title>Prayer Times Display</title>
+    <meta name="description" content="Prayer times display screen" />
+</svelte:head>
+
 {#if pageComponent !== Placeholder}
-  <SvelteComponent_1 data={data} />
+    {@const SvelteComponent = pageComponent}
+    <SvelteComponent {data} calculator={calculator} />
 {:else}
     <Placeholder />
 {/if}

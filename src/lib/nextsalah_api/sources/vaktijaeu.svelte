@@ -4,7 +4,6 @@
     import { Country } from "../country_list";
     import vaktijaeu_logo from "$lib/assets/imgs/vaktijaeu.jpeg";
 
-
     let country_selected: string = $state();
     let city_selected: string = $state();
 
@@ -20,7 +19,6 @@
         handleData: ( locations ) => handleFetchData(locations as VaktijaEULocations),
     }
 
-
     const handleFetchData = ( locations : VaktijaEULocations ) => {
         for (let location of locations.data) {
             all_cities[location.country.short_code] = all_cities[location.country.short_code] || [];
@@ -29,13 +27,10 @@
                 value: location.slug
             });
             
-            // Get the country name from the country list
-            let country_name =   Object.keys(Country)[(Object.values(Country) as string[]).indexOf(location.country.short_code)];
-
-            // Dont push if the country is already in the array
+            let country_name = Object.keys(Country)[(Object.values(Country) as string[]).indexOf(location.country.short_code)];
+            
             if ( all_countries.find(country => country.value === location.country.short_code) ) continue;
             
-            // Sort the countries by name
             all_countries.sort((a, b) => a.name.localeCompare(b.name));
 
             all_countries.push({
@@ -44,29 +39,54 @@
             });
         }
     }
-
 </script>
 
-
-<Form FormData={FormData}>
-    <label class="input input-bordered flex items-center gap-2">
-        Choose a country
-        <select class="mt-2" bind:value={country_selected} required name="country_code">
-            <option value=""> -- Select a country -- </option>
-            {#each all_countries as country}
-                <option value={country.value}>{country.name}</option>
-            {/each}
-        </select>
-    </label>
-    {#if country_selected}
-        <label class="input input-bordered flex items-center gap-2">
-            Choose a city
-            <select class="mt-2" bind:value={city_selected} required name="location_slug">
-                {#each all_cities[country_selected] as city}
-                    <option value={city.value}>{city.name}</option>
+<Form {FormData}>
+    <div class="space-y-1">
+        <!-- Country Selection -->
+        <div class="form-control w-full">
+            <label class="label" for="country-select">
+                <span class="label-text">Select Country</span>
+            </label>
+            <select 
+                id="country-select"
+                class="select select-bordered w-full focus:select-primary"
+                bind:value={country_selected} 
+                required 
+                name="country_code"
+            >
+                <option value="" disabled selected>Choose a country from the list</option>
+                {#each all_countries as country}
+                    <option value={country.value}>{country.name}</option>
                 {/each}
             </select>
-        </label>
-    {/if}
-</Form>
+            <label class="label" for="country-select">
+                <span class="label-text-alt text-base-content/60">Select your country to see available cities</span>
+            </label>
+        </div>
 
+        <!-- City Selection -->
+        {#if country_selected}
+            <div class="form-control w-full">
+                <label class="label" for="city-select">
+                    <span class="label-text">Select City</span>
+                </label>
+                <select 
+                    id="city-select"
+                    class="select select-bordered w-full focus:select-primary"
+                    bind:value={city_selected} 
+                    required 
+                    name="location_slug"
+                >
+                    <option value="" disabled selected>Choose a city from the list</option>
+                    {#each all_cities[country_selected] as city}
+                        <option value={city.value}>{city.name}</option>
+                    {/each}
+                </select>
+                <label class="label" for="city-select">
+                    <span class="label-text-alt text-base-content/60">Select your city to get prayer times</span>
+                </label>
+            </div>
+        {/if}
+    </div>
+</Form>

@@ -1,0 +1,36 @@
+[
+    {
+        "type": "input",
+        "name": "footer_text",
+        "attributes": {
+            "type": "text",
+            "id": "footer-text",
+            "classes": [
+                "input input-bordered input-primary w-full"
+            ], 
+            "label": "Footer Text",
+            "placeholder": "Enter footer text"
+        },
+        "rules": [ "required" ],
+        "value": "بسم الله الرحمن الرحيم"
+    },
+    {
+        "type": "file",
+        "name": "name-file",
+        "attributes": {
+            "id": "image-files",
+            "classes": [
+                "file-input file-input-bordered file-input-md w-full my-2"
+            ],
+            "label": "Upload File"
+        },
+        "extra": {
+            "multiple": true
+        },
+        "rules": ["file"],
+        "file": {
+            "extensions": ["jpg", "gif", "png"],
+            "maxSize": 5
+        }
+    }
+]

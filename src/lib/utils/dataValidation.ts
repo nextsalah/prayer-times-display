@@ -1,4 +1,4 @@
-import type { PrayerTime } from '$lib/db/schema';
+import type { PrayerTime } from '$lib/db/schemas/prayer/prayer-times.schema';
 
 export function validatePrayerTimes(prayerTimesList: PrayerTime[]): PrayerTime[] {
   if (prayerTimesList === null) {

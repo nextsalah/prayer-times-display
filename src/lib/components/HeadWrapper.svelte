@@ -1,13 +1,13 @@
 <script lang="ts">
-	interface Props {
-		page_title: string;
-	}
-
-	let { page_title }: Props = $props();
+	let { page_title = "" } : { page_title: string } = $props();
 </script>
 
 <svelte:head>
-	<title>NextSalah - {page_title} </title>
+	{#if page_title}
+		<title>NextSalah - {page_title} </title>
+	{:else}
+		<title>NextSalah</title>
+	{/if}
 	<!-- Character encoding -->
 	<meta charset="utf-8" />
 	

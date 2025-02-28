@@ -29,6 +29,8 @@ symlink-from
 dev.db
 static/uploads/*
 static/uploads
+/uploads/*
+/uploads
 todo.txt
 database.sqlite
 bun.lockb
