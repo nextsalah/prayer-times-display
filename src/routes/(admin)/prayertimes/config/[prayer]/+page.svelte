@@ -12,7 +12,6 @@
         AlertCircle
     } from 'lucide-svelte';
     
-    /** @type {import('./$types').PageData} */
     let { data } = $props();
 
     // Use a regular variable since we don't need reactivity for this static check

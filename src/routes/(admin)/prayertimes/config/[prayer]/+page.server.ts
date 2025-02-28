@@ -29,21 +29,19 @@ export const load = (async ({ params }) => {
         }
         
         const settings = await prayerConfigService.getPrayer(prayerName);
-
-        // Create a copy of settings that we can safely modify without type errors
+        
+        // Create a copy of settings to avoid type errors
         const enhancedSettings = { ...settings } as any;
         
-        // For Fajr, ensure the specific fields are present
+        // For Fajr, ensure the specific fields are present with default values if missing
         if (prayerName === 'fajr') {
-            enhancedSettings.calculateIqamahFromSunrise = 
-                typeof enhancedSettings.calculateIqamahFromSunrise === 'boolean' 
-                    ? enhancedSettings.calculateIqamahFromSunrise 
-                    : false;
-                    
-            enhancedSettings.sunriseOffset = 
-                typeof enhancedSettings.sunriseOffset === 'number' 
-                    ? enhancedSettings.sunriseOffset 
-                    : -30;
+            if (typeof enhancedSettings.calculateIqamahFromSunrise !== 'boolean') {
+                enhancedSettings.calculateIqamahFromSunrise = false;
+            }
+            
+            if (typeof enhancedSettings.sunriseOffset !== 'number') {
+                enhancedSettings.sunriseOffset = -30;
+            }
         }
         
         const form = await superValidate(enhancedSettings, zod(formValidationSchema));
@@ -86,8 +84,8 @@ export const actions = {
                 return fail(400, { form });
             }
             
-            // Create an update object with the form data
-            const updateData = { ...form.data };
+            // Create an update object with the form data and make it partially optional
+            const updateData: Partial<typeof form.data> = { ...form.data };
             
             // Ensure proper types for all fields
             updateData.showIqamah = Boolean(updateData.showIqamah);
@@ -96,10 +94,10 @@ export const actions = {
             updateData.offset = Number(updateData.offset);
             updateData.isFixed = Boolean(updateData.isFixed);
             
-            // For non-Fajr prayers, always include Fajr-specific fields with default values
+            // For non-Fajr prayers, remove Fajr-specific fields before saving
             if (prayerName !== 'fajr') {
-                updateData.calculateIqamahFromSunrise = false;
-                updateData.sunriseOffset = 0;
+                delete updateData.calculateIqamahFromSunrise;
+                delete updateData.sunriseOffset;
             } else {
                 // For Fajr, ensure the specific fields are properly typed and present
                 updateData.calculateIqamahFromSunrise = Boolean(updateData.calculateIqamahFromSunrise);
