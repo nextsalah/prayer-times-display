@@ -8,7 +8,6 @@
     let pageComponent = $state<typeof Placeholder | any>(Placeholder);
     let calculator = $state<PrayerTimeCalculator | null>(null);
 
-    let pageComponent: new (...args: any[]) => SvelteComponent = $state(Placeholder);
     onMount(async () => {
         // Initialize prayer time calculator
         calculator = new PrayerTimeCalculator(data.apiData);

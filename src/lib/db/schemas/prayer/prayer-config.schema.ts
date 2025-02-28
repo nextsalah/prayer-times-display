@@ -8,7 +8,6 @@ export type Prayer = typeof PRAYERS[number];
 const baseSettingsSchema = z.object({
   showIqamah: z.boolean(),
   iqamah: z.number().int().min(0).max(60),
-  iqamahAfterPrayer: z.boolean(),
   offset: z.number().int().min(-60).max(60),
   isFixed: z.boolean(),
   fixedTime: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:mm)')
