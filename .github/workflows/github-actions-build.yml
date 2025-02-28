@@ -27,7 +27,7 @@ jobs:
           
       - name: Get version from package.json
         id: get_version
-        run: echo "VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
         
       - name: Install dependencies
         run: bun install
@@ -39,7 +39,6 @@ jobs:
         run: |
           mkdir -p dist/prayer-times-display
           cp -r build dist/prayer-times-display/
-          # Removed copying node_modules to reduce package size.
           cp package.json dist/prayer-times-display/
           cp README.md dist/prayer-times-display/ || echo "No README.md found"
           
@@ -124,7 +123,6 @@ jobs:
           echo "Update to version \$LATEST_VERSION complete!"
           EOL
           
-          # Make update script executable
           chmod +x dist/prayer-times-display/update.sh
           
           # Create the tarball
