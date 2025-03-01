@@ -139,5 +139,5 @@ export function validatePrayerSettings<P extends Prayer>(
     type: prayer
   };
   
-  return prayerSettingsSchema.parse(settingsWithType) as SettingsForPrayer<P>;
+  return prayerSettingsSchema.parse(settingsWithType) as unknown as SettingsForPrayer<P>;
 }

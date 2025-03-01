@@ -1,12 +1,11 @@
 import { Theme } from '$themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
-import type { PageServerLoad } from '../sources/$types';
-import { ThemeService } from '$lib/db';
+import { themeService } from '$lib/db';
 
 export const load = (async () => {
     try {
         // Get stored theme settings
-        const storedSettings = await ThemeService.get();
+        const storedSettings = await themeService.get();
         
         // Load the active theme
         const activeTheme = await Theme.load(storedSettings.themeName);
@@ -19,18 +18,28 @@ export const load = (async () => {
         if (!availableThemes?.length) {
             throw error(500, 'No themes available');
         }
+
+        // Add QR code and disclaimer settings
+        const qrCodeEnabled = storedSettings.showQrCode;
+        const disclaimerRemoved = storedSettings.removeDisclaimer;
+
         return {
             title: 'Theme Settings',
             currentTheme: activeTheme.themeData,
             availableThemes,
+            settings: {
+                qrCodeEnabled,
+                disclaimerRemoved
+            }
         };
     } catch (err) {
         console.error('Failed to load theme page:', err);
         throw error(500, 'Failed to load theme settings');
     }
-}) satisfies PageServerLoad;
+});
 
 export const actions: Actions = {
+    // Select a theme
     select: async ({ request }) => {
         try {
             const formData = await request.formData();
@@ -50,10 +59,10 @@ export const actions: Actions = {
             }
 
             // Update theme settings
-            await ThemeService.update({
-                themeName,
-                customSettings: JSON.stringify(theme.defaultSettings)
-            });
+            await themeService.updateThemeName(themeName);
+            
+            // Reset custom settings to theme defaults
+            await themeService.updateCustomSettingsObject(theme.defaultSettings || {});
 
             return {
                 success: true,
@@ -64,6 +73,76 @@ export const actions: Actions = {
             throw error(500, getErrorMessage(err));
         }
     },
+    
+    // Toggle QR code visibility
+    toggleQR: async () => {
+        try {
+            await themeService.toggleQrCode();
+            return {
+                success: true,
+                message: 'QR code setting updated'
+            };
+        } catch (err) {
+            console.error('Failed to toggle QR code setting:', err);
+            throw error(500, getErrorMessage(err));
+        }
+    },
+    
+    // Toggle disclaimer visibility
+    toggleDisclaimer: async () => {
+        try {
+            await themeService.toggleDisclaimer();
+            return {
+                success: true,
+                message: 'Disclaimer setting updated'
+            };
+        } catch (err) {
+            console.error('Failed to toggle disclaimer setting:', err);
+            throw error(500, getErrorMessage(err));
+        }
+    },
+    
+    // Reset theme to defaults
+    resetTheme: async () => {
+        try {
+            await themeService.resetToDefaults();
+            return {
+                success: true,
+                message: 'Theme settings have been reset to defaults'
+            };
+        } catch (err) {
+            console.error('Failed to reset theme:', err);
+            throw error(500, getErrorMessage(err));
+        }
+    },
+    
+    // Update custom settings
+    updateCustomSettings: async ({ request }) => {
+        try {
+            const formData = await request.formData();
+            const rawSettings = formData.get('custom_settings');
+            
+            if (!rawSettings || typeof rawSettings !== 'string') {
+                throw error(400, 'Invalid custom settings');
+            }
+            
+            try {
+                // Parse and validate JSON
+                const customSettings = JSON.parse(rawSettings);
+                await themeService.updateCustomSettingsObject(customSettings);
+                
+                return {
+                    success: true,
+                    message: 'Custom settings updated successfully'
+                };
+            } catch (jsonError) {
+                throw error(400, 'Invalid JSON format for custom settings');
+            }
+        } catch (err) {
+            console.error('Failed to update custom settings:', err);
+            throw error(500, getErrorMessage(err));
+        }
+    }
 };
 
 // Helper functions
