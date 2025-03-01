@@ -4,6 +4,7 @@
   import Navbar from '$lib/components/general/Navbar.svelte';
   import { page } from '$app/state';
   import { fade } from 'svelte/transition';
+	import { Toaster } from 'svelte-french-toast';
 
   let { children } = $props();
 
@@ -40,4 +41,8 @@
       </div>
     </div>
   {/if}
+
+  
+  <!-- Toast -->
+  <Toaster />
 </div>

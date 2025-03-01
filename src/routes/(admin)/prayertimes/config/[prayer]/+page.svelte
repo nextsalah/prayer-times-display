@@ -9,6 +9,7 @@
         AlertCircle,
         ChevronDown
     } from 'lucide-svelte';
+    import toast from 'svelte-french-toast';
     
     let { data } = $props();
     
@@ -16,6 +17,17 @@
     const { form, enhance, errors, submitting, message } = superForm(data.form, {
         resetForm: false,
         taintedMessage: 'You have unsaved changes. Are you sure you want to leave?',
+        onResult: ({ result }) => {
+            if (result.type === 'success') {
+                toast.success("Settings saved!", {
+                    position: "bottom-center"
+                });
+            } else if (result.type === 'error') {
+                toast.error("Could not save settings.", {
+                    position: "bottom-center"
+                });
+            }
+        }
     });
     
     // Helper for type-safe access to Fajr fields

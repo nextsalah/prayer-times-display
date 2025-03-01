@@ -1,0 +1,156 @@
+name: Build and Publish for Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+
+jobs:
+  build_and_publish:
+    name: Build and Publish Raspberry Pi Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+          
+      - name: Get version from package.json
+        id: get_version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Build application
+        run: bun run build
+        
+      - name: Create distribution package
+        run: |
+          mkdir -p dist/prayer-times-display
+          cp -r build dist/prayer-times-display/
+          cp package.json dist/prayer-times-display/
+          cp README.md dist/prayer-times-display/ || echo "No README.md found"
+          
+          # Create service file for systemd
+          cat > dist/prayer-times-display/prayer-times.service << EOL
+          [Unit]
+          Description=Prayer Times Display
+          After=network.target
+          
+          [Service]
+          Type=simple
+          User=pi
+          WorkingDirectory=/opt/prayer-times-display
+          ExecStart=/usr/bin/bun run start
+          Restart=on-failure
+          RestartSec=5s
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOL
+          
+          # Create update script
+          cat > dist/prayer-times-display/update.sh << EOL
+          #!/bin/bash
+          
+          # Script for updating prayer times display
+          REPO_OWNER=\${REPO_OWNER:-"nextsalah"}
+          REPO_NAME=\${REPO_NAME:-"prayer-times-display"}
+          INSTALL_DIR=\${INSTALL_DIR:-"/opt/prayer-times-display"}
+          
+          echo "Checking for updates..."
+          
+          # Get the current installed version
+          CURRENT_VERSION=\$(cat \$INSTALL_DIR/package.json | grep version | head -1 | awk -F: '{ print \$2 }' | sed 's/[",]//g' | tr -d '[:space:]')
+          echo "Current version: \$CURRENT_VERSION"
+          
+          # Get the latest release version from GitHub
+          LATEST_VERSION=\$(curl -s https://api.github.com/repos/\$REPO_OWNER/\$REPO_NAME/releases/latest | grep tag_name | head -1 | awk -F: '{ print \$2 }' | sed 's/[",v]//g' | tr -d '[:space:]')
+          echo "Latest version: \$LATEST_VERSION"
+          
+          # Compare versions
+          if [ "\$CURRENT_VERSION" == "\$LATEST_VERSION" ]; then
+            echo "Already running the latest version."
+            exit 0
+          fi
+          
+          echo "Update available! Downloading version \$LATEST_VERSION..."
+          
+          # Download the latest release
+          TMP_DIR=\$(mktemp -d)
+          curl -L -o \$TMP_DIR/release.tar.gz https://github.com/\$REPO_OWNER/\$REPO_NAME/releases/download/v\$LATEST_VERSION/prayer-times-display-v\$LATEST_VERSION.tar.gz
+          
+          # Extract the release
+          mkdir -p \$TMP_DIR/extract
+          tar -xzf \$TMP_DIR/release.tar.gz -C \$TMP_DIR/extract
+          
+          # Stop the service
+          sudo systemctl stop prayer-times.service
+          
+          # Backup the current config
+          if [ -f \$INSTALL_DIR/.env ]; then
+            cp \$INSTALL_DIR/.env \$TMP_DIR/
+          fi
+          
+          # Update the files
+          sudo cp -r \$TMP_DIR/extract/* \$INSTALL_DIR/
+          
+          # Restore config
+          if [ -f \$TMP_DIR/.env ]; then
+            cp \$TMP_DIR/.env \$INSTALL_DIR/
+          fi
+          
+          # Ensure permissions
+          sudo chown -R pi:pi \$INSTALL_DIR
+          
+          # Start the service
+          sudo systemctl start prayer-times.service
+          
+          # Clean up
+          rm -rf \$TMP_DIR
+          
+          echo "Update to version \$LATEST_VERSION complete!"
+          EOL
+          
+          chmod +x dist/prayer-times-display/update.sh
+          
+          # Create the tarball
+          cd dist
+          tar -czf ../prayer-times-display-v${{ steps.get_version.outputs.VERSION }}.tar.gz prayer-times-display
+          cd ..
+          
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            prayer-times-display-v${{ steps.get_version.outputs.VERSION }}.tar.gz
+          
+      - name: Update latest.json for auto-update
+        run: |
+          echo '{
+            "version": "${{ steps.get_version.outputs.VERSION }}",
+            "releaseDate": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+            "downloadUrl": "https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.VERSION }}/prayer-times-display-v${{ steps.get_version.outputs.VERSION }}.tar.gz"
+          }' > latest.json
+          
+          # Upload to release
+          gh release upload v${{ steps.get_version.outputs.VERSION }} latest.json --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

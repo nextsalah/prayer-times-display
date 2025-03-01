@@ -22,6 +22,8 @@
             pageComponent = Placeholder;
         }
     });
+
+  const SvelteComponent_1 = $derived(pageComponent);
 </script>
 
 <svelte:head>

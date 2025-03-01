@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { preventDefault } from 'svelte/legacy';
+    import toast from 'svelte-french-toast';
 
     import type { IFormHandlerProps } from '../interfaces';
     import { deserialize } from '$app/forms';
@@ -7,12 +7,17 @@
     interface Props {
         FormHandlerProps?: IFormHandlerProps;
         children?: import('svelte').Snippet;
+        onSuccess?: () => void;
     }
 
-    let { FormHandlerProps = $bindable({
-        fetchFinished: false,
-        error: "",
-    }), children }: Props = $props();
+    let { 
+        FormHandlerProps = $bindable({
+            fetchFinished: false,
+            error: "",
+        }), 
+        children,
+        onSuccess = () => {} 
+    }: Props = $props();
 
     let isLoading: boolean = $state(false);
 
@@ -23,15 +28,29 @@
             const response = await send_form(form);
             if (response.type === "error" ) {
                 FormHandlerProps.error = response.error.message || "Failed to send form.";
+                toast.error(FormHandlerProps.error || "An error occurred", {
+                    position: "bottom-center"
+                });
                 console.error(response.error);
             } else if (response.type === "failure") {
                 FormHandlerProps.error = "Failed to send form.";
+                toast.error(FormHandlerProps.error, {
+                    position: "bottom-center"
+                });
             }
             else {
-                FormHandlerProps.fetchFinished = true;
+                 FormHandlerProps.fetchFinished = true;
+                FormHandlerProps.error = ""; // Clear any previous errors
+                onSuccess(); // Call the onSuccess callback
+                toast.success("Settings saved!", {
+                    position: "bottom-center"
+                });
             }
         } catch (e) {
             FormHandlerProps.error = "Failed to send form.";
+            toast.error(FormHandlerProps.error, {
+                position: "bottom-center"
+            });
         } finally {
             isLoading = false;
         }
@@ -47,17 +66,16 @@
     };
 </script>
 
-
-
 {#if FormHandlerProps.fetchFinished && !FormHandlerProps.error}
     <form 
         method="POST"
-        onsubmit={preventDefault((event) =>  {
+        onsubmit={(event) =>  {
+            event.preventDefault();
             const form = event.target;
             if ( form instanceof HTMLFormElement ) {
                 handleSubmit(form);
             }
-        })} >
+        }} >
         {@render children?.()}
         <div class="mt-5">
             {#if isLoading}
@@ -77,5 +95,3 @@
 {:else}
     <div class="skeleton w-full h-12"></div>
 {/if}
-
-

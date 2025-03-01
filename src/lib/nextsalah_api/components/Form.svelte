@@ -4,7 +4,8 @@
     import { onMount } from "svelte";
     import NextSalahAPI from "../handler";
     import { fade, slide } from 'svelte/transition';
-    import { ExternalLink } from 'lucide-svelte';
+    import { ExternalLink, CheckCircle } from 'lucide-svelte';
+    import toast from 'svelte-french-toast';
 
     interface Props {
         FormData: IFormData;
@@ -12,8 +13,13 @@
     }
 
     let { FormData, children }: Props = $props();
-    let FormHandlerProps: IFormHandlerProps = $state({});
+    let FormHandlerProps: IFormHandlerProps = $state({
+        fetchFinished: false,
+        error: "",
+        success: false
+    });
     let isSuccess = $state(false);
+    let formSubmitted = $state(false);
     
     onMount(async () => {
         try {
@@ -30,6 +36,12 @@
             FormHandlerProps.fetchFinished = true;
         }
     });
+    
+    // Function to handle form submission success
+    function handleFormSuccess() {
+        formSubmitted = true;
+        setTimeout(() => { formSubmitted = false; }, 3000); // Hide after 3 seconds
+    }
 </script>
 
 <div class="flex flex-wrap gap-4 justify-center" in:fade={{ duration: 200 }}>
@@ -71,6 +83,14 @@
         <!-- Success State -->
         {:else}
             <div class="card-body items-center text-center p-6 min-h-[400px]">
+                <!-- Form Success Message -->
+                {#if formSubmitted}
+                    <div class="alert alert-success mb-4 w-full" transition:fade={{ duration: 300 }}>
+                        <CheckCircle size={18} />
+                        <span>Prayertime saved successfully!</span>
+                    </div>
+                {/if}
+                
                 {#if FormData.source_logo_src}
                     <div class="avatar mb-4" in:slide={{ duration: 200 }}>
                         <div class="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
@@ -113,7 +133,16 @@
                 <div class="divider"></div>
 
                 <div class="w-full" in:slide={{ duration: 200, delay: 200 }}>
-                    <FormHandler {FormHandlerProps}>
+                    <FormHandler 
+                        FormHandlerProps={FormHandlerProps} 
+                        onSuccess={() => {
+                            formSubmitted = true;
+                            toast.success("Settings saved!", {
+                                position: "bottom-center"
+                            });
+                            setTimeout(() => { formSubmitted = false; }, 3000);
+                        }}
+                    >
                         <input type="hidden" name="source" value={FormData.end_point} />
                         {@render children?.()}
                     </FormHandler>
