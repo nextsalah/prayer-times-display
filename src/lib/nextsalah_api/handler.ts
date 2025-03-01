@@ -1,7 +1,6 @@
 import type {
   ILocation,
   IFetchPrayertimes,
-  IErrorResponse,
   ApiResponse,
   IListFetchPrayertimes,
   INextSalahAPIResponse,
@@ -25,7 +24,7 @@ class NextSalahAPI {
     data: ILocation,
   ): Promise<ApiResponse<INextSalahAPIResponse>> {
     const url = new URL(this.baseUrl);
-    url.search = new URLSearchParams(data as any).toString(); // Consider defining the types more precisely than 'any'
+    url.search = new URLSearchParams(data as any).toString();
     return this.sendHttpRequest<INextSalahAPIResponse>(url.toString(), "GET");
   }
 
@@ -42,35 +41,100 @@ class NextSalahAPI {
       });
 
       if (!response.ok) {
-        return this.handleError<T>(response); // This will now correctly handle errors.
+        return this.handleError<T>(response);
       }
 
       const data: T = await response.json();
-      return { data }; // Correctly structured ApiResponse
-    } catch (error) {
-      return { error: { message: "Network Error" } };
+      return { data };
+    } catch (error: any) {
+      // Improved error messages for common network errors
+      if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
+        return {
+          error: {
+            message: "Network connection error. Please check your internet connection.",
+            status: 0,
+            code: "0"
+          }
+        };
+      }
+      
+      return { 
+        error: { 
+          message: error.message || "An unexpected error occurred",
+          status: 0,
+          code: '0'
+        } 
+      };
     }
   }
 
   private async handleError<T>(response: Response): Promise<ApiResponse<T>> {
     let errorMessage = `HTTP Error: ${response.status} ${response.statusText}`;
+    
     try {
-      const errorData = await response.json();
-      if (errorData.detail) {
-        const messages = Array.isArray(errorData.detail)
-          ? errorData.detail
-          : [errorData.detail];
-        errorMessage = messages
-          .map(
-            (m: { msg: string }) =>
-              `${m.msg.charAt(0).toUpperCase()}${m.msg.slice(1)}`,
-          )
-          .join(", ");
+      // Parse error response if it's JSON
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const errorData = await response.json();
+        
+        // Handle FastAPI style errors
+        if (errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            errorMessage = errorData.detail
+              .map((m: { msg: string; loc?: string[] }) => {
+                const location = m.loc ? ` at ${m.loc.join('.')}` : '';
+                return `${m.msg.charAt(0).toUpperCase()}${m.msg.slice(1)}${location}`;
+              })
+              .join(", ");
+          } else if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else {
+            errorMessage = JSON.stringify(errorData.detail);
+          }
+        }
+        
+        // Handle other common API error formats
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+        
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          }
+        }
       }
     } catch (error) {
-      console.error(error);
+      // If parsing fails, use the original HTTP error message
+      console.error("Error parsing error response:", error);
     }
-    return { error: { message: errorMessage } }; // Now returns an ApiResponse
+    
+    // Provide user-friendly messages for common HTTP status codes
+    const statusMessages: Record<number, string> = {
+      400: "Bad request: The server couldn't understand the request",
+      401: "Authentication required. Please log in again",
+      403: "You don't have permission to access this resource",
+      404: "The requested resource was not found",
+      429: "Too many requests. Please try again later",
+      500: "Server error. Please try again later",
+      502: "Bad gateway. Please try again later",
+      503: "Service unavailable. Please try again later",
+      504: "Gateway timeout. Please try again later"
+    };
+    
+    if (response.status in statusMessages && !errorMessage.includes(String(response.status))) {
+      errorMessage = statusMessages[response.status];
+    }
+    
+    return {
+      error: {
+        message: errorMessage,
+        status: response.status,
+        code: response.status.toString()
+      }
+    };
   }
 }
 

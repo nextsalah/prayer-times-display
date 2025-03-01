@@ -70,6 +70,7 @@
     "pino": "^8.21.0",
     "pino-pretty": "^11.3.0",
     "prayer_times_display": "file:",
+    "svelte-french-toast": "^1.2.0",
     "svelte-motion": "^0.12.2",
     "uuid": "^11.0.5",
     "vite-tsconfig-paths": "^5.1.4"

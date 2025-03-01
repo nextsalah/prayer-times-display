@@ -60,9 +60,10 @@ export interface INextSalahAPIResponse {
   prayertimes: IListFetchPrayertimes;
 }
 
-export interface IErrorResponse {
+interface IErrorResponse {
   message: string;
-  statusCode?: number; // Optional, for more detailed error handling
+  code: string;
+  status: number;
 }
 
 export interface ApiResponse<T> {
