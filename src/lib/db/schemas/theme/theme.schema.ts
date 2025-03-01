@@ -5,7 +5,6 @@ export const themeSettings = sqliteTable("theme_settings", {
     themeName: text("theme_name").notNull().$default(() => "default"),
     customSettings: text("custom_settings").notNull().$default(() => "{}"),
     showQrCode: integer("show_qr_code", { mode: "boolean" }).notNull().$default(() => true),
-    removeDisclaimer: integer("remove_disclaimer", { mode: "boolean" }).notNull().$default(() => false),
     updatedAt: integer("updated_at", { mode: "timestamp" })
         .notNull()
         .$default(() => new Date()),

@@ -142,7 +142,12 @@
 
     function handleReset() {
         if (confirm('Are you sure you want to restore the default theme? All custom settings will be reset.')) {
-            window.location.href = '?reset=true';
+            // Submit a form to the reset action instead of changing the URL
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?/reset';
+            document.body.appendChild(form);
+            form.submit();
         }
     }
 </script>

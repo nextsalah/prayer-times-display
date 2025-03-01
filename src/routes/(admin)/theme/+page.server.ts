@@ -1,5 +1,5 @@
 import { Theme } from '$themes/logic/handler';
-import { error, redirect, type Actions } from '@sveltejs/kit';
+import { error, type Actions } from '@sveltejs/kit';
 import { themeService } from '$lib/db';
 
 export const load = (async () => {
@@ -21,15 +21,12 @@ export const load = (async () => {
 
         // Add QR code and disclaimer settings
         const qrCodeEnabled = storedSettings.showQrCode;
-        const disclaimerRemoved = storedSettings.removeDisclaimer;
-
         return {
             title: 'Theme Settings',
             currentTheme: activeTheme.themeData,
             availableThemes,
             settings: {
                 qrCodeEnabled,
-                disclaimerRemoved
             }
         };
     } catch (err) {
@@ -74,72 +71,21 @@ export const actions: Actions = {
         }
     },
     
-    // Toggle QR code visibility
-    toggleQR: async () => {
-        try {
-            await themeService.toggleQrCode();
-            return {
-                success: true,
-                message: 'QR code setting updated'
-            };
-        } catch (err) {
-            console.error('Failed to toggle QR code setting:', err);
-            throw error(500, getErrorMessage(err));
-        }
-    },
-    
-    // Toggle disclaimer visibility
-    toggleDisclaimer: async () => {
-        try {
-            await themeService.toggleDisclaimer();
-            return {
-                success: true,
-                message: 'Disclaimer setting updated'
-            };
-        } catch (err) {
-            console.error('Failed to toggle disclaimer setting:', err);
-            throw error(500, getErrorMessage(err));
-        }
-    },
-    
-    // Reset theme to defaults
-    resetTheme: async () => {
-        try {
-            await themeService.resetToDefaults();
-            return {
-                success: true,
-                message: 'Theme settings have been reset to defaults'
-            };
-        } catch (err) {
-            console.error('Failed to reset theme:', err);
-            throw error(500, getErrorMessage(err));
-        }
-    },
-    
-    // Update custom settings
-    updateCustomSettings: async ({ request }) => {
+    // Toggle QR code display
+    toggleQrCode: async ({ request }) => {
         try {
             const formData = await request.formData();
-            const rawSettings = formData.get('custom_settings');
+            const qrCodeEnabled = formData.get('qrCodeEnabled') === 'true';
             
-            if (!rawSettings || typeof rawSettings !== 'string') {
-                throw error(400, 'Invalid custom settings');
-            }
+            // Update the QR code setting
+            await themeService.setQrCodeVisibility(qrCodeEnabled);
             
-            try {
-                // Parse and validate JSON
-                const customSettings = JSON.parse(rawSettings);
-                await themeService.updateCustomSettingsObject(customSettings);
-                
-                return {
-                    success: true,
-                    message: 'Custom settings updated successfully'
-                };
-            } catch (jsonError) {
-                throw error(400, 'Invalid JSON format for custom settings');
-            }
+            return {
+                success: true,
+                message: `QR code ${qrCodeEnabled ? 'enabled' : 'disabled'}`
+            };
         } catch (err) {
-            console.error('Failed to update custom settings:', err);
+            console.error('QR code toggle failed:', err);
             throw error(500, getErrorMessage(err));
         }
     }

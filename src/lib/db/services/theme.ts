@@ -14,14 +14,20 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
    * Update the theme name
    */
   async updateThemeName(themeName: string): Promise<Omit<ThemeSettings, 'id'>> {
-    return this.update({ themeName });
+    return this.update({ 
+      themeName , 
+      updatedAt: new Date() 
+    });
   }
 
   /**
    * Update custom settings (JSON string)
    */
   async updateCustomSettings(customSettings: string): Promise<Omit<ThemeSettings, 'id'>> {
-    return this.update({ customSettings });
+    return this.update({ 
+      customSettings,
+      updatedAt: new Date()
+     });
   }
 
   /**
@@ -29,7 +35,8 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
    */
   async updateCustomSettingsObject(customSettings: Record<string, any>): Promise<Omit<ThemeSettings, 'id'>> {
     return this.update({ 
-      customSettings: JSON.stringify(customSettings)
+      customSettings: JSON.stringify(customSettings),
+      updatedAt: new Date()
     });
   }
 
@@ -49,21 +56,6 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
     return this.update({ showQrCode: visible });
   }
 
-  /**
-   * Toggle disclaimer visibility
-   */
-  async toggleDisclaimer(remove?: boolean): Promise<Omit<ThemeSettings, 'id'>> {
-    const current = await this.get();
-    const removeDisclaimer = remove !== undefined ? remove : !current.removeDisclaimer;
-    return this.update({ removeDisclaimer });
-  }
-
-  /**
-   * Set if disclaimer should be removed
-   */
-  async setRemoveDisclaimer(remove: boolean): Promise<Omit<ThemeSettings, 'id'>> {
-    return this.update({ removeDisclaimer: remove });
-  }
 
   /**
    * Get parsed custom settings as object
@@ -86,7 +78,6 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
       themeName: 'default',
       customSettings: '{}',
       showQrCode: true,
-      removeDisclaimer: false
     });
   }
 
@@ -99,7 +90,6 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
       themeName: 'default',
       customSettings: '{}',
       showQrCode: true,
-      removeDisclaimer: false,
       updatedAt: new Date()
     };
   }

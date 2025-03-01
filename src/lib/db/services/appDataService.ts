@@ -1,16 +1,14 @@
 // src/lib/db/services/appDataService.ts
 import { db } from '$lib/db/db.server';
 import { prayertimes, type PrayerTime } from '$lib/db/schemas/prayer/prayer-times.schema';
-import { lt, desc } from 'drizzle-orm';
+import { lt, desc, eq } from 'drizzle-orm';
 import { validatePrayerTimes } from '$lib/utils/dataValidation';
 import { 
   timeSettingsService,
   dateSettingsService,
-  SystemService, 
   languageService
 } from '$lib/db';
 import { themeService } from '$lib/db';
-import { LanguageService } from '$lib/db';
 import { Theme } from '$themes/logic/handler';
 import { prayerConfigService } from '$lib/db/services/prayerconfig';
 import type { SettingsFromFields } from '$themes/logic/theme-settings-manager';
@@ -22,7 +20,6 @@ import type {
   SettingsForPrayer
 } from '$lib/db/schemas/prayer/prayer-config.schema';
 import type { LanguageSchemaType } from '$lib/db/schemas';
-import type { SystemSettingsSchemaType } from '$lib/db/schemas';
 
 /**
  * Type definitions for API data structure
@@ -36,7 +33,6 @@ interface Prayertimes {
 interface AppSettings {
   id: number;
   showQRCode: boolean;
-  removeDisclaimer: boolean;
   dateFormat: string;
   timeFormat: string;
 }
@@ -105,7 +101,6 @@ export class AppDataService {
         prayerConfigResult,
         timeSettingsResult,
         dateSettingsResult,
-        systemSettingsResult,
         prayerTimesResult
       ] = await Promise.allSettled([
         this.getThemeSettings(),
@@ -113,13 +108,11 @@ export class AppDataService {
         this.getPrayerConfig(),
         this.getTimeSettings(),
         this.getDateSettings(),
-        this.getSystemSettings(),
         this.getPrayerTimes()
       ]);
 
       // Extract results with fallbacks
       const themeSettings = this.extractSettledResult(themeSettingsResult, themeService.getDefaultSettings());
-      
       const language = this.extractSettledResult(languageResult, this.getDefaultLanguage());
       const prayerConfig = this.extractSettledResult(prayerConfigResult, this.getDefaultPrayerConfig());
       const timeSettings = this.extractSettledResult(timeSettingsResult, { use24Hour: true, timezone: 'UTC' });
@@ -139,7 +132,6 @@ export class AppDataService {
       const appSettings: AppSettings = {
         id: 1,
         showQRCode: themeSettings.showQrCode,
-        removeDisclaimer: themeSettings.removeDisclaimer || false,
         dateFormat: dateSettings.dateFormat,
         timeFormat: timeSettings.use24Hour ? '24h' : '12h',
       };
@@ -236,23 +228,6 @@ export class AppDataService {
   }
   
   /**
-   * Get system settings with error handling
-   */
-  private async getSystemSettings(): Promise<SystemSettingsSchemaType> {
-    try {
-      return await SystemService.get();
-    } catch (error) {
-      console.error('Error getting system settings:', error);
-      return {  timezone: 'eu',
-        timeFormat: "12h",
-        showSeconds: true,
-        use24Hour: true,
-        dateFormat: "DD/MM/YYYY"
-      };
-    }
-  }
-  
-  /**
    * Safely extract result from Promise.allSettled
    */
   private extractSettledResult<T>(result: PromiseSettledResult<T>, fallback: T): T {
@@ -293,16 +268,47 @@ export class AppDataService {
   }
   
   /**
-   * Get prayer times with robust error handling
+   * Format date string for database queries in different formats
+   */
+  private formatDateStrings(date: Date): string[] {
+    // Format 1: YYYY-MM-DD (ISO format)
+    const isoDate = date.toISOString().split('T')[0];
+    
+    // Format 2: MM-DD (month-day only)
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const monthDayFormat = `${month}-${day}`;
+    
+    return [isoDate, monthDayFormat];
+  }
+  
+  /**
+   * Get prayer times with robust error handling and multiple date formats
    */
   private async getPrayerTimes() {
     try {
-      const prayerTimesList = await db.query.prayertimes.findMany({
-        where: lt(prayertimes.date, new Date()),
-        orderBy: [desc(prayertimes.date)],
-        limit: 3,
-      });
+      const now = new Date();
+      const dateFormats = this.formatDateStrings(now);
       
+      // Try to get prayer times for today with full date format
+      let prayerTimesList = await this.tryGetPrayerTimesByDateFormat(dateFormats[0]);
+      
+      // If that fails, try with just month-day format
+      if (!prayerTimesList || prayerTimesList.length < 3) {
+        console.log(`No prayer times found for ${dateFormats[0]}, trying ${dateFormats[1]}`);
+        prayerTimesList = await this.tryGetPrayerTimesByDateFormat(dateFormats[1], true);
+      }
+      
+      // If that also fails, get the most recent prayers
+      if (!prayerTimesList || prayerTimesList.length < 3) {
+        console.log(`No prayer times found for specific dates, getting most recent`);
+        prayerTimesList = await db.query.prayertimes.findMany({
+          orderBy: [desc(prayertimes.date)],
+          limit: 3,
+        });
+      }
+      
+      // If still no results, use defaults
       if (!prayerTimesList || prayerTimesList.length < 3) {
         console.warn('Insufficient prayer times found, using defaults');
         return this.getDefaultPrayerTimes();
@@ -318,6 +324,30 @@ export class AppDataService {
     } catch (error) {
       console.error('Error getting prayer times:', error);
       return this.getDefaultPrayerTimes();
+    }
+  }
+  
+  /**
+   * Try to get prayer times using a specific date format
+   */
+  private async tryGetPrayerTimesByDateFormat(datePattern: string, isPartial = false) {
+    try {
+      // For partial matching (e.g. MM-DD without year)
+      if (isPartial) {
+        return await db.query.prayertimes.findMany({
+          where: (fields, { sql }) => sql`CAST(${fields.date} AS TEXT) LIKE ${'%' + datePattern + '%'}`,
+          limit: 3,
+        });
+      }
+      
+      // For exact date matching
+      return await db.query.prayertimes.findMany({
+        where: (fields, { sql }) => sql`DATE(${fields.date}) = ${datePattern}`,
+        limit: 3,
+      });
+    } catch (error) {
+      console.error(`Error querying with date format ${datePattern}:`, error);
+      return [];
     }
   }
   

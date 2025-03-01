@@ -5,11 +5,37 @@
         PaintBucket, 
         Settings2, 
         Maximize2, 
-        Minimize2 
+        Minimize2,
+        QrCode
     } from 'lucide-svelte';
 
     let { data } = $props();
     let showPreview = $state(false);
+    let qrCodeEnabled = $state(data.settings.qrCodeEnabled);
+    
+    async function updateQrCodeSetting() {
+        try {
+            const formData = new FormData();
+            formData.append('qrCodeEnabled', qrCodeEnabled.toString());
+            
+            const response = await fetch('/api/settings/qrcode', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update QR code setting');
+            }
+            
+            // Optional: Show success notification
+        } catch (error) {
+            console.error('QR code setting error:', error);
+            // Optional: Show error notification
+            
+            // Revert to original state on error
+            qrCodeEnabled = data.settings.qrCodeEnabled;
+        }
+    }
 </script>
 
 <div class="p-4 rounded-lg">
@@ -40,6 +66,33 @@
                             </div>
                         {/if}
                     </div>
+                </div>
+
+                <!-- QR Code Setting -->
+                <div class="bg-base-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <QrCode class="w-5 h-5 text-primary" />
+                        <h3 class="font-medium">QR Code Settings</h3>
+                    </div>
+                    
+                    <form method="POST" action="?/toggleQrCode" class="mt-3">
+                        <div class="flex items-center">
+                            <label class="cursor-pointer flex items-center gap-3">
+                                <input 
+                                    type="checkbox" 
+                                    name="qrCodeEnabled"
+                                    class="toggle toggle-primary" 
+                                    checked={qrCodeEnabled}
+                                    value="true"
+                                    onchange={(e) => {
+                                        qrCodeEnabled = e.currentTarget.checked;
+                                        e.currentTarget.form?.requestSubmit();
+                                    }}
+                                />
+                                <span>Show QR Code on Login Page</span>
+                            </label>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Theme Actions -->
