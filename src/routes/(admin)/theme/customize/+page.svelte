@@ -229,13 +229,13 @@
         if (confirm('Are you sure you want to restore the default theme? All custom settings will be reset.')) {
             // Submit a form to the reset action instead of changing the URL
             const form = document.createElement('form');
-            toast.success("Resetting theme to defaults...", {
-                position: "bottom-center"
-            });
             form.method = 'POST';
             form.action = '?/reset';
             document.body.appendChild(form);
             form.submit();
+            toast.success("Resetting theme to defaults...", {
+                position: "bottom-center"
+            });
         }
     }
 </script>
