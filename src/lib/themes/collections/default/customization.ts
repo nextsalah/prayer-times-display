@@ -1,4 +1,10 @@
 import type { IField } from '@ismail424/svelte-formly';
+import type { FileMetadata } from '$lib/themes/interfaces/types';
+
+export interface DefaultThemeSettings {
+    footer_text: string;
+    name_file: FileMetadata[];
+}
 
 const customization: IField[] = [
     {
@@ -18,7 +24,7 @@ const customization: IField[] = [
     },
     {
         "type": "file",
-        "name": "name-file",
+        "name": "name_file",
         "attributes": {
             "id": "image-files",
             "classes": [

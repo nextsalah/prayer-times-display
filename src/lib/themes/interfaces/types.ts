@@ -1,31 +1,4 @@
 import type { IField } from "@ismail424/svelte-formly";
-import type {  ApiData } from '$lib/db/services/appDataService';
-import type { PrayerTime } from '$lib/db/schemas/prayer/prayer-times.schema';
-
-export interface AppData<T extends IField[]> {
-  prayerTimes: {
-    today: PrayerTime;
-    tomorrow: PrayerTime;
-    dayAfterTomorrow: PrayerTime;
-  };
-  apiData: ApiData<T>;
-  theme: {
-    value: string;
-    name: string;
-    description: string;
-    customizationForm: IField[];
-    manifest: {
-      name: string;
-      description: string;
-      version: string;
-      authors: Array<{
-        name: string;
-        github_profile: string;
-      }>;
-    };
-  };
-  componentPath: string;
-}
 
 // When parsing user uploads/inputs
 export type ParseResult<T> = 
@@ -106,8 +79,8 @@ export interface PrayerTimeItem {
     name: string;
     time: Date;
     time_readable: string;
-    iqamah: Date | null;
-    iqamah_readable: string | null;
+    iqamah?: Date;        // Changed from null to optional undefined
+    iqamah_readable?: string;  // Changed from null to optional undefined
     showIqamah: boolean;
 }
 

@@ -1,15 +1,12 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import Loader from '$lib/themes/components/Loader.svelte';
-    import PrayerTimeCalculator from '$lib/themes/logic/prayertime_calculator.js';
 
     let { data } = $props();
     let pageComponent = $state<typeof Loader | any>(Loader);
-    let calculator = $state<PrayerTimeCalculator | null>(null);
 
     onMount(async () => {
         // Initialize prayer time calculator
-        calculator = new PrayerTimeCalculator(data);
         try {
             const componentModule = await import(
                 `$lib/themes/collections/${data.componentPath}/page.svelte`
@@ -31,7 +28,7 @@
 
 {#if pageComponent !== Loader}
     {@const SvelteComponent = pageComponent}
-    <SvelteComponent {data} {calculator} />
+    <SvelteComponent {data} />
 {:else}
     <Loader />
 {/if}

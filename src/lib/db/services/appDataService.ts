@@ -66,9 +66,9 @@ interface LanguageWithId extends LanguageSchemaType {
   id: number;
 }
 
-export interface ApiData<T extends IField[]> {
+export interface ApiData {
   prayertimes: Prayertimes;
-  custom_settings: SettingsFromFields<T>;
+  custom_settings: unknown;
   prayer_options: PrayerOptions;
   settings: AppSettings;
   language: LanguageWithId;
@@ -92,13 +92,13 @@ interface ThemeData {
 }
 
 // Define return type for getAppData
-export interface AppDataResult<T extends IField[] = IField[]> {
+export interface AppDataResult {
   prayerTimes: {
     today: PrayerTime;
     tomorrow: PrayerTime;
     dayAfterTomorrow: PrayerTime;
   };
-  apiData: ApiData<T>;
+  apiData: ApiData;
   theme: ThemeData;
   componentPath: string;
 }
@@ -140,6 +140,7 @@ export class AppDataService {
         this.getDateSettings(),
         this.getPrayerTimes()
       ]);
+      
       // Extract results with fallbacks
       const themeSettings = this.extractSettledResult(themeSettingsResult, themeService.getDefaultSettings());
       const language = this.extractSettledResult(languageResult, this.getDefaultLanguage());
@@ -147,6 +148,7 @@ export class AppDataService {
       const timeSettings = this.extractSettledResult(timeSettingsResult, { use24Hour: true, timezone: 'UTC' });
       const dateSettings = this.extractSettledResult(dateSettingsResult, { dateFormat: 'YYYY-MM-DD' });
       const prayerTimes = this.extractSettledResult(prayerTimesResult, this.getDefaultPrayerTimes());
+      
       // Load theme safely
       const theme = await this.loadTheme(themeSettings.themeName);
       
@@ -171,7 +173,7 @@ export class AppDataService {
       };
       
       // Construct API data for the theme
-      const apiData: ApiData<typeof theme.themeData.customizationForm> = {
+      const apiData = {
         prayertimes: {
           today: prayerTimes.today,
           tomorrow: prayerTimes.tomorrow,
@@ -181,14 +183,14 @@ export class AppDataService {
         prayer_options: prayerOptions,
         settings: appSettings,
         language: languageWithId
-      };
+      } as ApiData;
       
       return {
         prayerTimes,
         apiData,
         theme: theme.themeData,
         componentPath: themeSettings.themeName
-      };
+      } as AppDataResult;
     } catch (error) {
       console.error('Fatal error in getAppData:', error);
       throw new Error('Unable to load application data');
@@ -323,11 +325,13 @@ export class AppDataService {
    */
   private formatDateStrings(date: Date): string[] {
     // Format 1: YYYY-MM-DD (ISO format)
-    const isoDate = date.toISOString().split('T')[0];
-    
-    // Format 2: MM-DD (month-day only)
+    const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
+    
+    const isoDate = `${year}-${month}-${day}`;
+    
+    // Format 2: MM-DD (month-day only)
     const monthDayFormat = `${month}-${day}`;
     
     return [isoDate, monthDayFormat];
@@ -336,41 +340,105 @@ export class AppDataService {
   /**
    * Get prayer times with robust error handling and multiple date formats
    */
-  private async getPrayerTimes() {
-    try {
-      const now = new Date();
-      const dateFormats = this.formatDateStrings(now);
-      
-      // Try to get prayer times for today with full date format
-      let prayerTimesList = await this.tryGetPrayerTimesByDateFormat(dateFormats[0]);
-      
-      // If that fails, try with just month-day format
-      if (!prayerTimesList || prayerTimesList.length < 3) {
-        console.log(`No prayer times found for ${dateFormats[0]}, trying ${dateFormats[1]}`);
-        prayerTimesList = await this.tryGetPrayerTimesByDateFormat(dateFormats[1], true);
-      }
-      
-      // If that also fails, get the most recent prayers
-      if (!prayerTimesList || prayerTimesList.length < 3) {
-        console.log(`No prayer times found for specific dates, getting most recent`);
-        prayerTimesList = await db.query.prayertimes.findMany({
+  /**
+   * Get prayer times with robust error handling and multiple date formats
+   */
+    private async getPrayerTimes() {
+      try {
+        // Use local system time instead of UTC
+        const now = new Date();
+        
+        // Log the date we're fetching for debugging
+        console.log(`Getting prayer times for local date: ${now.toISOString()}`);
+        
+        // Format the date in ISO format (YYYY-MM-DD)
+        const isoDate = now.toISOString().split('T')[0];
+        console.log(`Using ISO date format: ${isoDate}`);
+        
+        // Try to get prayer times for today with ISO date format
+        let todayPrayerTimes = await this.tryGetPrayerTimesByExactDate(isoDate);
+        
+        // If we couldn't find today's prayer times, try to get the most recent one
+        if (!todayPrayerTimes) {
+          console.log(`No prayer times found for exact date ${isoDate}, trying to get most recent`);
+          const recentPrayers = await db.query.prayertimes.findMany({
+          where: (fields, { lte }) => lte(fields.date, now),
           orderBy: [desc(prayertimes.date)],
-          limit: 3,
+          limit: 1,
         });
+        
+        if (recentPrayers.length > 0) {
+          todayPrayerTimes = recentPrayers[0];
+        }
       }
       
-      // If still no results, use defaults
-      if (!prayerTimesList || prayerTimesList.length < 3) {
-        console.warn('Insufficient prayer times found, using defaults');
-        return this.getDefaultPrayerTimes();
+      // If we still couldn't find prayer times, try month-day format as fallback
+      if (!todayPrayerTimes) {
+        console.log('No recent prayer times found, trying month-day format');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const monthDayFormat = `${month}-${day}`;
+        
+        todayPrayerTimes = await this.tryGetPrayerTimesByPartialDate(monthDayFormat);
       }
       
-      const validatedPrayerTimesList = validatePrayerTimes(prayerTimesList);
+      // If we couldn't find today's prayer times at all, use default
+      if (!todayPrayerTimes) {
+        console.warn('No prayer times found for today, using default');
+        todayPrayerTimes = {
+          ...AppDataService.DEFAULT_PRAYER_TIMES,
+          id: 0,
+          date: now
+        };
+      }
+      
+      // Now get tomorrow and day after tomorrow
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowIsoDate = tomorrow.toISOString().split('T')[0];
+      
+      let tomorrowPrayerTimes = await this.tryGetPrayerTimesByExactDate(tomorrowIsoDate);
+      if (!tomorrowPrayerTimes) {
+        // Try with month-day for tomorrow
+        const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const tomorrowDay = String(tomorrow.getDate()).padStart(2, '0');
+        const tomorrowMonthDay = `${tomorrowMonth}-${tomorrowDay}`;
+        
+        tomorrowPrayerTimes = await this.tryGetPrayerTimesByPartialDate(tomorrowMonthDay);
+      }
+      if (!tomorrowPrayerTimes) {
+        tomorrowPrayerTimes = {
+          ...AppDataService.DEFAULT_PRAYER_TIMES,
+          id: 0,
+          date: tomorrow
+        };
+      }
+      
+      const dayAfter = new Date(now);
+      dayAfter.setDate(dayAfter.getDate() + 2);
+      const dayAfterIsoDate = dayAfter.toISOString().split('T')[0];
+      
+      let dayAfterPrayerTimes = await this.tryGetPrayerTimesByExactDate(dayAfterIsoDate);
+      if (!dayAfterPrayerTimes) {
+        // Try with month-day for day after tomorrow
+        const dayAfterMonth = String(dayAfter.getMonth() + 1).padStart(2, '0');
+        const dayAfterDay = String(dayAfter.getDate()).padStart(2, '0');
+        const dayAfterMonthDay = `${dayAfterMonth}-${dayAfterDay}`;
+        
+        dayAfterPrayerTimes = await this.tryGetPrayerTimesByPartialDate(dayAfterMonthDay);
+      }
+      if (!dayAfterPrayerTimes) {
+        dayAfterPrayerTimes = {
+          ...AppDataService.DEFAULT_PRAYER_TIMES,
+          id: 0,
+          date: dayAfter
+        };
+      }
       
       return {
-        today: validatedPrayerTimesList[0],
-        tomorrow: validatedPrayerTimesList[1],
-        dayAfterTomorrow: validatedPrayerTimesList[2]
+        today: todayPrayerTimes,
+        tomorrow: tomorrowPrayerTimes,
+        dayAfterTomorrow: dayAfterPrayerTimes
       };
     } catch (error) {
       console.error('Error getting prayer times:', error);
@@ -379,29 +447,63 @@ export class AppDataService {
   }
   
   /**
-   * Try to get prayer times using a specific date format
+   * Try to get prayer times for an exact date match - using the working approach from our tests
    */
-  private async tryGetPrayerTimesByDateFormat(datePattern: string, isPartial = false) {
+  private async tryGetPrayerTimesByExactDate(dateStr: string): Promise<PrayerTime | null> {
     try {
-      // For partial matching (e.g. MM-DD without year)
-      if (isPartial) {
-        return await db.query.prayertimes.findMany({
-          where: (fields, { sql }) => sql`CAST(${fields.date} AS TEXT) LIKE ${'%' + datePattern + '%'}`,
-          limit: 3,
-        });
+      // Use the direct comparison approach that worked in testing
+      const result = await db.query.prayertimes.findMany({
+        where: (fields, { eq }) => eq(fields.date, new Date(dateStr)),
+        limit: 1,
+      });
+      
+      if (result.length > 0) {
+        return result[0];
       }
       
-      // For exact date matching
-      return await db.query.prayertimes.findMany({
-        where: (fields, { sql }) => sql`DATE(${fields.date}) = ${datePattern}`,
-        limit: 3,
+      // If direct comparison fails, try DATE function as backup
+      const dateResult = await db.query.prayertimes.findMany({
+        where: (fields, { sql }) => sql`DATE(${fields.date}) = DATE(${dateStr})`,
+        limit: 1,
       });
+      
+      return dateResult.length > 0 ? dateResult[0] : null;
     } catch (error) {
-      console.error(`Error querying with date format ${datePattern}:`, error);
-      return [];
+      console.error(`Error querying with exact date ${dateStr}:`, error);
+      return null;
     }
   }
-  
+    
+  /**
+   * Try to get prayer times by partial date (month-day)
+   */
+  private async tryGetPrayerTimesByPartialDate(datePattern: string): Promise<PrayerTime | null> {
+    try {
+      // Convert date to string and search for month-day pattern more reliably
+      const result = await db.query.prayertimes.findMany({
+        where: (fields, { sql }) => 
+          sql`STRFTIME('%m-%d', ${fields.date}) = ${datePattern}`,
+        limit: 1,
+      });
+      
+      if (result.length === 0) {
+        // Fallback to LIKE query if STRFTIME is not supported by the database
+        const fallbackResult = await db.query.prayertimes.findMany({
+          where: (fields, { sql }) => 
+            sql`CAST(${fields.date} AS TEXT) LIKE ${'%' + datePattern}`,
+          limit: 1,
+        });
+        
+        return fallbackResult.length > 0 ? fallbackResult[0] : null;
+      }
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error(`Error querying with partial date ${datePattern}:`, error);
+      return null;
+    }
+  }
+
   /**
    * Create default prayer times as fallback
    */

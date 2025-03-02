@@ -5,7 +5,6 @@ import { error } from '@sveltejs/kit';
 export const load = (async ({ params }) => {
   try {
     const data = await appDataService.getAppData();
-    
     if (!data || !data.theme) {
       throw error(500, 'Failed to load essential page data');
     }
