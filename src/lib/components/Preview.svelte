@@ -7,18 +7,8 @@
     
     let { theme = '' }: PreviewProps = $props();
 
-    const isDefault = (name: string) => {
-        return !name || name.toLowerCase().includes('default');
-    };
-
-    onMount(() => {
-        if (isDefault(theme)) {
-            theme = 'Default';
-        }
-    });
-
-    let previewUrl = $derived(isDefault(theme) ? '/screen' : `/screen/${theme.toLowerCase()}`);
-    let previewText = $derived(isDefault(theme) ? 'default' : theme);
+    let previewUrl = $derived(`/screen/${theme.toLowerCase()}`);
+    let previewText = $derived(theme);
     
 </script>
 

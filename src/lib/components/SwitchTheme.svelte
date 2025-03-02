@@ -19,9 +19,13 @@
     let isLoading = $state(false);
     let errorMessage = $state('');
     
+    // Get the current theme data for reference
+    const currentTheme = themes.find(t => t.name === currentThemeName);
+    
     function handleThemeChange(event: Event) {
         const select = event.target as HTMLSelectElement;
         selectedTheme = select.value;
+        // Find theme data from the complete themes list
         selectedThemeData = themes.find(t => t.value === selectedTheme) || null;
         errorMessage = '';
     }
