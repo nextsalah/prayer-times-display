@@ -37,7 +37,7 @@ type PrayerKeys = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 type PrayerKeysWithSunrise = PrayerKeys | 'sunrise';
 
 class PrayerTimeCalculator {
-    private apiData: AppData<any>;
+    public apiData: AppData<any>;
     public prayerTimes: PrayerTimeItem[] = [];
     private prayerTimesKeys: PrayerKeysWithSunrise[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
     private updateInterval: ReturnType<typeof setInterval> | null = null;
@@ -62,10 +62,7 @@ class PrayerTimeCalculator {
                 console.error('Today\'s prayer times missing:', data.prayerTimes);
             }
 
-            console.log('Initializing PrayerTimeCalculator with data:', 
-                data.prayerTimes?.today ? 'Today\'s prayers available' : 'Missing today\'s prayers',
-                data.prayer_options ? 'Prayer options available' : 'Missing prayer options');
-            
+       
             this.apiData = data;
             this.initializePrayerTimes();
             this.updateNextPrayerTime();
@@ -107,6 +104,18 @@ class PrayerTimeCalculator {
     private clearError(): void {
         this._errorMessage = null;
         errorMessageSet(null);
+    }
+
+    public updateData(data: AppData<any>): void {
+        try {
+            this.apiData = data;
+            this.initializePrayerTimes();
+            this.updateNextPrayerTime();
+        }
+        catch (error) {
+            this.handleError(`Failed to update prayer times: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            console.error('Error updating prayer times:', error);
+        }
     }
 
     private initializePrayerTimes(): void {
@@ -164,10 +173,7 @@ class PrayerTimeCalculator {
                 this.prayerTimes.push(this.createFallbackPrayerTime('fajr', tomorrow, 'fajr_tomorrow'));
             }
             
-            // Log the created prayer times for debugging
-            console.log('Created prayer times:', this.prayerTimes.map(pt => 
-                `${pt.id}: ${pt.time_readable} (${pt.time.toLocaleTimeString()})`));
-            
+   
             // Update the store with all prayer times
             allPrayerTimesSet(this.prayerTimes);
             
@@ -193,7 +199,6 @@ class PrayerTimeCalculator {
             tomorrow.setDate(tomorrow.getDate() + 1);
             this.prayerTimes.push(this.createFallbackPrayerTime('fajr', tomorrow, 'fajr_tomorrow'));
             
-            console.log('Using fallback prayer times:', this.prayerTimes);
             allPrayerTimesSet(this.prayerTimes);
         } catch (error) {
             this.handleError('Critical error creating fallback prayer times. Please reload the page.');
@@ -454,7 +459,6 @@ class PrayerTimeCalculator {
             if (nextPrayer) {
                 // Only update if the prayer has changed
                 if (!this._nextPrayerTime || this._nextPrayerTime.id !== nextPrayer.id) {
-                    console.log(`Next prayer updated to: ${nextPrayer.name} at ${nextPrayer.time_readable}`);
                     this._nextPrayerTime = nextPrayer;
                     nextPrayerTimeSet(nextPrayer);
                 }

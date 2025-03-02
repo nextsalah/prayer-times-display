@@ -1,6 +1,7 @@
 import { Theme } from '$lib/themes/logic/handler';
 import { error, type Actions } from '@sveltejs/kit';
 import { themeService } from '$lib/db';
+import { connectionManager, ScreenEventType } from '$lib/sse/stream';
 
 export const load = (async () => {
     try {
@@ -61,6 +62,8 @@ export const actions: Actions = {
             // Reset custom settings to theme defaults
             await themeService.updateCustomSettingsObject(theme.defaultSettings || {});
 
+            // Broadcast theme change to all connected screens
+            connectionManager.broadcast(ScreenEventType.THEME_CHANGE, themeName);
             return {
                 success: true,
                 message: `Theme "${theme.name}" has been applied`
