@@ -9,9 +9,9 @@ import {
   languageService
 } from '$lib/db';
 import { themeService } from '$lib/db';
-import { Theme } from '$themes/logic/handler';
+import { Theme } from '$lib/themes/logic/handler';
 import { prayerConfigService } from '$lib/db/services/prayerconfig';
-import type { SettingsFromFields } from '$themes/logic/theme-settings-manager';
+import type { SettingsFromFields } from '$lib/themes/logic/theme-settings-manager';
 import type { IField } from '@ismail424/svelte-formly';
 import type { ThemeSettings } from '$lib/db/schemas';
 import type { 

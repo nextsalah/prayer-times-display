@@ -4,7 +4,7 @@
     import { Settings, Brush } from 'lucide-svelte';
     import { onMount } from 'svelte';
     import toast from 'svelte-french-toast';
-    import type { FileMetadata } from '$themes/interfaces/types';
+    import type { FileMetadata } from '$lib/themes/interfaces/types.js';
     let { data } = $props();
     
     let formFields: IField[] = $state([]);

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import Loader from '$themes/components/Loader.svelte';
-    import PrayerTimeCalculator from '$themes/logic/prayertime_calculator';
+    import Loader from '$lib/themes/components/Loader.svelte';
+    import PrayerTimeCalculator from '$lib/themes/logic/prayertime_calculator.js';
 
     let { data } = $props();
     let pageComponent = $state<typeof Loader | any>(Loader);
@@ -12,7 +12,7 @@
         calculator = new PrayerTimeCalculator(data);
         try {
             const componentModule = await import(
-                `../../../../../themes/collections/${data.componentPath}/page.svelte`
+                `$lib/themes/collections/${data.componentPath}/page.svelte`
             );
             pageComponent = componentModule.default;
         } catch (error) {

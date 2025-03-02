@@ -1,7 +1,7 @@
 <script lang="ts">
      import { XCircle, ArrowRight, RefreshCcwIcon } from 'lucide-svelte';
     import Preview from '$lib/components/Preview.svelte';
-    import type { ThemeList } from '$themes/interfaces/types';
+    import type { ThemeList } from '$lib/themes/interfaces/types';
     
     interface Theme {
         name: string;

@@ -1,4 +1,4 @@
-import { Theme } from '$themes/logic/handler';
+import { Theme } from '$lib/themes/logic/handler';
 import { error, type Actions } from '@sveltejs/kit';
 import { themeService } from '$lib/db';
 

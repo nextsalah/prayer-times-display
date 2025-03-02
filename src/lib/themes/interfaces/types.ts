@@ -1,8 +1,31 @@
 import type { IField } from "@ismail424/svelte-formly";
-import type { AppDataResult } from '$lib/db/services/appDataService';
+import type {  ApiData } from '$lib/db/services/appDataService';
+import type { PrayerTime } from '$lib/db/schemas/prayer/prayer-times.schema';
 
-
-export type ScreenPageServerLoad<T extends IField[]> = AppDataResult<T>;
+export interface AppData<T extends IField[]> {
+  prayerTimes: {
+    today: PrayerTime;
+    tomorrow: PrayerTime;
+    dayAfterTomorrow: PrayerTime;
+  };
+  apiData: ApiData<T>;
+  theme: {
+    value: string;
+    name: string;
+    description: string;
+    customizationForm: IField[];
+    manifest: {
+      name: string;
+      description: string;
+      version: string;
+      authors: Array<{
+        name: string;
+        github_profile: string;
+      }>;
+    };
+  };
+  componentPath: string;
+}
 
 // When parsing user uploads/inputs
 export type ParseResult<T> = 

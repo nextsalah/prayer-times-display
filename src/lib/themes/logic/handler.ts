@@ -1,26 +1,40 @@
 import { Glob } from 'bun';
 import { v4 as uuidv4 } from 'uuid';
-import { readdir } from "node:fs/promises";
 import { unlink } from 'node:fs/promises';
 import { 
     isThemeCustomizationForm,
-  type ThemeManifest, 
-  type ThemeUserSettings,
-  type Theme as ThemeType,
-  type ThemeList,
-  isThemeManifest,
-  type FileMetadata,
-} from '../interfaces/types';
+    type ThemeManifest, 
+    type ThemeUserSettings,
+    type Theme as ThemeType,
+    type ThemeList,
+    isThemeManifest,
+    type FileMetadata,
+    type ThemeBasicInfo,
+} from '$lib/themes/interfaces/types';
+
+// Import with fallback for BUILT_IN_THEMES
+let BUILT_IN_THEMES: string[] = [];
+try {
+    const collections = await import('$lib/themes/collections');
+    BUILT_IN_THEMES = collections.BUILT_IN_THEMES || ['default'];
+} catch (e) {
+    console.warn('Could not load theme collections, using fallback', e);
+    BUILT_IN_THEMES = ['default'];
+}
+
 import path from 'node:path';
 import { existsSync, mkdirSync } from "fs";
 import type { IField } from '@ismail424/svelte-formly';
 
 const UPLOAD_BASE_PATH = path.join(process.cwd(), 'static', 'uploads');
-
 const getRootPath = () => path.resolve(process.cwd());
 
-class FileManager {
+// Cache for theme list to avoid redundant filesystem access
+let themeListCache: ThemeBasicInfo[] | null = null;
+let themeCacheExpiry = 0;
+const CACHE_TTL = 60000; // 1 minute cache
 
+class FileManager {
     static async createUploadFolder(): Promise<void> {
         try {
             // Check if the folder exists
@@ -122,7 +136,6 @@ class MediaService {
             throw error;
         }
     }
-    
 }
 
 class Theme {
@@ -164,31 +177,24 @@ class Theme {
         }
     }
 
+    /**
+     * List all available themes from the built-in list
+     */
     static async list(): Promise<string[]> {
-        try {
-            const themePath = `${getRootPath()}/themes/collections`;
-            return await readdir(themePath);            
-        } catch (error) {
-            console.error('Failed to read themes directory:', error);
-            return [];
-        }
+        // Just return the built-in themes list
+        return [...BUILT_IN_THEMES];
     }
 
     static async exists(name: string): Promise<boolean> {
-        const themes = await this.list();
-        return themes.includes(name);
+        // Check if the theme is in the built-in list
+        return BUILT_IN_THEMES.includes(name);
     }
 
     static async loadManifest(name: string): Promise<ThemeManifest> {
         try {
-            // Try to import as TypeScript module first
-            try {
-                const manifestModule = await import(`../collections/${name}/manifest.ts`);
-                return manifestModule.default;
-            } catch (err) {
-                // Fallback to JSON if TS import fails (for backward compatibility)
-                return await this.readJson(name, 'manifest.json') as ThemeManifest;
-            }
+            // Only import from the codebase, not from the filesystem
+            const manifestModule = await import(`$lib/themes/collections/${name}/manifest.ts`);
+            return manifestModule.default;
         } catch (error) {
             const message = error instanceof Error ? error.message : 'unknown error';
             throw new Error(`Failed to read manifest: ${message}`);
@@ -197,48 +203,78 @@ class Theme {
 
     static async loadCustomizationForm(name: string): Promise<IField[]> {
         try {
-            // Try to import as TypeScript module first
-            try {
-                const customizationModule = await import(`../collections/${name}/customization.ts`);
-                const form = customizationModule.default;
-                if (!isThemeCustomizationForm(form)) {
-                    throw new Error('Invalid customization form format');
-                }
-                return form;
-            } catch (err) {
-                // Fallback to JSON if TS import fails (for backward compatibility)
-                const form = await this.readJson(name, 'customization.json');
-                if (!isThemeCustomizationForm(form)) {
-                    throw new Error('Invalid customization form format');
-                }
-                return form;
+            // Only import from the codebase, not from the filesystem
+            const customizationModule = await import(`$lib/themes/collections/${name}/customization.ts`);
+            const form = customizationModule.default;
+            if (!isThemeCustomizationForm(form)) {
+                throw new Error('Invalid customization form format');
             }
+            return form;
         } catch (error) {
             const message = error instanceof Error ? error.message : 'unknown error';
             throw new Error(`Failed to read customization form: ${message}`);
         }
     }
 
+    /**
+     * Get full information for all available themes with caching
+     */
     static async getAllThemes(): Promise<ThemeList> {
+        // Use cache if available and not expired
+        if (themeListCache && Date.now() < themeCacheExpiry) {
+            return themeListCache;
+        }
+        
         const themes = await this.list();
-        return await Promise.all(
+        const themeList = await Promise.all(
             themes.map(async name => {
-                const manifest = await this.loadManifest(name);
-                return { 
-                    value: name,
-                    name: manifest.name,
-                    description: manifest.description 
-                };
+                try {
+                    const manifest = await this.loadManifest(name);
+                    return { 
+                        value: name,
+                        name: manifest.name,
+                        description: manifest.description 
+                    };
+                } catch (error) {
+                    console.error(`Error loading theme "${name}":`, error);
+                    return { 
+                        value: name,
+                        name: name,
+                        description: `Error loading theme: ${error instanceof Error ? error.message : 'unknown error'}` 
+                    };
+                }
             })
         );
+        
+        // Update cache
+        themeListCache = themeList;
+        themeCacheExpiry = Date.now() + CACHE_TTL;
+        
+        return themeList;
+    }
+
+    /**
+     * Get a specific theme by ID with error handling
+     */
+    static async getTheme(id: string): Promise<ThemeType | null> {
+        const theme = await this.load(id);
+        if (theme instanceof Error) {
+            console.error(`Failed to load theme "${id}":`, theme.message);
+            return null;
+        }
+        return theme.themeData;
+    }
+
+    /**
+     * Get the default theme
+     */
+    static async getDefaultTheme(): Promise<ThemeType | null> {
+        const DEFAULT_THEME_ID = 'default';
+        return this.getTheme(DEFAULT_THEME_ID);
     }
 
     get folderName(): string {
         return this.folderPath;
-    }
-
-    get absolutePath(): string {
-        return `${getRootPath()}/themes/collections/${this.folderPath}`;
     }
 
     get name(): string {
@@ -278,16 +314,54 @@ class Theme {
     hasFileUploadSupport(): boolean {
         return this.customizationForm.some(field => field.type === 'file');
     }
-
-    private static async readJson(name: string, file: string): Promise<unknown> {
-        const path = `${getRootPath()}/themes/collections/${name}/${file}`;
-        try {
-            return await Bun.file(path).json();
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'unknown error';
-            throw new Error(`Failed to read ${file}: ${message}`);
-        }
-    }
 }
 
-export { Theme, FileManager , MediaService };
+/**
+ * Simple API for accessing themes
+ */
+const ThemeManager = {
+    /**
+     * Get list of all available themes
+     */
+    getAllThemes: async (): Promise<ThemeBasicInfo[]> => {
+        return Theme.getAllThemes();
+    },
+    
+    /**
+     * Get a specific theme by its ID
+     */
+    getTheme: async (id: string): Promise<ThemeType | null> => {
+        return Theme.getTheme(id);
+    },
+    
+    /**
+     * Get the default theme
+     */
+    getDefaultTheme: async (): Promise<ThemeType | null> => {
+        return Theme.getDefaultTheme(); 
+    },
+    
+    /**
+     * Check if a theme exists
+     */
+    themeExists: async (id: string): Promise<boolean> => {
+        return Theme.exists(id);
+    },
+    
+    /**
+     * Clear the theme cache
+     */
+    clearCache: (): void => {
+        themeListCache = null;
+        themeCacheExpiry = 0;
+    },
+    
+    /**
+     * Get built-in theme IDs defined in collections/index.ts
+     */
+    getBuiltInThemeIds: (): string[] => {
+        return [...BUILT_IN_THEMES];
+    }
+};
+
+export { Theme, FileManager, MediaService, ThemeManager };

@@ -1,8 +1,8 @@
-import type { ThemeManifest } from '../../interfaces/types';
+import type { ThemeManifest } from '$lib/themes/interfaces/types';
 
 export const manifest: ThemeManifest = {
-  "name": "Default Theme",
-  "description": "Simple, clean and responsive default theme.",
+  "name": "Retro",
+  "description": "A retro theme that fits the 80s and 90s style.",
   "version": "1.0.0",
   "authors": [
     {

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import Time from "$themes/components/Time.svelte";
-    import type { ScreenPageServerLoad } from "$themes/constants/types";
+    import Time from "$lib/themes/components/Time.svelte";
+    import type { ScreenPageServerLoad } from "$lib/themes/constants/types";
     interface Props {
         data: ScreenPageServerLoad;
     }

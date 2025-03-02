@@ -1,14 +1,14 @@
-import { MediaService, Theme } from '$themes/logic/handler';
+import { MediaService, Theme } from '$lib/themes/logic/handler';
 import { error, redirect, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { themeService } from '$lib/db';
-import type { FileMetadata, ThemeUserSettings } from '$themes/interfaces/types';
+import type { FileMetadata, ThemeUserSettings } from '$lib/themes/interfaces/types';
 import { logger } from "$lib/server/logger";
 import { 
   mergeWithDefaults, 
   validateFormData,
   processFormData,
-} from '$themes/logic/theme-settings-manager';
+} from '$lib/themes/logic/theme-settings-manager';
 
 export const load = (async ({ url }: { url: URL }) => {
     try {

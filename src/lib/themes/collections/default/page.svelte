@@ -1,17 +1,23 @@
 <script lang="ts">
-    import type { ScreenPageServerLoad } from "../../interfaces/types";
-    import type PrayerTimeCalculator from "../../logic/prayertime_calculator";
-    import Time from "../../components/Time.svelte";
+    import type { AppData } from "$lib/themes/interfaces/types";
+    import type { SettingsFromFields } from '$lib/themes/logic/theme-settings-manager';
+    import type PrayerTimeCalculator from "$lib/themes/logic/prayertime_calculator";
+    import Time from "$lib/themes/components/Time.svelte";
     import { countdownToTextSubscribe, nextPrayerTimeSubscribe } from "../../logic/prayertime_calculator";
-    import customizationType from './customization';
-    
+    import customization from "./customization";
+
     interface Props {
-        data: ScreenPageServerLoad<typeof customizationType>;
+        data: AppData<typeof customization>;
         calculator: PrayerTimeCalculator;
     }
-    let { data, calculator }= $props();
+    
+    let { data, calculator }: Props = $props();
+    
+    // Get strongly typed settings directly using the utility type
+    const settings = data.apiData.custom_settings as SettingsFromFields<typeof customization>;
     let nextPrayerTime = $state(null);
     let countdownToText = $state(null);
+    
     // Subscribe to prayer time updates
     $effect(() => {
         if (calculator) {
@@ -437,9 +443,9 @@
     <div class="ornament ornament-3"></div>
     
     <!-- Background Images -->
-    {#if data.apiData.custom_settings['name-file']}
+    {#if settings['name-file']}
         <div class="images-container">
-            {#each data.apiData.custom_settings['name-file'] as image}
+            {#each settings['name-file'] as image}
                 <img src={image.path} alt="" class="theme-image" />
             {/each}
         </div>
@@ -516,9 +522,9 @@
     </div>
 
     <!-- Footer with Arabic text -->
-    {#if data.apiData.custom_settings.footer_text}
+    {#if settings.footer_text}
         <div class="footer" dir="rtl">
-            {data.apiData.custom_settings.footer_text}
+            {settings.footer_text}
         </div>
     {/if}
 </main>
