@@ -1,11 +1,10 @@
 <script lang="ts">
-    import type { IFormData, IFormHandlerProps, ApiResponse, ILocation, IErrorResponse } from "$lib/nextsalah_api/interfaces";
+    import type { IFormData, IFormHandlerProps, ApiResponse, ILocation } from "$lib/nextsalah_api/interfaces";
     import FormHandler from "./FormHandler.svelte";
     import { onMount } from "svelte";
     import NextSalahAPI from "../handler";
     import { fade, slide } from 'svelte/transition';
     import { ExternalLink, CheckCircle } from 'lucide-svelte';
-    import toast from 'svelte-french-toast';
 
     interface Props {
         FormData: IFormData;
@@ -137,9 +136,6 @@
                         FormHandlerProps={FormHandlerProps} 
                         onSuccess={() => {
                             formSubmitted = true;
-                            toast.success("Settings saved!", {
-                                position: "bottom-center"
-                            });
                             setTimeout(() => { formSubmitted = false; }, 3000);
                         }}
                     >

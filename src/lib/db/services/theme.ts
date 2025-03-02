@@ -69,7 +69,6 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
       return {} as T;
     }
   }
-
   /**
    * Reset theme to defaults
    */
@@ -79,6 +78,14 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
       customSettings: '{}',
       showQrCode: true,
     });
+  }
+
+  /**
+   * Get compoent path
+  */
+  async getComponentPath(): Promise<string> {
+    const settings = await this.get();
+    return settings.themeName;
   }
 
   /**

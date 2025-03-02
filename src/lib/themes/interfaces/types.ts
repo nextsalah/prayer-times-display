@@ -1,4 +1,6 @@
 import type { IField } from "@ismail424/svelte-formly";
+import type { AppData } from '$lib/db';
+import type PrayerTimeCalculator from "../logic/prayertime_calculator";
 
 // When parsing user uploads/inputs
 export type ParseResult<T> = 
@@ -108,3 +110,13 @@ export type FileMetadata = {
   size: number,
   uploadedAt: string
 };
+
+export interface AppDataResult<T>{
+  apiData: AppData<T>;  
+  prayerTimes: {
+      nextPrayer: PrayerTimeItem | null;
+      countdownText: string | null;
+      allPrayerTimes: PrayerTimeItem[];
+      calculator: PrayerTimeCalculator | null;
+  }
+}

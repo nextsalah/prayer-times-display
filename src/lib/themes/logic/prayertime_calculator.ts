@@ -1,4 +1,4 @@
-import type { ApiData, AppDataResult, SinglePrayerOption } from '$lib/db/services/appDataService';
+import type { AppData, PrayerOptionType } from '$lib/db/services/appDataService';
 import type { PrayerTimeItem } from '../interfaces/types';
 import { type PrayerTime } from '$lib/db/schemas/prayer/prayer-times.schema';
 import dayjs from 'dayjs';
@@ -26,63 +26,112 @@ const DEFAULT_TIMES: Record<string, string> = {
     isha: '19:30'
 };
 
+// Create stores with consistent naming
 export const { subscribe: countdownToTextSubscribe, set: countdownToTextSet } = writable<string>('--:--:--');
 export const { subscribe: nextPrayerTimeSubscribe, set: nextPrayerTimeSet } = writable<PrayerTimeItem>(DEFAULT_PRAYER_TIME);
 export const { subscribe: allPrayerTimesSubscribe, set: allPrayerTimesSet } = writable<PrayerTimeItem[]>([]);
+// Add an error store to expose errors to the UI
+export const { subscribe: errorMessageSubscribe, set: errorMessageSet } = writable<string | null>(null);
 
 type PrayerKeys = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 type PrayerKeysWithSunrise = PrayerKeys | 'sunrise';
 
 class PrayerTimeCalculator {
-    private apiData: ApiData;
+    private apiData: AppData<any>;
     public prayerTimes: PrayerTimeItem[] = [];
-    private PRAYERTIMES_KEYS: PrayerKeysWithSunrise[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    private prayerTimesKeys: PrayerKeysWithSunrise[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
     private updateInterval: ReturnType<typeof setInterval> | null = null;
+    private _nextPrayerTime: PrayerTimeItem = DEFAULT_PRAYER_TIME;
+    private _nextPrayerTimeCountdown: number = 0;
+    private _errorMessage: string | null = null;
 
-    constructor(data: AppDataResult) {
-        if (!data || !data.apiData) {
-            console.error('Invalid API data provided to PrayerTimeCalculator', data);
-            throw new Error('Valid API data is required for PrayerTimeCalculator');
+    constructor(data: AppData<any>) {
+        try {
+            if (!data) {
+                this.handleError('Missing prayer time data. Please check your configuration.');
+                throw new Error('Valid API data is required for PrayerTimeCalculator');
+            }
+            
+            if (!data.prayerTimes) {
+                this.handleError('Missing prayer times in data. Please check the prayer times database.');
+                throw new Error('Missing prayerTimes property in API data');
+            }
+            
+            if (!data.prayerTimes.today) {
+                this.handleError('Today\'s prayer times are missing. Using default prayer times.');
+                console.error('Today\'s prayer times missing:', data.prayerTimes);
+            }
+
+            console.log('Initializing PrayerTimeCalculator with data:', 
+                data.prayerTimes?.today ? 'Today\'s prayers available' : 'Missing today\'s prayers',
+                data.prayer_options ? 'Prayer options available' : 'Missing prayer options');
+            
+            this.apiData = data;
+            this.initializePrayerTimes();
+            this.updateNextPrayerTime();
+            
+            // Clear any existing interval to prevent memory leaks
+            if (this.updateInterval) {
+                clearInterval(this.updateInterval);
+            }
+            
+            this.updateInterval = setInterval(this.updateNextPrayerTime.bind(this), 1000);
+        } catch (error) {
+            this.handleError(`Failed to initialize prayer times: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            console.error('Constructor error:', error);
+            // Still create the API data to prevent further errors
+            this.apiData = data;
+            // Create fallback prayer times even on error
+            this.createFallbackPrayerTimes();
         }
-        
-        console.log('PrayerTimeCalculator initialized with data:', {
-            today: data.apiData.prayertimes.today,
-            tomorrow: data.apiData.prayertimes.tomorrow
-        });
-        
-        this.apiData = data.apiData;
-        this.initializePrayerTimes();
-        this.updateNextPrayerTime();
-        
-        // Clear any existing interval to prevent memory leaks
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-        
-        this.updateInterval = setInterval(this.updateNextPrayerTime.bind(this), 1000);
+    }
+
+    get nextPrayerTime(): PrayerTimeItem {
+        return this._nextPrayerTime;
+    }
+
+    get nextPrayerTimeCountdown(): number {
+        return this._nextPrayerTimeCountdown;
+    }
+    
+    get errorMessage(): string | null {
+        return this._errorMessage;
+    }
+
+    private handleError(message: string): void {
+        console.error(message);
+        this._errorMessage = message;
+        errorMessageSet(message);
+    }
+
+    private clearError(): void {
+        this._errorMessage = null;
+        errorMessageSet(null);
     }
 
     private initializePrayerTimes(): void {
         try {
-            console.log('Initializing prayer times with data:', {
-                todayDate: this.apiData.prayertimes.today.date,
-                todayFajr: this.apiData.prayertimes.today.fajr,
-                tomorrowDate: this.apiData.prayertimes.tomorrow?.date
-            });
-            
+            this.clearError();
             this.prayerTimes = [];
             
+            // Check for required data
+            if (!this.apiData.prayerTimes?.today) {
+                this.handleError('Cannot get today\'s prayer times. Using default times.');
+                this.createFallbackPrayerTimes();
+                return;
+            }
+            
             // Add today's prayer times
-            this.PRAYERTIMES_KEYS.forEach((key) => {
+            this.prayerTimesKeys.forEach((key) => {
                 try {
                     if (key !== 'sunrise' && key in this.apiData.prayer_options) {
                         this.prayerTimes.push(this.createPrayerTimeItem(
                             key, 
-                            this.apiData.prayertimes.today, 
+                            this.apiData.prayerTimes.today, 
                             this.apiData.prayer_options[key as keyof typeof this.apiData.prayer_options]
                         ));
                     } else {
-                        this.prayerTimes.push(this.createPrayerTimeItem(key, this.apiData.prayertimes.today));
+                        this.prayerTimes.push(this.createPrayerTimeItem(key, this.apiData.prayerTimes.today));
                     }
                 } catch (error) {
                     console.error(`Error creating prayer time for ${key}:`, error);
@@ -92,12 +141,12 @@ class PrayerTimeCalculator {
             });
             
             // Add tomorrow's Fajr
-            if (this.apiData.prayertimes.tomorrow && 'fajr' in this.apiData.prayer_options) {
+            if (this.apiData.prayerTimes.tomorrow && 'fajr' in this.apiData.prayer_options) {
                 try {
                     this.prayerTimes.push(
                         this.createPrayerTimeItem(
                             'fajr', 
-                            this.apiData.prayertimes.tomorrow, 
+                            this.apiData.prayerTimes.tomorrow, 
                             this.apiData.prayer_options.fajr, 
                             'fajr_tomorrow'
                         )
@@ -110,18 +159,20 @@ class PrayerTimeCalculator {
                     this.prayerTimes.push(this.createFallbackPrayerTime('fajr', tomorrow, 'fajr_tomorrow'));
                 }
             } else {
-                console.warn('Tomorrow\'s fajr data not available, creating fallback');
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 this.prayerTimes.push(this.createFallbackPrayerTime('fajr', tomorrow, 'fajr_tomorrow'));
             }
             
-            console.log('Successfully initialized prayer times:', this.prayerTimes);
+            // Log the created prayer times for debugging
+            console.log('Created prayer times:', this.prayerTimes.map(pt => 
+                `${pt.id}: ${pt.time_readable} (${pt.time.toLocaleTimeString()})`));
             
             // Update the store with all prayer times
             allPrayerTimesSet(this.prayerTimes);
             
         } catch (error) {
+            this.handleError(`Failed to initialize prayer times: ${error instanceof Error ? error.message : 'Unknown error'}`);
             console.error('Failed to initialize prayer times:', error);
             // Create fallback prayer times for all prayers
             this.createFallbackPrayerTimes();
@@ -129,20 +180,25 @@ class PrayerTimeCalculator {
     }
 
     private createFallbackPrayerTimes(): void {
-        this.prayerTimes = [];
-        const today = new Date();
-        
-        this.PRAYERTIMES_KEYS.forEach(key => {
-            this.prayerTimes.push(this.createFallbackPrayerTime(key, today));
-        });
-        
-        // Add tomorrow's Fajr
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        this.prayerTimes.push(this.createFallbackPrayerTime('fajr', tomorrow, 'fajr_tomorrow'));
-        
-        console.log('Created fallback prayer times:', this.prayerTimes);
-        allPrayerTimesSet(this.prayerTimes);
+        try {
+            this.prayerTimes = [];
+            const today = new Date();
+            
+            this.prayerTimesKeys.forEach(key => {
+                this.prayerTimes.push(this.createFallbackPrayerTime(key, today));
+            });
+            
+            // Add tomorrow's Fajr
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            this.prayerTimes.push(this.createFallbackPrayerTime('fajr', tomorrow, 'fajr_tomorrow'));
+            
+            console.log('Using fallback prayer times:', this.prayerTimes);
+            allPrayerTimesSet(this.prayerTimes);
+        } catch (error) {
+            this.handleError('Critical error creating fallback prayer times. Please reload the page.');
+            console.error('Error in createFallbackPrayerTimes:', error);
+        }
     }
 
     private createFallbackPrayerTime(
@@ -150,48 +206,63 @@ class PrayerTimeCalculator {
         date: Date = new Date(), 
         customId?: string
     ): PrayerTimeItem {
-        const defaultTime = DEFAULT_TIMES[key] || '12:00';
-        const prayerName = this.apiData?.language?.[key] || key.charAt(0).toUpperCase() + key.slice(1);
-        
-        const time = this.convertStringToDayjs(defaultTime, date);
-        
-        return {
-            id: customId || key,
-            name: prayerName,
-            time: time.toDate(),
-            time_readable: defaultTime,
-            iqamah: undefined,
-            iqamah_readable: undefined,
-            showIqamah: false
-        };
+        try {
+            const defaultTime = DEFAULT_TIMES[key] || '12:00';
+            // Try to get the name from the language settings, fallback to capitalized key
+            const prayerName = this.apiData?.localization?.language?.[key] || 
+                               key.charAt(0).toUpperCase() + key.slice(1);
+            
+            const time = this.convertStringToDayjs(defaultTime, date);
+            
+            return {
+                id: customId || key,
+                name: prayerName,
+                time: time.toDate(),
+                time_readable: defaultTime,
+                iqamah: undefined,
+                iqamah_readable: undefined,
+                showIqamah: false
+            };
+        } catch (error) {
+            console.error(`Error creating fallback prayer time for ${key}:`, error);
+            // Return a guaranteed safe fallback
+            return {
+                id: customId || key,
+                name: key.charAt(0).toUpperCase() + key.slice(1),
+                time: new Date(),
+                time_readable: DEFAULT_TIMES[key] || '12:00',
+                iqamah: undefined,
+                iqamah_readable: undefined,
+                showIqamah: false
+            };
+        }
     }
 
     private createPrayerTimeItem(
         key: PrayerKeysWithSunrise,
         day: PrayerTime & { sunrise?: string },
-        option?: SinglePrayerOption,
+        option?: PrayerOptionType,
         customKey?: PrayerTimeItem['id']
     ): PrayerTimeItem {
         if (!day) {
-            throw new Error(`Invalid day data for prayer ${key}`);
+            console.warn(`Missing day data for prayer ${key}, using fallback`);
+            return this.createFallbackPrayerTime(key, new Date(), customKey);
         }
         
         // Get the correct time string for this prayer
         let timeStr: string;
         if (key === 'sunrise') {
             if (!day.sunrise) {
-                console.warn(`Sunrise time not available for ${day.date}, using default`);
+                console.warn('Sunrise time not available, using default');
                 timeStr = DEFAULT_TIMES.sunrise;
             } else {
                 timeStr = day.sunrise;
             }
+        } else if (day[key as PrayerKeys]) {
+            timeStr = day[key as PrayerKeys];
         } else {
-            if (!day[key as PrayerKeys]) {
-                console.warn(`${key} time not available for ${day.date}, using default`);
-                timeStr = DEFAULT_TIMES[key as PrayerKeys];
-            } else {
-                timeStr = day[key as PrayerKeys];
-            }
+            console.warn(`${key} time not available, using default`);
+            timeStr = DEFAULT_TIMES[key as PrayerKeys];
         }
 
         // Ensure we have a valid date object
@@ -199,7 +270,8 @@ class PrayerTimeCalculator {
         try {
             dayDate = typeof day.date === 'string' ? new Date(day.date) : new Date(day.date);
             if (isNaN(dayDate.getTime())) {
-                throw new Error('Invalid date');
+                console.warn('Invalid date, using current date');
+                dayDate = new Date();
             }
         } catch (error) {
             console.error(`Invalid date for ${key}, using current date:`, error);
@@ -207,9 +279,14 @@ class PrayerTimeCalculator {
         }
         
         const time = this.convertStringToDayjs(timeStr, dayDate);
+        
+        // Try to get prayer name from language settings with fallbacks
+        const prayerName = this.apiData?.localization?.language?.[key] || 
+                         this.getPrayerNameFallback(key);
+        
         const prayerTimeItem: PrayerTimeItem = {
             id: customKey || key,
-            name: this.apiData.language[key] || key.charAt(0).toUpperCase() + key.slice(1),
+            name: prayerName,
             time: time.toDate(),
             time_readable: timeStr,
             iqamah: undefined,
@@ -223,67 +300,107 @@ class PrayerTimeCalculator {
         return prayerTimeItem;
     }
 
-    private applyPrayerOptions(item: PrayerTimeItem, option: SinglePrayerOption): void {
+    private getPrayerNameFallback(key: PrayerKeysWithSunrise): string {
+        // Prettier names if language settings are unavailable
+        const fallbackNames: Record<PrayerKeysWithSunrise, string> = {
+            fajr: 'Fajr',
+            sunrise: 'Sunrise',
+            dhuhr: 'Dhuhr',
+            asr: 'Asr',
+            maghrib: 'Maghrib',
+            isha: 'Isha'
+        };
+        
+        return fallbackNames[key] || key.charAt(0).toUpperCase() + key.slice(1);
+    }
+
+    private applyPrayerOptions(item: PrayerTimeItem, option: PrayerOptionType): void {
         if (!option) return;
         
         try {
-            this.applyOffsetOption(item, option);
-            this.applyFixedTimeOption(item, option);
+            // Apply options in the correct order:
+            // 1. Fixed time (overrides base time)
+            // 2. Offset (adjusts base time if not fixed)
+            // 3. Iqamah (calculates iqamah based on final prayer time)
+            
+            if (option.isFixed && option.fixedTime) {
+                this.applyFixedTimeOption(item, option);
+            } else if (option.offset) {
+                this.applyOffsetOption(item, option);
+            }
+            
+            // Apply iqamah settings after the final prayer time is determined
             this.applyIqamahOption(item, option);
+            
         } catch (error) {
             console.error(`Error applying prayer options for ${item.id}:`, error);
         }
     }
 
-    private applyOffsetOption(item: PrayerTimeItem, option: SinglePrayerOption): void {
-        if (option.offset) {
-            try {
-                const updatedTime = dayjs(item.time).add(option.offset, 'minute');
+    private applyOffsetOption(item: PrayerTimeItem, option: PrayerOptionType): void {
+        if (option.offset === undefined || option.offset === null || isNaN(option.offset)) return;
+        
+        try {
+            const updatedTime = dayjs(item.time).add(option.offset, 'minute');
+            if (updatedTime.isValid()) {
                 item.time = updatedTime.toDate();
                 item.time_readable = updatedTime.format('HH:mm');
-            } catch (error) {
-                console.error(`Error applying offset for ${item.id}:`, error);
             }
+        } catch (error) {
+            console.error(`Error applying offset for ${item.id}:`, error);
         }
     }
 
-    private applyFixedTimeOption(item: PrayerTimeItem, option: SinglePrayerOption): void {
-        if (option.isFixed && option.fixedTime) {
-            try {
-                const itemDate = new Date(item.time);
-                const fixedTime = this.convertStringToDayjs(option.fixedTime, itemDate);
+    private applyFixedTimeOption(item: PrayerTimeItem, option: PrayerOptionType): void {
+        if (!option.isFixed || !option.fixedTime) return;
+        
+        try {
+            const itemDate = new Date(item.time);
+            const fixedTime = this.convertStringToDayjs(option.fixedTime, itemDate);
+            
+            if (fixedTime.isValid()) {
                 item.time = fixedTime.toDate();
                 item.time_readable = fixedTime.format('HH:mm');
-            } catch (error) {
-                console.error(`Error applying fixed time for ${item.id}:`, error);
             }
+        } catch (error) {
+            console.error(`Error applying fixed time for ${item.id}:`, error);
         }
     }
 
-    private applyIqamahOption(item: PrayerTimeItem, option: SinglePrayerOption): void {
+    private applyIqamahOption(item: PrayerTimeItem, option: PrayerOptionType): void {
         item.showIqamah = !!option.showIqamah;
         
-        if (option.showIqamah && option.iqamah) {
-            try {
-                let iqamahTime: Dayjs;
-                
-                // Special case for Fajr when calculating from sunrise
-                if (item.id === 'fajr' && option.calculateIqamahFromSunrise && option.sunriseOffset) {
-                    const sunriseItem = this.prayerTimes.find(pt => pt.id === 'sunrise');
-                    if (sunriseItem) {
-                        iqamahTime = dayjs(sunriseItem.time).add(option.sunriseOffset, 'minute');
-                    } else {
-                        iqamahTime = dayjs(item.time).add(option.iqamah, 'minute');
-                    }
+        if (!option.showIqamah) return;
+        
+        try {
+            let iqamahTime: Dayjs;
+            
+            // Special case for Fajr when calculating from sunrise
+            if (item.id === 'fajr' && 'calculateIqamahFromSunrise' in option && option.calculateIqamahFromSunrise) {
+                // Find sunrise time
+                const sunriseItem = this.prayerTimes.find(p => p.id === 'sunrise');
+                if (sunriseItem && sunriseItem.time) {
+                    // Apply sunriseOffset (minutes before sunrise)
+                    const sunriseOffset = 'sunriseOffset' in option ? option.sunriseOffset : -30;
+                    iqamahTime = dayjs(sunriseItem.time).add(sunriseOffset, 'minute');
                 } else {
-                    iqamahTime = dayjs(item.time).add(option.iqamah, 'minute');
+                    // Fallback if sunrise time is not available
+                    iqamahTime = dayjs(item.time).add(option.iqamah || 20, 'minute');
+                    console.warn('Sunrise time not found for Fajr iqamah calculation, using standard delay');
                 }
-                
+            } else {
+                // Standard iqamah calculation
+                iqamahTime = dayjs(item.time).add(option.iqamah || 10, 'minute');
+            }
+            
+            if (iqamahTime.isValid()) {
                 item.iqamah = iqamahTime.toDate();
                 item.iqamah_readable = iqamahTime.format('HH:mm');
-            } catch (error) {
-                console.error(`Error applying iqamah for ${item.id}:`, error);
+            } else {
+                console.warn(`Invalid iqamah time for ${item.id}`);
             }
+        } catch (error) {
+            console.error(`Error applying iqamah for ${item.id}:`, error);
         }
     }
 
@@ -312,20 +429,32 @@ class PrayerTimeCalculator {
         try {
             const now = dayjs();
             
+            // Filter out invalid prayer times
+            const validPrayers = this.prayerTimes.filter(prayer => 
+                prayer && prayer.time && dayjs(prayer.time).isValid()
+            );
+            
+            if (validPrayers.length === 0) {
+                this.handleError('No valid prayer times found. Please check prayer time settings.');
+                this._nextPrayerTime = DEFAULT_PRAYER_TIME;
+                this._nextPrayerTimeCountdown = 0;
+                nextPrayerTimeSet(DEFAULT_PRAYER_TIME);
+                countdownToTextSet('--:--:--');
+                return;
+            }
+            
             // Sort prayers by time to ensure we find the correct next one
-            const sortedPrayers = [...this.prayerTimes].sort((a, b) => {
+            const sortedPrayers = [...validPrayers].sort((a, b) => {
                 return dayjs(a.time).valueOf() - dayjs(b.time).valueOf();
             });
             
-            const nextPrayer = sortedPrayers.find((item) => {
-                return dayjs(item.time).isAfter(now);
-            });
+            const nextPrayer = sortedPrayers.find(item => dayjs(item.time).isAfter(now));
 
             // If we found a next prayer, update the stores
             if (nextPrayer) {
                 // Only update if the prayer has changed
                 if (!this._nextPrayerTime || this._nextPrayerTime.id !== nextPrayer.id) {
-                    console.log('Setting new next prayer:', nextPrayer);
+                    console.log(`Next prayer updated to: ${nextPrayer.name} at ${nextPrayer.time_readable}`);
                     this._nextPrayerTime = nextPrayer;
                     nextPrayerTimeSet(nextPrayer);
                 }
@@ -333,14 +462,30 @@ class PrayerTimeCalculator {
                 // Always update the countdown
                 this._nextPrayerTimeCountdown = Math.max(0, dayjs(nextPrayer.time).diff(now, 'second'));
                 countdownToTextSet(this.formatSecondsToTime(this._nextPrayerTimeCountdown));
+                
+                // Clear any errors since we've successfully found the next prayer
+                this.clearError();
             } else {
-                console.warn('No next prayer found, using default');
-                this._nextPrayerTime = DEFAULT_PRAYER_TIME;
-                this._nextPrayerTimeCountdown = 0;
-                nextPrayerTimeSet(DEFAULT_PRAYER_TIME);
-                countdownToTextSet('--:--:--');
+                console.log('No upcoming prayers found for today, checking tomorrow');
+                // If no upcoming prayer is found (e.g., all prayers for today have passed)
+                // Default to tomorrow's first prayer or keep the current one
+                const firstPrayerTomorrow = sortedPrayers.find(item => item.id === 'fajr_tomorrow');
+                if (firstPrayerTomorrow) {
+                    this._nextPrayerTime = firstPrayerTomorrow;
+                    this._nextPrayerTimeCountdown = Math.max(0, dayjs(firstPrayerTomorrow.time).diff(now, 'second'));
+                    nextPrayerTimeSet(firstPrayerTomorrow);
+                    countdownToTextSet(this.formatSecondsToTime(this._nextPrayerTimeCountdown));
+                    this.clearError();
+                } else {
+                    this.handleError('Could not find any upcoming prayer times. Please check your prayer time settings.');
+                    this._nextPrayerTime = DEFAULT_PRAYER_TIME;
+                    this._nextPrayerTimeCountdown = 0;
+                    nextPrayerTimeSet(DEFAULT_PRAYER_TIME);
+                    countdownToTextSet('--:--:--');
+                }
             }
         } catch (error) {
+            this.handleError(`Error updating next prayer time: ${error instanceof Error ? error.message : 'Unknown error'}`);
             console.error('Error updating next prayer time:', error);
             this._nextPrayerTime = DEFAULT_PRAYER_TIME;
             this._nextPrayerTimeCountdown = 0;
@@ -349,40 +494,41 @@ class PrayerTimeCalculator {
         }
     }
 
-    private _nextPrayerTime: PrayerTimeItem = DEFAULT_PRAYER_TIME;
-    get nextPrayerTime(): PrayerTimeItem {
-        return this._nextPrayerTime;
-    }
-
-    private _nextPrayerTimeCountdown: number = 0;
-    get nextPrayerTimeCountdown(): number {
-        return this._nextPrayerTimeCountdown;
-    }
-
     public prayerHasPassed(prayerTime: PrayerTimeItem): boolean {
         if (!prayerTime || !prayerTime.time) return false;
-        return dayjs(prayerTime.time).isBefore(dayjs());
+        
+        try {
+            return dayjs(prayerTime.time).isBefore(dayjs());
+        } catch (error) {
+            console.error(`Error checking if prayer has passed:`, error);
+            return false;
+        }
     }
 
     public isPrayerActive(prayerTime: PrayerTimeItem): boolean {
-        if (!prayerTime || !prayerTime.time) return false;
+        if (!prayerTime || !prayerTime.time || !this._nextPrayerTime) return false;
         
-        // A prayer is active if it's the current prayer time
-        return prayerTime.id === this._nextPrayerTime.id;
+        try {
+            // A prayer is active if it's the current prayer time
+            return prayerTime.id === this._nextPrayerTime.id;
+        } catch (error) {
+            console.error(`Error checking if prayer is active:`, error);
+            return false;
+        }
     }
 
     private convertStringToDayjs(time: string, date: Date): Dayjs {
         try {
             // Validate the input time string
             if (!time || typeof time !== 'string' || !time.includes(':')) {
-                console.error(`Invalid time format: ${time}, using current time instead`);
+                console.warn(`Invalid time string format: "${time}", using current time`);
                 return dayjs();
             }
             
             // Ensure date is a Date object
             const dateObj = new Date(date);
             if (isNaN(dateObj.getTime())) {
-                console.error(`Invalid date: ${date}, using current date instead`);
+                console.warn('Invalid date object, using current date');
                 return dayjs();
             }
             
@@ -391,7 +537,7 @@ class PrayerTimeCalculator {
             const minutes = parseInt(minutesStr, 10);
         
             if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-                console.error(`Invalid time components: hours=${hours}, minutes=${minutes}, using current time instead`);
+                console.warn(`Invalid time values: hours=${hours}, minutes=${minutes}`);
                 return dayjs();
             }
         
@@ -403,7 +549,7 @@ class PrayerTimeCalculator {
         
             return dayjs(newDate);
         } catch (error) {
-            console.error(`Error converting string to dayjs: ${time}, ${date}`, error);
+            console.error(`Error converting string to dayjs:`, error);
             return dayjs();
         }
     }

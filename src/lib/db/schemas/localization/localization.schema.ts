@@ -84,7 +84,6 @@ export const LocalizationSchema = z.object({
 export type LanguageSettings = typeof languageSettings.$inferSelect;
 export type NewLanguageSettings = typeof languageSettings.$inferInsert;
 export type LanguageSchemaType = z.infer<typeof LanguageSchema>;
-
 // Time settings types
 export type TimeSettings = typeof timeSettings.$inferSelect;
 export type NewTimeSettings = typeof timeSettings.$inferInsert;
