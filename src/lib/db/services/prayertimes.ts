@@ -1,7 +1,10 @@
 // src/lib/db/services/prayertime.ts
 import { db } from '$lib/db/db.server';
 import { prayertimes, type PrayerTime } from '$lib/db/schemas/prayer/prayer-times.schema';
-import { desc, and, between, eq, sql } from 'drizzle-orm';
+import { desc, asc, and, between, eq, sql } from 'drizzle-orm';
+
+export type PrayerName = 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
+export const PRAYER_NAMES: PrayerName[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
 export class PrayerTimesService {
   // Simple in-memory cache
@@ -15,10 +18,6 @@ export class PrayerTimesService {
     // Create dates using local time, not UTC
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    // Get 3 days at once to reduce database calls
-    const endDate = new Date(startOfToday);
-    endDate.setDate(endDate.getDate() + 2);
     
     try {
       const prayerTimesList = await this.getPrayerTimesForRange(startOfToday, 3);
@@ -34,11 +33,11 @@ export class PrayerTimesService {
       
       // Find the prayer times for each day
       const todayPrayer = prayerTimesList.find(p => this.formatDateString(new Date(p.date)) === todayStr) || 
-                         await this.findClosestPrayerTime(startOfToday);
+                         await this.findPrayerTimeWithYearFallback(startOfToday);
       const tomorrowPrayer = prayerTimesList.find(p => this.formatDateString(new Date(p.date)) === tomorrowStr) || 
-                            await this.findClosestPrayerTime(tomorrowDate);
+                            await this.findPrayerTimeWithYearFallback(tomorrowDate);
       const dayAfterPrayer = prayerTimesList.find(p => this.formatDateString(new Date(p.date)) === dayAfterStr) || 
-                           await this.findClosestPrayerTime(dayAfterDate);
+                           await this.findPrayerTimeWithYearFallback(dayAfterDate);
       
       return {
         today: todayPrayer,
@@ -65,9 +64,9 @@ export class PrayerTimesService {
   }
   
   /**
-   * Get prayer times for a specific date range
+   * Get prayer times for a specific date range with enhanced year transition handling
    */
-  async getPrayerTimesForRange(startDate: Date, days: number = 7) {
+  async getPrayerTimesForRange(startDate: Date, days: number = 7): Promise<PrayerTime[]> {
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + (days - 1));
     
@@ -76,7 +75,8 @@ export class PrayerTimesService {
     const formattedEndDate = this.formatDateForDB(endDate);
     
     try {
-      const prayerTimesList = await db.query.prayertimes.findMany({
+      // First try finding prayer times in the requested date range
+      let prayerTimesList = await db.query.prayertimes.findMany({
         where: (fields, { and, between, or }) => and(
           or(
             between(fields.date, new Date(formattedStartDate), new Date(formattedEndDate)),
@@ -84,7 +84,7 @@ export class PrayerTimesService {
             sql`STRFTIME('%m-%d', ${fields.date}) BETWEEN STRFTIME('%m-%d', ${formattedStartDate}) AND STRFTIME('%m-%d', ${formattedEndDate})`
           )
         ),
-        orderBy: [desc(prayertimes.date)],
+        orderBy: [asc(prayertimes.date)],
       });
       
       if (prayerTimesList.length === 0) {
@@ -99,7 +99,49 @@ export class PrayerTimesService {
   }
   
   /**
-   * Get prayer time for a specific date with caching and improved fallbacks
+   * Find prayer time for a date with year fallback support
+   * This is especially helpful during year transitions
+   */
+  async findPrayerTimeWithYearFallback(date: Date): Promise<PrayerTime> {
+    // First try the exact date
+    const exactMatch = await this.getPrayerTimeByExactDate(date);
+    if (exactMatch) return exactMatch;
+    
+    // Try closest date in current year
+    const closestMatch = await this.findClosestPrayerTime(date);
+    if (closestMatch) return closestMatch;
+    
+    // Try month-day pattern (across any year)
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const monthDayFormat = `${month}-${day}`;
+    
+    const monthDayMatch = await this.getPrayerTimeByMonthDay(monthDayFormat);
+    if (monthDayMatch) return monthDayMatch;
+    
+    // Try previous years (working backwards up to 5 years)
+    for (let yearOffset = 1; yearOffset <= 5; yearOffset++) {
+      const previousYearDate = new Date(date);
+      previousYearDate.setFullYear(date.getFullYear() - yearOffset);
+      
+      // Try exact date match from previous year
+      const previousYearMatch = await this.getPrayerTimeByExactDate(previousYearDate);
+      if (previousYearMatch) return previousYearMatch;
+      
+      // Try month-day match from previous year
+      const previousYearMonthDayMatch = await this.getPrayerTimeByMonthDay(monthDayFormat, date.getFullYear() - yearOffset);
+      if (previousYearMonthDayMatch) return previousYearMonthDayMatch;
+    }
+    
+    // If all else fails, find the most recent prayer time for any date
+    const fallbackTime = await this.getLatestPrayerTime();
+    if (fallbackTime) return fallbackTime;
+    
+    throw new Error(`No prayer times found for date ${date.toLocaleDateString()} even after trying fallbacks`);
+  }
+  
+  /**
+   * Get prayer time for a specific date with enhanced fallback mechanisms
    */
   async getPrayerTimeForDate(date: Date): Promise<PrayerTime> {
     const dateStr = this.formatDateString(date);
@@ -111,35 +153,10 @@ export class PrayerTimesService {
       return cached.data;
     }
     
-    // Try getting prayer time with various strategies
     try {
-      // Strategy 1: Exact date match
-      const exactMatch = await this.getPrayerTimeByExactDate(date);
-      if (exactMatch) {
-        this.updateCache(cacheKey, exactMatch);
-        return exactMatch;
-      }
-      
-      // Strategy 2: Find closest date in the same year
-      const closestMatch = await this.findClosestPrayerTime(date);
-      if (closestMatch) {
-        this.updateCache(cacheKey, closestMatch);
-        return closestMatch;
-      }
-      
-      // Strategy 3: Fall back to month-day pattern for recurring annual prayers
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const monthDayFormat = `${month}-${day}`;
-      
-      const partialMatch = await this.getPrayerTimeByPartialDate(monthDayFormat);
-      if (partialMatch) {
-        this.updateCache(cacheKey, partialMatch);
-        return partialMatch;
-      }
-      
-      // If all lookups fail, throw an error
-      throw new Error(`No prayer times found for date ${date.toLocaleDateString()}`);
+      const result = await this.findPrayerTimeWithYearFallback(date);
+      this.updateCache(cacheKey, result);
+      return result;
     } catch (error) {
       console.error(`Error retrieving prayer time for ${dateStr}:`, error);
       throw new Error(`Failed to retrieve prayer times for ${dateStr}`);
@@ -149,13 +166,16 @@ export class PrayerTimesService {
   /**
    * Get current prayer and next prayer time
    */
-  async getCurrentAndNextPrayer(): Promise<{current: string, next: string, currentTime: string, nextTime: string}> {
+  async getCurrentAndNextPrayer(): Promise<{
+    current: PrayerName;
+    next: PrayerName;
+    currentTime: string;
+    nextTime: string;
+  }> {
     const now = new Date();
     const todayPrayer = await this.getPrayerTimeForDate(now);
     
-    type PrayerName = 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
-    const prayerNames: PrayerName[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
-    const prayerTimes = prayerNames.map(name => ({
+    const prayerTimes = PRAYER_NAMES.map(name => ({
       name,
       time: this.parseTimeString(todayPrayer[name])
     }));
@@ -163,16 +183,13 @@ export class PrayerTimesService {
     // Sort prayer times chronologically
     prayerTimes.sort((a, b) => a.time.getTime() - b.time.getTime());
     
-    let current = prayerTimes[prayerTimes.length - 1]; // Default to last prayer
-    let next = prayerTimes[0]; // Default to first prayer (for next day)
-    
-    // Ensure type safety for prayer names
-    const isValidPrayerName = (name: string): name is PrayerName => {
-      return prayerNames.includes(name as PrayerName);
-    };
-    let next = prayerTimes[0]; // Default to first prayer (for next day)
+    // Default to last prayer of the day
+    let current = prayerTimes[prayerTimes.length - 1]; 
+    // Default to first prayer of the next day
+    let next = prayerTimes[0]; 
     
     const currentTimeMs = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000;
+    let foundNext = false;
     
     for (let i = 0; i < prayerTimes.length; i++) {
       const prayer = prayerTimes[i];
@@ -192,34 +209,28 @@ export class PrayerTimesService {
           };
         }
         next = prayer;
+        foundNext = true;
         break;
       }
     }
     
-    // Check if we're after the last prayer of the day
-    if (current === prayerTimes[prayerTimes.length - 1] && next === prayerTimes[0]) {
-      // Get tomorrow's first prayer
+    // Handle case when we're after the last prayer of the day
+    let nextTime: string;
+    if (!foundNext) {
+      // Get tomorrow's first prayer time
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowPrayer = await this.getPrayerTimeForDate(tomorrow);
-    // Ensure prayer names are valid before accessing
-    if (!isValidPrayerName(current.name) || !isValidPrayerName(next.name)) {
-      throw new Error(`Invalid prayer name: ${current.name} or ${next.name}`);
+      nextTime = tomorrowPrayer.fajr;
+    } else {
+      nextTime = todayPrayer[next.name];
     }
     
     return {
       current: current.name,
       next: next.name,
       currentTime: todayPrayer[current.name],
-      nextTime: next.name === 'fajr' && current.name === 'isha' ? 
-        (await this.getPrayerTimeForDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))).fajr : 
-        todayPrayer[next.name]
-    };
-      next: next.name,
-      currentTime: todayPrayer[current.name],
-      nextTime: next.name === 'fajr' && current.name === 'isha' ? 
-        (await this.getPrayerTimeForDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))).fajr : 
-        todayPrayer[next.name]
+      nextTime: nextTime
     };
   }
   
@@ -280,31 +291,76 @@ export class PrayerTimesService {
   }
   
   /**
-   * Try to get prayer times by month-day pattern
+   * Get prayer times by month and day, optionally filtering by year
+   * This helps with finding prayer times from previous years for the same calendar day
    */
-  private async getPrayerTimeByPartialDate(datePattern: string): Promise<PrayerTime | null> {
+  private async getPrayerTimeByMonthDay(monthDayPattern: string, specificYear?: number): Promise<PrayerTime | null> {
     try {
-      // Try STRFTIME for month-day pattern
-      const result = await db.query.prayertimes.findMany({
-        where: (fields, { sql }) => 
-          sql`STRFTIME('%m-%d', ${fields.date}) = ${datePattern}`,
-        orderBy: [desc(prayertimes.date)], // Get most recent matching date
-        limit: 1,
-      });
+      let query: any;
+      
+      if (specificYear) {
+        // If a specific year is provided, find prayer times for that month-day in that year
+        query = db.query.prayertimes.findMany({
+          where: (fields, { and, sql }) => and(
+            sql`STRFTIME('%m-%d', ${fields.date}) = ${monthDayPattern}`,
+            sql`STRFTIME('%Y', ${fields.date}) = ${String(specificYear)}`
+          ),
+          orderBy: [desc(prayertimes.date)],
+          limit: 1,
+        });
+      } else {
+        // Otherwise, just find by month-day across all years
+        query = db.query.prayertimes.findMany({
+          where: (fields, { sql }) => 
+            sql`STRFTIME('%m-%d', ${fields.date}) = ${monthDayPattern}`,
+          orderBy: [desc(prayertimes.date)], // Get most recent matching date
+          limit: 1,
+        });
+      }
+      
+      const result = await query;
       
       if (result.length > 0) return result[0];
       
       // Fallback to LIKE query if STRFTIME is not supported
-      const fallbackResult = await db.query.prayertimes.findMany({
-        where: (fields, { sql }) => 
-          sql`CAST(${fields.date} AS TEXT) LIKE ${'%' + datePattern}`,
+      const fallbackQuery = specificYear 
+        ? db.query.prayertimes.findMany({
+            where: (fields, { and, sql }) => and(
+              sql`CAST(${fields.date} AS TEXT) LIKE ${'%' + monthDayPattern}`,
+              sql`CAST(${fields.date} AS TEXT) LIKE ${String(specificYear) + '%'}`
+            ),
+            orderBy: [desc(prayertimes.date)],
+            limit: 1,
+          })
+        : db.query.prayertimes.findMany({
+            where: (fields, { sql }) => 
+              sql`CAST(${fields.date} AS TEXT) LIKE ${'%' + monthDayPattern}`,
+            orderBy: [desc(prayertimes.date)],
+            limit: 1,
+          });
+      
+      const fallbackResult = await fallbackQuery;
+      return fallbackResult.length > 0 ? fallbackResult[0] : null;
+    } catch (error) {
+      console.error(`Error querying by month-day pattern:`, error);
+      return null;
+    }
+  }
+  
+  /**
+   * Get the most recent prayer time from the database
+   * This is a last-resort fallback
+   */
+  private async getLatestPrayerTime(): Promise<PrayerTime | null> {
+    try {
+      const result = await db.query.prayertimes.findMany({
         orderBy: [desc(prayertimes.date)],
         limit: 1,
       });
       
-      return fallbackResult.length > 0 ? fallbackResult[0] : null;
+      return result.length > 0 ? result[0] : null;
     } catch (error) {
-      console.error(`Error querying partial date:`, error);
+      console.error(`Error getting latest prayer time:`, error);
       return null;
     }
   }
