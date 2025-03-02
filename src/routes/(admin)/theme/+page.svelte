@@ -8,34 +8,11 @@
         Minimize2,
         QrCode
     } from 'lucide-svelte';
+    import toast from 'svelte-french-toast';
 
     let { data } = $props();
     let showPreview = $state(false);
     let qrCodeEnabled = $state(data.settings.qrCodeEnabled);
-    
-    async function updateQrCodeSetting() {
-        try {
-            const formData = new FormData();
-            formData.append('qrCodeEnabled', qrCodeEnabled.toString());
-            
-            const response = await fetch('/api/settings/qrcode', {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to update QR code setting');
-            }
-            
-            // Optional: Show success notification
-        } catch (error) {
-            console.error('QR code setting error:', error);
-            // Optional: Show error notification
-            
-            // Revert to original state on error
-            qrCodeEnabled = data.settings.qrCodeEnabled;
-        }
-    }
 </script>
 
 <div class="p-4 rounded-lg">
@@ -75,24 +52,34 @@
                         <h3 class="font-medium">QR Code Settings</h3>
                     </div>
                     
-                    <form method="POST" action="?/toggleQrCode" class="mt-3">
+                    <div class="mt-3">
                         <div class="flex items-center">
                             <label class="cursor-pointer flex items-center gap-3">
                                 <input 
                                     type="checkbox" 
-                                    name="qrCodeEnabled"
                                     class="toggle toggle-primary" 
                                     checked={qrCodeEnabled}
-                                    value="true"
-                                    onchange={(e) => {
+                                    onchange={async (e) => {
                                         qrCodeEnabled = e.currentTarget.checked;
-                                        e.currentTarget.form?.requestSubmit();
+                                        try {
+                                            await fetch('?/toggleQrCode', {
+                                                method: 'POST',
+                                                body: new URLSearchParams({
+                                                    qrCodeEnabled: e.currentTarget.checked.toString()
+                                                })
+                                            });
+                                            toast.success("QR Code setting updated", {
+                                                position: "bottom-center"
+                                            });
+                                        } catch (error) {
+                                            toast.error("Failed to update QR Code setting");
+                                        }
                                     }}
                                 />
                                 <span>Show QR Code on Login Page</span>
                             </label>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 <!-- Theme Actions -->

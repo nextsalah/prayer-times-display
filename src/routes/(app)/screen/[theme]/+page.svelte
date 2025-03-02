@@ -1,29 +1,27 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import type { PageData } from './$types';
-    import Placeholder from '$themes/components/Placeholder.svelte';
+    import Loader from '$themes/components/Loader.svelte';
     import PrayerTimeCalculator from '$themes/logic/prayertime_calculator';
 
     let { data } = $props();
-    let pageComponent = $state<typeof Placeholder | any>(Placeholder);
+    let pageComponent = $state<typeof Loader | any>(Loader);
     let calculator = $state<PrayerTimeCalculator | null>(null);
 
     onMount(async () => {
         // Initialize prayer time calculator
-        calculator = new PrayerTimeCalculator(data.apiData);
-
+        calculator = new PrayerTimeCalculator(data);
         try {
             const componentModule = await import(
-                `../../../../themes/collections/${data.componentPath}/page.svelte`
+                `../../../../../themes/collections/${data.componentPath}/page.svelte`
             );
             pageComponent = componentModule.default;
         } catch (error) {
             console.error('Error loading component:', error);
-            pageComponent = Placeholder;
+            pageComponent = Loader;
         }
     });
 
-  const SvelteComponent_1 = $derived(pageComponent);
+    const SvelteComponent = $derived(pageComponent);
 </script>
 
 <svelte:head>
@@ -31,9 +29,9 @@
     <meta name="description" content="Prayer times display screen" />
 </svelte:head>
 
-{#if pageComponent !== Placeholder}
+{#if pageComponent !== Loader}
     {@const SvelteComponent = pageComponent}
-    <SvelteComponent {data} calculator={calculator} />
+    <SvelteComponent {data} {calculator} />
 {:else}
-    <Placeholder />
+    <Loader />
 {/if}

@@ -1,4 +1,6 @@
-{
+import type { ThemeManifest } from '../../interfaces/types';
+
+export const manifest: ThemeManifest = {
   "name": "Retro",
   "description": "A retro theme that fits the 80s and 90s style.",
   "version": "1.0.0",
@@ -8,4 +10,6 @@
       "github_profile": "https://github.com/ismail424"
     }
   ]
-}
+};
+
+export default manifest;

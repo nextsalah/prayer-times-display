@@ -1,4 +1,8 @@
 import type { IField } from "@ismail424/svelte-formly";
+import type { AppDataResult } from '$lib/db/services/appDataService';
+
+
+export type ScreenPageServerLoad<T extends IField[]> = AppDataResult<T>;
 
 // When parsing user uploads/inputs
 export type ParseResult<T> = 

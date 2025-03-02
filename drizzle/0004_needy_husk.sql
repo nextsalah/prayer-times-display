@@ -1,1 +1,0 @@
-ALTER TABLE `prayer_config` ADD `specific_settings` text NOT NULL;

@@ -1,5 +1,6 @@
-import type { ApiData, PrayerTimeDay, SinglePrayerOption } from '../interfaces/api';
+import type { ApiData, AppDataResult, SinglePrayerOption } from '$lib/db/services/appDataService';
 import type { PrayerTimeItem } from '../interfaces/types';
+import { type PrayerTime } from '$lib/db/schemas/prayer/prayer-times.schema';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { writable } from 'svelte/store';
@@ -11,15 +12,15 @@ type PrayerKeys = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 type PrayerKeysWithSunrise = PrayerKeys | 'sunrise';
 
 class PrayerTimeCalculator {
-    private apiData: ApiData;
+    private apiData: ApiData<any>;
     public prayerTimes: PrayerTimeItem[] = [];
     private PRAYERTIMES_KEYS: PrayerKeysWithSunrise[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
-    constructor(apiData: ApiData) {
-        if (!apiData) {
+    constructor(data: AppDataResult<any>) {
+        if (!data) {
             throw new Error('Api data is required');
         }
-        this.apiData = apiData;
+        this.apiData = data.apiData;
         this.initializePrayerTimes();
         this.updateNextPrayerTime();
         setInterval(this.updateNextPrayerTime.bind(this), 1000);
@@ -41,7 +42,7 @@ class PrayerTimeCalculator {
 
     private createPrayerTimeItem(
         key: PrayerKeysWithSunrise,
-        day: PrayerTimeDay & { sunrise?: string },
+        day: PrayerTime & { sunrise?: string },
         option?: SinglePrayerOption,
         customKey?: PrayerTimeItem['id']
     ): PrayerTimeItem {

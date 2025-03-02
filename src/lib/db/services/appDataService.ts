@@ -36,9 +36,10 @@ interface AppSettings {
   dateFormat: string;
   timeFormat: string;
 }
+
 const DEFAULT_THEME = "default"
 
-interface SinglePrayerOption {
+export interface SinglePrayerOption {
   id: number;
   name: string;
   showIqamah: boolean;
@@ -53,7 +54,7 @@ interface SinglePrayerOption {
   sunriseOffset?: number;
 }
 
-interface PrayerOptions {
+export interface PrayerOptions {
   fajr: SinglePrayerOption;
   dhuhr: SinglePrayerOption;
   asr: SinglePrayerOption;
@@ -65,12 +66,41 @@ interface LanguageWithId extends LanguageSchemaType {
   id: number;
 }
 
-interface ApiData<T extends IField[]> {
+export interface ApiData<T extends IField[]> {
   prayertimes: Prayertimes;
   custom_settings: SettingsFromFields<T>;
   prayer_options: PrayerOptions;
   settings: AppSettings;
   language: LanguageWithId;
+}
+
+// Define ThemeData interface
+interface ThemeData {
+  value: string;
+  name: string;
+  description: string;
+  customizationForm: IField[];
+  manifest: {
+    name: string;
+    description: string;
+    version: string;
+    authors: Array<{
+      name: string;
+      github_profile: string;
+    }>;
+  };
+}
+
+// Define return type for getAppData
+export interface AppDataResult<T extends IField[] = IField[]> {
+  prayerTimes: {
+    today: PrayerTime;
+    tomorrow: PrayerTime;
+    dayAfterTomorrow: PrayerTime;
+  };
+  apiData: ApiData<T>;
+  theme: ThemeData;
+  componentPath: string;
 }
 
 /**
@@ -92,7 +122,7 @@ export class AppDataService {
   /**
    * Get complete API data for display in the UI
    */
-  async getAppData() {
+  async getAppData(): Promise<AppDataResult> {
     try {
       // Get all settings in parallel with proper error handling
       const [
@@ -110,7 +140,6 @@ export class AppDataService {
         this.getDateSettings(),
         this.getPrayerTimes()
       ]);
-
       // Extract results with fallbacks
       const themeSettings = this.extractSettledResult(themeSettingsResult, themeService.getDefaultSettings());
       const language = this.extractSettledResult(languageResult, this.getDefaultLanguage());
@@ -118,7 +147,6 @@ export class AppDataService {
       const timeSettings = this.extractSettledResult(timeSettingsResult, { use24Hour: true, timezone: 'UTC' });
       const dateSettings = this.extractSettledResult(dateSettingsResult, { dateFormat: 'YYYY-MM-DD' });
       const prayerTimes = this.extractSettledResult(prayerTimesResult, this.getDefaultPrayerTimes());
-      
       // Load theme safely
       const theme = await this.loadTheme(themeSettings.themeName);
       
@@ -167,6 +195,29 @@ export class AppDataService {
     }
   }
   
+  /**
+   * Get app data with a specific theme override
+   */
+  async getAppDataWithTheme(themeId: string): Promise<AppDataResult | null> {
+    try {
+      const data = await this.getAppData();
+      const theme = await Theme.load(themeId);
+      
+      if (theme instanceof Error) {
+        return null;
+      }
+
+      return {
+        ...data,
+        theme: theme.themeData,
+        componentPath: themeId
+      };
+    } catch (error) {
+      console.error('Error getting app data with theme:', error);
+      return null;
+    }
+  }
+
   /**
    * Get theme settings with error handling
    */
@@ -379,7 +430,7 @@ export class AppDataService {
    */
   private getDefaultLanguage(): LanguageSchemaType {
     return {
-      locale: 'en',
+      language_code: 'en',
       fajr: 'Fajr',
       sunrise: 'Sunrise',
       dhuhr: 'Dhuhr',

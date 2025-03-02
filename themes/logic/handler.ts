@@ -1,6 +1,6 @@
 import { Glob } from 'bun';
 import { v4 as uuidv4 } from 'uuid';
-import { readdir} from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { unlink } from 'node:fs/promises';
 import { 
     isThemeCustomizationForm,
@@ -12,10 +12,10 @@ import {
   type FileMetadata,
 } from '../interfaces/types';
 import path from 'node:path';
-import { UPLOAD_BASE_PATH } from '../constants/types';
 import { existsSync, mkdirSync } from "fs";
 import type { IField } from '@ismail424/svelte-formly';
 
+const UPLOAD_BASE_PATH = path.join(process.cwd(), 'static', 'uploads');
 
 const getRootPath = () => path.resolve(process.cwd());
 
@@ -181,7 +181,14 @@ class Theme {
 
     static async loadManifest(name: string): Promise<ThemeManifest> {
         try {
-            return await this.readJson(name, 'manifest.json') as ThemeManifest;
+            // Try to import as TypeScript module first
+            try {
+                const manifestModule = await import(`../collections/${name}/manifest.ts`);
+                return manifestModule.default;
+            } catch (err) {
+                // Fallback to JSON if TS import fails (for backward compatibility)
+                return await this.readJson(name, 'manifest.json') as ThemeManifest;
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : 'unknown error';
             throw new Error(`Failed to read manifest: ${message}`);
@@ -190,11 +197,22 @@ class Theme {
 
     static async loadCustomizationForm(name: string): Promise<IField[]> {
         try {
-            const form = await this.readJson(name, 'customization.json');
-            if (!isThemeCustomizationForm(form)) {
-                throw new Error('Invalid customization form format');
+            // Try to import as TypeScript module first
+            try {
+                const customizationModule = await import(`../collections/${name}/customization.ts`);
+                const form = customizationModule.default;
+                if (!isThemeCustomizationForm(form)) {
+                    throw new Error('Invalid customization form format');
+                }
+                return form;
+            } catch (err) {
+                // Fallback to JSON if TS import fails (for backward compatibility)
+                const form = await this.readJson(name, 'customization.json');
+                if (!isThemeCustomizationForm(form)) {
+                    throw new Error('Invalid customization form format');
+                }
+                return form;
             }
-            return form;
         } catch (error) {
             const message = error instanceof Error ? error.message : 'unknown error';
             throw new Error(`Failed to read customization form: ${message}`);

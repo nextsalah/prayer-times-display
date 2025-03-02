@@ -1,19 +1,17 @@
 <script lang="ts">
-    import type { ScreenPageServerLoad } from "../../constants/types";
+    import type { ScreenPageServerLoad } from "../../interfaces/types";
     import type PrayerTimeCalculator from "../../logic/prayertime_calculator";
     import Time from "../../components/Time.svelte";
     import { countdownToTextSubscribe, nextPrayerTimeSubscribe } from "../../logic/prayertime_calculator";
- 
+    import customizationType from './customization';
+    
     interface Props {
-        data: ScreenPageServerLoad<any>;
-        calculator: PrayerTimeCalculator | null;
+        data: ScreenPageServerLoad<typeof customizationType>;
+        calculator: PrayerTimeCalculator;
     }
-
-    let { data, calculator }: Props = $props();
-    console.log(data.apiData.custom_settings)
+    let { data, calculator }= $props();
     let nextPrayerTime = $state(null);
     let countdownToText = $state(null);
-
     // Subscribe to prayer time updates
     $effect(() => {
         if (calculator) {

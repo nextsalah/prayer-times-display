@@ -1,4 +1,6 @@
-[
+import type { IField } from '@ismail424/svelte-formly';
+
+const customization: IField[] = [
     {
         "type": "input",
         "name": "footer_text",
@@ -33,4 +35,6 @@
             "maxSize": 5
         }
     }
-]
+];
+
+export default customization;
