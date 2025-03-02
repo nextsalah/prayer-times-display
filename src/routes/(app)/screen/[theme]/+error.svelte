@@ -1,6 +1,7 @@
+<!-- src/routes/(app)/screen/[theme]/+error.svelte -->
 <script lang="ts">
   import { page } from '$app/stores';
-  import { AlertCircle, RefreshCw } from 'lucide-svelte';
+  import { AlertCircle, RefreshCw, Home } from 'lucide-svelte';
   import { onMount } from 'svelte';
 
   // Extract error details from the page store
@@ -12,15 +13,22 @@
 
   // refresh timer until it will refresh the page
   let refreshTimer: ReturnType<typeof setTimeout>;
-  let secondsLeft: number = 20;
+  let secondsLeft = 20;
+  let autoRefresh = true;
 
-  // Get helpful message based on error type
+  // Get detailed message based on error type
   function getErrorMessage(status: number, message?: string): string {
     switch(status) {
       case 404:
-        return message || 'The requested theme could not be found.';
+        if (message?.includes('Theme')) {
+          return message;
+        }
+        return 'The requested theme could not be found.';
       case 500:
-        return message || 'A server error occurred. Please try again later.';
+        if (message?.includes('Failed to load')) {
+          return message;
+        }
+        return 'A server error occurred while loading the prayer times data.';
       default:
         return message || 'An unexpected error occurred.';
     }
@@ -29,21 +37,42 @@
   // Determine what action to suggest based on error
   $: actionSuggestion = status === 404 
     ? 'Please check the theme name and try again.'
-    : 'It will automatically refresh in 10 seconds.';
+    : 'Try refreshing the page or return to the dashboard.';
 
   // Refresh the page
   function refreshPage() {
     window.location.reload();
   }
   
+  // Go to home page
+  function goToHome() {
+    window.location.href = '/';
+  }
+  
+  // Toggle auto refresh
+  function toggleAutoRefresh() {
+    autoRefresh = !autoRefresh;
+    if (autoRefresh) {
+      refreshTimer = setTimeout(refreshPage, secondsLeft * 1000);
+    } else {
+      clearTimeout(refreshTimer);
+    }
+  }
+  
   // Start a timer to refresh the page after 20 seconds
   onMount(() => {
-    refreshTimer = setTimeout(refreshPage, 20000);
+    if (autoRefresh) {
+      refreshTimer = setTimeout(refreshPage, 20000);
+    }
     
     // Update seconds counter
     const countdownInterval = setInterval(() => {
-      secondsLeft -= 1;
-      if (secondsLeft <= 0) clearInterval(countdownInterval);
+      if (autoRefresh) {
+        secondsLeft -= 1;
+        if (secondsLeft <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }
     }, 1000);
 
     return () => {
@@ -63,10 +92,10 @@
       <p class="text-base-content mb-2">{errorMessage}</p>
       <p class="text-sm text-base-content/70 mb-4">{actionSuggestion}</p>
       
-      <div class="card-actions justify-center mt-2">
+      <div class="card-actions justify-center gap-2 mt-2">
         <button class="btn btn-primary btn-sm" on:click={refreshPage}>
           <RefreshCw class="w-4 h-4 mr-2" />
-          Refreshing in ({secondsLeft}s)
+          {autoRefresh ? `Refreshing in (${secondsLeft}s)` : 'Refresh Now'}
         </button>
       </div>
     </div>

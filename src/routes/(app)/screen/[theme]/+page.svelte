@@ -1,3 +1,4 @@
+<!-- src/routes/(app)/screen/[theme]/+page.svelte -->
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import Loader from '$lib/themes/components/Loader.svelte';
@@ -7,7 +8,8 @@
         allPrayerTimesSubscribe 
     } from '$lib/themes/logic/prayertime_calculator';
     import type { AppDataResult } from '$lib/themes/interfaces/types.js';
-    
+    import { error } from '@sveltejs/kit';
+
     // Define props
     let { data } = $props();
     
@@ -41,19 +43,24 @@
     onMount(async () => {
         try {
             // Initialize prayer time calculator if we have API data
-            if (data) {
+            if (data?.data) {
                 prayerCalculator = new PrayerTimeCalculator(data.data);
                 setupSubscriptions();
+            } else {
+                throw error(500, 'Prayer time data is not available');
             }
             
             // Load the component dynamically
             const componentModule = await import(
                 `$lib/themes/collections/${data.themePath}/page.svelte`
-            );
+            ).catch(err => {
+                throw error(404, `Failed to load theme component: ${data.themePath}`);
+            });
+            
             pageComponent = componentModule.default;
-        } catch (error) {
-            console.error('Error during initialization:', error);
-            throw error;
+        } catch (err) {
+            // Let the error propagate to the error handler
+            throw err;
         }
     });
     
@@ -73,8 +80,8 @@
     const Component = $derived(pageComponent);
     
     // Create an enhanced data object with prayer information
-    const enhancedData : AppDataResult<any> = $derived({
-        apiData: data.data,
+    const enhancedData: AppDataResult<any> = $derived({
+        apiData: data?.data,
         prayerTimes: {
             nextPrayer,
             countdownText,
@@ -82,7 +89,6 @@
             calculator: prayerCalculator
         }
     });
-    console.log(enhancedData);
 </script>
 
 <svelte:head>
