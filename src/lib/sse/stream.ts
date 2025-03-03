@@ -55,7 +55,7 @@ class ConnectionManager {
     return removed;
   }
 
-  broadcast(type: string, payload: any): void {
+  broadcast(type: string, payload?: any): void {
     console.log(`[SSE] Broadcasting to ${this.connections.size} connections:`, type, payload);
     for (const [id, stream] of this.connections.entries()) {
       try {

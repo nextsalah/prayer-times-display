@@ -121,31 +121,10 @@
         sseEventUnsubscribes.push(
             sseClient.on(EventType.SCREEN_EVENT, async (payload) => {
                 console.log('[Prayer Screen] Screen event received:', payload);
-                
                 if (payload.type === ScreenEventType.PAGE_RELOAD) {
                     showToast('Reloading page...', 'info');
                     setTimeout(() => window.location.reload(), 1000);
                 } 
-                // Standard event handling for theme change (if it comes properly formatted)
-                else if (payload.type === ScreenEventType.THEME_CHANGE) {
-                    console.log('[Prayer Screen] Theme change event detected:', payload);
-                    
-                    // Handle both possible formats
-                    if (payload.data?.theme) {
-                        handleThemeChange(payload.data.theme);
-                    } else if (typeof payload.data === 'string') {
-                        handleThemeChange(payload.data);
-                    }
-                }
-                else if (payload.type === ScreenEventType.CONTENT_UPDATE) {
-                    try {
-                        await invalidateAll();
-                        showToast('Content updated successfully', 'info');
-                    } catch (err) {
-                        console.error('Error updating content:', err);
-                        showToast('Failed to update content', 'error');
-                    }
-                }
             })
         );
         
@@ -161,7 +140,16 @@
                 }
             })
         );
-        
+
+        sseEventUnsubscribes.push(
+            sseClient.on(EventType.SCREEN_EVENT, (payload) => {
+                if (payload.type === ScreenEventType.CONTENT_UPDATE) {
+                    console.log('[Prayer Screen] Content update event:', payload);
+                    showToast('Content updated', 'info');
+                    invalidateAll();
+                }
+            })
+        );
         // Handle notifications
         sseEventUnsubscribes.push(
             sseClient.on(EventType.NOTIFICATION, (payload) => {
