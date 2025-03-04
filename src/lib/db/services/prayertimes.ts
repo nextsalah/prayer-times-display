@@ -158,8 +158,7 @@ export class PrayerTimesService {
       this.updateCache(cacheKey, result);
       return result;
     } catch (error) {
-      console.error(`Error retrieving prayer time for ${dateStr}:`, error);
-      throw new Error(`Failed to retrieve prayer times for ${dateStr}`);
+      throw new Error(`Failed to retrieve prayer times.\nPrayertimes are maybe not set.`)
     }
   }
   

@@ -60,9 +60,9 @@ export class AppDataService {
         custom_settings: themeService.getCustomSettingsObject() as T,
         componentPath
       };
-    } catch (error) {
-      console.error('Error in getAppData:', error);
-      throw new Error('Unable to load application data');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(errorMessage);
     }
   }
   

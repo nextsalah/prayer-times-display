@@ -10,10 +10,10 @@ export const load = (async ({ params }) => {
 
     // Get app data
     const data = await appDataService.getAppData();
-    if (!data) {
-      throw error(500, 'Failed to load app data');
+    if(!data){
+      throw error(500, 'Failed to load data from database');
     }
-
+    
     // If theme is specified in URL, override the default theme
     const themePath = themeFromUrl || data.componentPath;
     
@@ -24,8 +24,8 @@ export const load = (async ({ params }) => {
       data,
       themePath
     };
-  } catch (e) {
-    console.error('Error in page load function:', e);
-    throw error(500, 'Failed to load page data');
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    throw error(500, errorMessage);
   }
 }) satisfies PageServerLoad;

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "228566f2-b3fe-42a1-8d6f-ddb842baeaa8",
+  "id": "81922ff8-880d-499e-a143-5413066da94d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "prayertimes": {

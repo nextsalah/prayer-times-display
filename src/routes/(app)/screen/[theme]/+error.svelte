@@ -18,20 +18,7 @@
 
   // Get detailed message based on error type
   function getErrorMessage(status: number, message?: string): string {
-    switch(status) {
-      case 404:
-        if (message?.includes('Theme')) {
-          return message;
-        }
-        return 'The requested theme could not be found.';
-      case 500:
-        if (message?.includes('Failed to load')) {
-          return message;
-        }
-        return 'A server error occurred while loading the prayer times data.';
-      default:
-        return message || 'An unexpected error occurred.';
-    }
+    return message || 'An unexpected error occurred.';
   }
   
   // Determine what action to suggest based on error
