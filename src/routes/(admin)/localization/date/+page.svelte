@@ -24,9 +24,7 @@
             if (result.type === 'success') {
                 saved = true;
                 formError = null;
-                toast.success("Settings saved!", {
-                    position: "bottom-center"
-                }); 
+                toast.success("Successfully saved date format settings"); 
                 setTimeout(() => {
                     saved = false;
                 }, 3000);

@@ -59,9 +59,7 @@
       iqamahTimes: {  [key: string]: string } | undefined | null,
       activePrayer: PrayerTimeItem,
       nextPrayer: PrayerTimeItem
-  }
-  
-  = $props();
+  } = $props();
 
   // Helper function to safely get ID from prayer item
   const getPrayerId = (prayer: string | PrayerTimeItem | null | undefined): string | null => {
@@ -130,9 +128,6 @@
     if (!nextId) return false;
     
     const isNext = nextId === standardId;
-    if (isNext) {
-      console.log('Next prayer identified by ID:', standardId);
-    }
     return isNext;
   };
 

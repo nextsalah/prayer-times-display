@@ -1,19 +1,6 @@
 // src/lib/sse/stream.ts
 import { EventEmitter } from 'node:events';
-
-// These enums should match the client-side ones
-export enum EventType {
-  SCREEN_EVENT = 'screen_event',
-  SCREEN_DATA = 'screen_data',
-  NOTIFICATION = 'notification',
-  SYSTEM_STATUS = 'system_status'
-}
-
-export enum ScreenEventType {
-  THEME_CHANGE = 'theme_change',
-  PAGE_RELOAD = 'page_reload',
-  CONTENT_UPDATE = 'content_update',
-}
+import { EventType, ScreenEventType } from '$lib/sse/types';
 
 // Server-side event stream class
 export class ServerStream extends EventEmitter {

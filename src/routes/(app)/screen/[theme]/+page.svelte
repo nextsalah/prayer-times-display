@@ -1,4 +1,3 @@
-<!-- src/routes/(app)/screen/[theme]/+page.svelte -->
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import Loader from '$lib/themes/components/Loader.svelte';
@@ -7,6 +6,7 @@
     import '$lib/themes/styles/global.css';
     import { SSEHandler } from '$lib/services/sseHandler';
     import { PrayerSubscriptionManager } from '$lib/services/prayerSubscriptionManager';
+    import SSEStatus from '$lib/themes/components/SSEStatus.svelte';
     
     // Define props
     let { data } = $props();
@@ -27,11 +27,12 @@
         calculator: null
     });
     
-    let sseState = $state<any>({
+    let sseState = $state({
         connectionStatus: 'unknown',
-        lastUpdateTime: ''
+        lastUpdateTime: '',
+        lastAction: ''
     });
-    
+
     // Extract theme change logic to a dedicated function
     async function handleThemeChange(theme: string) {
         console.log('[Prayer Screen] Handling theme change to:', theme);
@@ -47,6 +48,7 @@
             if (componentModule) {
                 console.log('[Prayer Screen] Theme component loaded successfully');
                 pageComponent = componentModule.default;
+                sseState.lastAction = `Theme changed to ${theme}`;
             }
         } catch (err) {
             console.error('[Prayer Screen] Error loading theme component:', err);
@@ -79,13 +81,20 @@
                 throw error(500, 'Prayer time data is not available');
             }
             
-            // Initialize SSE handler
-            sseHandler = new SSEHandler(handleThemeChange);
+            // Initialize SSE handler with explicit callback for theme changes
+            sseHandler = new SSEHandler((theme) => {
+                sseState.lastAction = `Received theme change: ${theme}`;
+                handleThemeChange(theme);
+            });
+            
             sseHandler.initialize();
             
-            // Subscribe to SSE state changes
+            // Subscribe to SSE state changes with more detailed tracking
             const sseUnsubscribe = sseHandler.state.subscribe(state => {
-                sseState = state;
+                sseState = {
+                    ...sseState,
+                    ...state,
+                };
             });
             
             // Load the component dynamically
@@ -127,7 +136,8 @@
         },
         sseData: {
             connectionStatus: sseState.connectionStatus,
-            lastUpdateTime: sseState.lastUpdateTime
+            lastUpdateTime: sseState.lastUpdateTime,
+            lastAction: sseState.lastAction,
         }
     });
 </script>
@@ -136,6 +146,9 @@
     <title>Prayer Times Display</title>
     <meta name="description" content="Prayer times display screen with live updates" />
 </svelte:head>
+
+<!-- Add the SSE status component -->
+<SSEStatus {sseState} />
 
 {#if Component !== Loader}
     <Component data={enhancedData} />

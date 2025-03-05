@@ -16,9 +16,7 @@
         resetForm: false,
         onResult: ({ result }) => {
             if (result.type === 'success') {
-                toast.success("Settings saved!", {
-                    position: "bottom-center"
-                });           
+                toast.success("Successfully saved language settings");           
             }
         }
     });

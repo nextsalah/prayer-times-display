@@ -1,5 +1,6 @@
 // src/routes/api/server_events/+server.ts
-import { connectionManager, ServerStream, EventType } from '$lib/sse/stream';
+import { connectionManager, ServerStream} from '$lib/sse/stream';
+import { EventType } from '$lib/sse/types';
 import type { RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async ({ request }) => {

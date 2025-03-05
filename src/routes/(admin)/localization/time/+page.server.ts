@@ -4,11 +4,14 @@ import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { localizationService } from '$lib/db';
 import { TimeSettingsSchema } from '$lib/db/schemas';
+import { connectionManager } from '$lib/sse/stream';
+import { EventType, ScreenEventType } from '$lib/sse/types';
 
 export const load: PageServerLoad = async () => {
     try {
         const localization = await localizationService.getLocalization();
         const form = await superValidate(localization.timeSettings, zod(TimeSettingsSchema));
+        
         return {
             title: 'Time Settings',
             form,
@@ -32,7 +35,10 @@ export const actions: Actions = {
                 return fail (400, { form });
             }
             await localizationService.updateTimeSettings(form.data);
-
+            connectionManager.broadcast(EventType.SCREEN_EVENT, {
+                                    type: ScreenEventType.CONTENT_UPDATE,
+                                    data: 'Time settings updated'
+                                }); 
             return { form };
         } catch (error) {
             const form = await superValidate(formData, zod(TimeSettingsSchema));

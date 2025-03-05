@@ -1,12 +1,14 @@
-import { sseClient, EventType, ScreenEventType } from '$lib/sse/client';
+import { sseClient } from '$lib/sse/client';
 import { writable, type Unsubscriber } from 'svelte/store';
 import { invalidateAll } from '$app/navigation';
+import { EventType, ScreenEventType } from '$lib/sse/types';
 
 export type ConnectionStatus = 'online' | 'offline' | 'maintenance' | 'unknown';
 
 export interface SSEState {
     connectionStatus: ConnectionStatus;
     lastUpdateTime: string;
+    lastAction?: string;
 }
 
 type ThemeChangeHandler = (theme: string) => void;
@@ -40,19 +42,22 @@ export class SSEHandler {
                 console.log('[SSE Handler] Raw SSE message received:', state.lastMessage);
                 const lastUpdateTime = new Date().toLocaleTimeString();
                 
-                this.state.update(s => ({ ...s, lastUpdateTime }));
+                this.state.update(s => ({ 
+                    ...s, 
+                    lastUpdateTime,
+                    lastAction: `Message type: ${state.lastMessage.type}`
+                }));
                 
-                // Direct handling of theme change from SSE state
+                // Handle theme change message directly
                 if (state.lastMessage.type === 'theme_change') {
                     const theme = state.lastMessage.payload;
-                    console.log('[SSE Handler] Theme change detected in SSE message:', theme);
+                    console.log('[SSE Handler] Theme change detected in message:', theme);
                     this.handleThemeChange(theme);
                 }
             }
             
             // Handle connection status changes
-            let connectionStatus: ConnectionStatus;
-            connectionStatus = state.connected ? 'online' : 'offline';
+            let connectionStatus: ConnectionStatus = state.connected ? 'online' : 'offline';
             
             this.state.update(s => ({ ...s, connectionStatus }));
         });
@@ -61,35 +66,30 @@ export class SSEHandler {
     }
     
     private setupEventHandlers(): void {
-        // Handle screen events (like page reload or theme change)
         this.eventUnsubscribes.push(
             sseClient.on(EventType.SCREEN_EVENT, async (payload) => {
                 console.log('[SSE Handler] Screen event received:', payload);
+                
+                // Update state with latest action info
+                const action = payload.type === ScreenEventType.CONTENT_UPDATE 
+                    ? 'Content update: ' + (payload.data?.message || 'Data refreshed')
+                    : `Screen event: ${payload.type}`;
+                    
+                this.state.update(s => ({ 
+                    ...s, 
+                    lastUpdateTime: new Date().toLocaleTimeString(),
+                    lastAction: action
+                }));
+                
                 if (payload.type === ScreenEventType.PAGE_RELOAD) {
                     setTimeout(() => window.location.reload(), 1000);
                 } 
-            })
-        );
-        
-        // Handle direct theme change events
-        this.eventUnsubscribes.push(
-            sseClient.on(EventType.SCREEN_EVENT, (payload) => {
-                if (payload.type === ScreenEventType.THEME_CHANGE) {
-                    console.log('[SSE Handler] Direct theme change event:', payload);
-                    const theme = typeof payload.data === 'string' ? payload.data : payload.data?.theme;
-                    if (theme) {
-                        this.handleThemeChange(theme);
-                    }
+                else if (payload.type === ScreenEventType.CONTENT_UPDATE) {
+                    console.log('[SSE Handler] Refreshing data due to content update');
+                    invalidateAll(); // This should refresh the data
                 }
-            })
-        );
-        
-        // Handle content updates
-        this.eventUnsubscribes.push(
-            sseClient.on(EventType.SCREEN_EVENT, (payload) => {
-                if (payload.type === ScreenEventType.CONTENT_UPDATE) {
-                    console.log('[SSE Handler] Content update event:', payload);
-                    invalidateAll();
+                else if (payload.type === ScreenEventType.THEME_CHANGE) {
+                    // Your existing theme change code
                 }
             })
         );
@@ -98,6 +98,11 @@ export class SSEHandler {
         this.eventUnsubscribes.push(
             sseClient.on(EventType.NOTIFICATION, (payload) => {
                 console.log('[SSE Handler] Notification received:', payload);
+                this.state.update(s => ({ 
+                    ...s, 
+                    lastUpdateTime: new Date().toLocaleTimeString(),
+                    lastAction: `Notification: ${payload.message}`
+                }));
             })
         );
         
@@ -106,7 +111,12 @@ export class SSEHandler {
             sseClient.on(EventType.SYSTEM_STATUS, (payload) => {
                 console.log('[SSE Handler] System status update:', payload);
                 
-                this.state.update(s => ({ ...s, connectionStatus: payload.status }));
+                this.state.update(s => ({ 
+                    ...s, 
+                    connectionStatus: payload.status,
+                    lastUpdateTime: new Date().toLocaleTimeString(),
+                    lastAction: `System status: ${payload.status}`
+                }));
             })
         );
     }

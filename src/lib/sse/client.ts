@@ -1,19 +1,6 @@
 // src/lib/sse/client.ts
 import { writable, type Writable } from 'svelte/store';
-
-// Define event types (must match server-side, but without using the same imports)
-export enum EventType {
-  SCREEN_EVENT = 'screen_event',
-  SCREEN_DATA = 'screen_data',
-  NOTIFICATION = 'notification',
-  SYSTEM_STATUS = 'system_status'
-}
-
-export enum ScreenEventType {
-  PAGE_RELOAD = 'page_reload',
-  CONTENT_UPDATE = 'content_update',
-  THEME_CHANGE = 'theme_change'
-}
+import { EventType } from '$lib/sse/types';
 
 // Client-side state
 interface SSEState {

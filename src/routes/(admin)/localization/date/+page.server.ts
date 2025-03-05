@@ -4,7 +4,8 @@ import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { localizationService } from '$lib/db';
 import { DateSettingsSchema } from '$lib/db/schemas';
-import { connectionManager, ScreenEventType } from '$lib/sse/stream';
+import { connectionManager } from '$lib/sse/stream';
+import { EventType, ScreenEventType } from '$lib/sse/types';
 export const load: PageServerLoad = async () => {
     try {
         const localization = await localizationService.getLocalization();
@@ -32,8 +33,11 @@ export const actions: Actions = {
                 return fail (400, { form });
             }
             await localizationService.updateDateSettings(form.data);
-            connectionManager.broadcast(ScreenEventType.CONTENT_UPDATE, 'Date settings updated');
-            return { form };
+            connectionManager.broadcast(EventType.SCREEN_EVENT, {
+                type: ScreenEventType.CONTENT_UPDATE,
+                data: 'Date settings updated'
+            });           
+             return { form };
         } catch (error) {
             const form = await superValidate(formData, zod(DateSettingsSchema));
             return fail(500, { 
