@@ -1,6 +1,17 @@
 <script lang="ts">
   import type { PrayerTimeItem } from "$lib/themes/interfaces/types";
   import Sunrise from "../assets/sunrise.svelte";
+
+  // Prayer ID mapping - used for language-independent identification
+  const PRAYER_IDS = {
+    FAJR: "fajr",
+    SUNRISE: "sunrise",
+    DHUHR: "dhuhr", 
+    ASR: "asr",
+    MAGHRIB: "maghrib",
+    ISHA: "isha"
+  };
+
   let { 
       // Localization strings
       prayer = 'Prayer',
@@ -52,45 +63,77 @@
   
   = $props();
 
-  // Helper function to safely get name from either string or PrayerTimeItem
-  const getPrayerName = (prayer: string | PrayerTimeItem | null | undefined): string | null => {
+  // Helper function to safely get ID from prayer item
+  const getPrayerId = (prayer: string | PrayerTimeItem | null | undefined): string | null => {
     if (!prayer) return null;
     
+    // If it's a string, try to map it to a standard ID based on name
     if (typeof prayer === 'string') {
-      return prayer;
+      // Convert to lowercase for case-insensitive comparison
+      const lowerName = prayer.toLowerCase();
+      
+      // Check if it matches any ID directly
+      for (const key in PRAYER_IDS) {
+        const typedKey = key as keyof typeof PRAYER_IDS;
+        if (lowerName === PRAYER_IDS[typedKey]) {
+          return PRAYER_IDS[typedKey];
+        }
+      }
+      
+      // If not matched by ID, try to guess based on position in the day
+      // This is a fallback mechanism and not ideal
+      if (lowerName.includes('fajr') || lowerName.includes('sabah') || lowerName.includes('dawn')) {
+        return PRAYER_IDS.FAJR;
+      } else if (lowerName.includes('sunrise') || lowerName.includes('ishraq')) {
+        return PRAYER_IDS.SUNRISE;
+      } else if (lowerName.includes('dhuhr') || lowerName.includes('podne') || lowerName.includes('noon')) {
+        return PRAYER_IDS.DHUHR;
+      } else if (lowerName.includes('asr') || lowerName.includes('ikindi') || lowerName.includes('afternoon')) {
+        return PRAYER_IDS.ASR;
+      } else if (lowerName.includes('maghrib') || lowerName.includes('aksam') || lowerName.includes('sunset')) {
+        return PRAYER_IDS.MAGHRIB;
+      } else if (lowerName.includes('isha') || lowerName.includes('jacija') || lowerName.includes('night')) {
+        return PRAYER_IDS.ISHA;
+      }
+      
+      // Could not determine prayer ID from string
+      console.warn('Could not map prayer name to ID:', prayer);
+      return null;
     }
     
-    if (typeof prayer === 'object' && prayer.name) {
-      return prayer.name;
+    // If it's an object with an id property, use that
+    if (typeof prayer === 'object') {
+      if (prayer.id) return prayer.id.toLowerCase();
+      
+      // If no ID, try to use the name to determine ID
+      if (prayer.name) return getPrayerId(prayer.name);
     }
     
     return null;
   };
 
   // Function to determine if a prayer is active or next
-  const isPrayerActive = (prayerName: string): boolean => {
+  const isPrayerActive = (standardId: string): boolean => {
     // Sunrise should never be considered an active prayer
-    if (prayerName.toLowerCase() === "sunrise") return false;
+    if (standardId === PRAYER_IDS.SUNRISE) return false;
     
-    // If the next prayer is Sunrise, it means Fajr is over but there's no current prayer
-    if (getPrayerName(nextPrayer)?.toLowerCase() === "sunrise") return false;
+    // Get the active prayer ID
+    const activeId = getPrayerId(activePrayer);
+    if (!activeId) return false;
     
-    // If the next prayer is Dhuhr, and current prayer is marked as Fajr, that's incorrect
-    // There should be no active prayer between Sunrise and Dhuhr
-    if (getPrayerName(nextPrayer)?.toLowerCase() === "dhuhr" && 
-        getPrayerName(activePrayer)?.toLowerCase() === "fajr") return false;
-    
-    const activeName = getPrayerName(activePrayer);
-    if (!activeName) return false;
-    
-    return activeName.toLowerCase() === prayerName.toLowerCase();
+    return activeId === standardId;
   };
   
-  const isPrayerNext = (prayerName: string): boolean => {
-    const nextName = getPrayerName(nextPrayer);
-    if (!nextName) return false;
+  const isPrayerNext = (standardId: string): boolean => {
+    // Get the next prayer ID
+    const nextId = getPrayerId(nextPrayer);
+    if (!nextId) return false;
     
-    return nextName.toLowerCase() === prayerName.toLowerCase();
+    const isNext = nextId === standardId;
+    if (isNext) {
+      console.log('Next prayer identified by ID:', standardId);
+    }
+    return isNext;
   };
 
   // Mapping for our data access - support both old format and new array format
@@ -192,7 +235,7 @@
 </section>
 
 <!-- Fajr -->
-<section class="prayer_times_today" class:active={isPrayerActive("Fajr")} class:next={isPrayerNext("Fajr")}>
+<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.FAJR)} class:next={isPrayerNext(PRAYER_IDS.FAJR)}>
   <h2 class="prayer-column">{prayerMap["Fajr"].name}</h2>
   {#if prayerMap["Fajr"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Fajr"].time}</h2>
@@ -203,13 +246,15 @@
 </section>
 
 <!-- Sunrise - Always full width since it never has iqamah -->
-<section class="prayer_times_today" class:next={isPrayerNext("Sunrise")}>
-  <h2 class="prayer-column">{prayerMap["Sunrise"].name} <Sunrise /></h2>
+<section class="prayer_times_today" class:next={isPrayerNext(PRAYER_IDS.SUNRISE)}>
+  <h2 class="prayer-column">
+    {prayerMap["Sunrise"].name} <span class="sunrise-icon"><Sunrise /></span>
+  </h2>
   <h2 class="prayer_time sunrise-time-background_color full-width">{prayerMap["Sunrise"].time}</h2>
 </section>
 
 <!-- Dhuhr -->
-<section class="prayer_times_today" class:active={isPrayerActive("Dhuhr")} class:next={isPrayerNext("Dhuhr")}>
+<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.DHUHR)} class:next={isPrayerNext(PRAYER_IDS.DHUHR)}>
   <h2 class="prayer-column">{prayerMap["Dhuhr"].name}</h2>
   {#if prayerMap["Dhuhr"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Dhuhr"].time}</h2>
@@ -220,7 +265,7 @@
 </section>
 
 <!-- Asr -->
-<section class="prayer_times_today" class:active={isPrayerActive("Asr")} class:next={isPrayerNext("Asr")}>
+<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.ASR)} class:next={isPrayerNext(PRAYER_IDS.ASR)}>
   <h2 class="prayer-column">{prayerMap["Asr"].name}</h2>
   {#if prayerMap["Asr"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Asr"].time}</h2>
@@ -231,7 +276,7 @@
 </section>
 
 <!-- Maghrib -->
-<section class="prayer_times_today" class:active={isPrayerActive("Maghrib")} class:next={isPrayerNext("Maghrib")}>
+<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.MAGHRIB)} class:next={isPrayerNext(PRAYER_IDS.MAGHRIB)}>
   <h2 class="prayer-column">{prayerMap["Maghrib"].name}</h2>
   {#if prayerMap["Maghrib"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Maghrib"].time}</h2>
@@ -242,7 +287,7 @@
 </section>
 
 <!-- Isha -->
-<section class="prayer_times_today" class:active={isPrayerActive("Isha")} class:next={isPrayerNext("Isha")}>
+<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.ISHA)} class:next={isPrayerNext(PRAYER_IDS.ISHA)}>
   <h2 class="prayer-column">{prayerMap["Isha"].name}</h2>
   {#if prayerMap["Isha"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Isha"].time}</h2>
@@ -304,42 +349,60 @@
   justify-content: center;
 }
 
-.time-column-with-iqamah {
-  flex: 1;
-  justify-content: center;
-}
-
-.iqamah-column {
-  flex: 1;
-  justify-content: center;
-}
-
 .prayer_times_today {
   display: flex;
   justify-content: center;
   overflow: hidden;
   position: relative;
-}
+  
+  h2 {
+    display: flex;
+    align-items: center;
+    padding: 1.6% 0;
+    font-size: 6vw;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 550;
+    color: white;
+    overflow: hidden;
+    margin: 0;
+  }
+  
+  &.active {
+    background-color: rgba(0, 128, 0, 0.15) !important; /* Subtle green */
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background-color: rgba(0, 128, 0, 0.7);
+      z-index: 2;
+    }
+  }
 
-/* Active and next prayer styles */
-.prayer_times_today.active {
-  background-color: rgba(0, 128, 0, 0.4) !important;
-}
-
-.prayer_times_today.next {
-  background-color: rgba(255, 180, 0, 0.4) !important;
-}
-
-.prayer_times_today h2, .prayer_times_today div {
-  display: flex;
-  align-items: center;
-  padding: 1.5% 0;
-  font-size: 7vw;
-  font-family: Arial, Helvetica, sans-serif;
-  font-weight: 550;
-  color: white;
-  overflow: hidden;
-  margin: 0;
+  &.next {
+    background-color: rgba(255, 165, 0, 0.3) !important; /* More subtle orange */
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background-color: #ff8c00;
+      z-index: 2;
+    }
+    
+    h2 {
+      font-weight: 600;
+      color: #fff; /* Ensure text is white */
+    }
+  }
 }
 
 .prayer_time {
@@ -352,28 +415,29 @@
   }
 }
 
-.iqamah_time, .empty-column {
+.iqamah_time {
   flex: 1;
   justify-content: center;
-}
-
-.iqamah_time {
   background-color: #0066bf;
-}
-
-.empty-column {
-  background-color: transparent;
-}
-
-.sunrise-icon {
-  font-size: 5vw;
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 0.5em;
 }
 
 .sunrise-time-background_color {
   background-color: #dd8500;
+}
+
+/* Sunrise icon styling */
+.sunrise-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 95%;
+  margin-left: 0.3em;
+  
+  :global(svg) {
+    height: 0.95em;
+    width: auto;
+    min-height: 20px;
+  }
 }
 
 /* Responsive adjustments for landscape mode */
@@ -383,11 +447,16 @@
   }
 
   .prayer_times_today h2 {
-    font-size: 6vh !important;
+    font-size: 5vh !important;
   }
-
+  
   .sunrise-icon {
-    font-size: 5vh;
+    :global(svg) {
+      height: 0.95em;
+      min-height: 20px;
+    }
   }
+  
+  /* No special treatment needed for next prayer in landscape mode */
 }
 </style>

@@ -9,13 +9,11 @@ export interface SSEState {
     lastUpdateTime: string;
 }
 
-type ToastFunction = (message: string, level?: string) => void;
 type ThemeChangeHandler = (theme: string) => void;
 
 export class SSEHandler {
     private stateUnsubscribe: Unsubscriber | null = null;
     private eventUnsubscribes: Array<() => void> = [];
-    private showToast: ToastFunction;
     private handleThemeChange: ThemeChangeHandler;
     
     public state = writable<SSEState>({
@@ -23,8 +21,7 @@ export class SSEHandler {
         lastUpdateTime: ''
     });
     
-    constructor(toastFn: ToastFunction, themeChangeFn: ThemeChangeHandler) {
-        this.showToast = toastFn;
+    constructor(themeChangeFn: ThemeChangeHandler) {
         this.handleThemeChange = themeChangeFn;
     }
     
@@ -69,7 +66,6 @@ export class SSEHandler {
             sseClient.on(EventType.SCREEN_EVENT, async (payload) => {
                 console.log('[SSE Handler] Screen event received:', payload);
                 if (payload.type === ScreenEventType.PAGE_RELOAD) {
-                    this.showToast('Reloading page...', 'info');
                     setTimeout(() => window.location.reload(), 1000);
                 } 
             })
@@ -93,7 +89,6 @@ export class SSEHandler {
             sseClient.on(EventType.SCREEN_EVENT, (payload) => {
                 if (payload.type === ScreenEventType.CONTENT_UPDATE) {
                     console.log('[SSE Handler] Content update event:', payload);
-                    this.showToast('Content updated', 'info');
                     invalidateAll();
                 }
             })
@@ -103,7 +98,6 @@ export class SSEHandler {
         this.eventUnsubscribes.push(
             sseClient.on(EventType.NOTIFICATION, (payload) => {
                 console.log('[SSE Handler] Notification received:', payload);
-                this.showToast(payload.message, payload.level);
             })
         );
         
@@ -113,13 +107,6 @@ export class SSEHandler {
                 console.log('[SSE Handler] System status update:', payload);
                 
                 this.state.update(s => ({ ...s, connectionStatus: payload.status }));
-                
-                if (payload.status === 'maintenance') {
-                    this.showToast(
-                        payload.message || 'System maintenance in progress', 
-                        'warning'
-                    );
-                }
             })
         );
     }

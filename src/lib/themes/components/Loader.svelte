@@ -29,7 +29,7 @@
 
 <div class="min-h-screen flex flex-col items-center justify-center bg-base-100 p-4">
   <span class="custom-spinner text-primary mb-12"></span>
-  <p class="text-4xl md:text-6xl font-bold text-base-content">
+  <p class="text-4xl md:text-6xl font-bold">
     Loading<span class="dots"><span>.</span><span>.</span><span>.</span></span>
   </p>
   <p class="mt-6 text-center text-base-content/70 max-w-md">

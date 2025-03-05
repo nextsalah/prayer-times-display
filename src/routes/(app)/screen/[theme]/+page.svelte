@@ -4,7 +4,6 @@
     import Loader from '$lib/themes/components/Loader.svelte';
     import type { AppDataResult } from '$lib/themes/interfaces/types.js';
     import { error } from '@sveltejs/kit';
-    import toast, { Toaster } from 'svelte-french-toast';
     import '$lib/themes/styles/global.css';
     import { SSEHandler } from '$lib/services/sseHandler';
     import { PrayerSubscriptionManager } from '$lib/services/prayerSubscriptionManager';
@@ -33,36 +32,15 @@
         lastUpdateTime: ''
     });
     
-    // Helper function to show toast based on notification level
-    function showToast(message: string, level: string = 'info') {
-        switch (level) {
-            case 'info':
-                toast.success(message);
-                break;
-            case 'warning':
-                toast(message, {
-                    icon: '⚠️'
-                });
-                break;
-            case 'error':
-                toast.error(message);
-                break;
-            default:
-                toast(message);
-        }
-    }
-    
     // Extract theme change logic to a dedicated function
     async function handleThemeChange(theme: string) {
         console.log('[Prayer Screen] Handling theme change to:', theme);
-        showToast(`Changing theme to ${theme}`, 'info');
         
         try {
             const componentModule = await import(
                 `$lib/themes/collections/${theme}/page.svelte`
             ).catch(err => {
                 console.error(`Failed to load theme: ${theme}`, err);
-                showToast(`Failed to load theme: ${theme}`, 'error');
                 return null;
             });
             
@@ -72,7 +50,6 @@
             }
         } catch (err) {
             console.error('[Prayer Screen] Error loading theme component:', err);
-            showToast('Error loading theme', 'error');
         }
     }
     
@@ -83,7 +60,6 @@
                 prayerManager.updateCalculator(data.data);
             } catch (err) {
                 console.error('Error updating prayer calculator:', err);
-                showToast('Error updating prayer times', 'error');
             }
         }
     });
@@ -104,7 +80,7 @@
             }
             
             // Initialize SSE handler
-            sseHandler = new SSEHandler(showToast, handleThemeChange);
+            sseHandler = new SSEHandler(handleThemeChange);
             sseHandler.initialize();
             
             // Subscribe to SSE state changes
@@ -160,9 +136,6 @@
     <title>Prayer Times Display</title>
     <meta name="description" content="Prayer times display screen with live updates" />
 </svelte:head>
-
-<!-- Include the Toaster component -->
-<Toaster />
 
 {#if Component !== Loader}
     <Component data={enhancedData} />
