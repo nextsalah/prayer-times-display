@@ -2,27 +2,30 @@
     import dayjs from "dayjs";
     import type { PluginFunc } from "dayjs";
     
-    // Import required plugins with proper typing
+    // Import required plugins
     import relativeTime from "dayjs/plugin/relativeTime";
     import timezone from "dayjs/plugin/timezone";
     import utc from "dayjs/plugin/utc";
     import localizedFormat from "dayjs/plugin/localizedFormat";
     import advancedFormat from "dayjs/plugin/advancedFormat";
+    import { localeImports } from "$lib/config/languageConfiguration";
+    import { effect as formEffect } from "sveltekit-superforms/adapters";
     
-    // Load all required plugins properly
+    // Extend Day.js plugins
     dayjs.extend(relativeTime as PluginFunc);
     dayjs.extend(timezone as PluginFunc);
     dayjs.extend(utc as PluginFunc);
     dayjs.extend(localizedFormat as PluginFunc);
     dayjs.extend(advancedFormat as PluginFunc);
     
-    // Define props correctly for Svelte 5
+    // Define props for Svelte 5
     const props = $props<{
         mode?: 'date' | 'time' | 'datetime' | 'relative';
         format?: string | null;
         timestamp?: string | null;
         live?: boolean;
         updateInterval?: number;
+        locale?: string;
         timezone?: string;
         capitalize?: boolean;
         as?: 'time' | 'span' | 'div';
@@ -37,6 +40,7 @@
     const initialTimestamp = props.timestamp ?? null;
     const initialLive = props.live ?? true;
     const initialUpdateInterval = props.updateInterval ?? 1000;
+    const initialLocale = props.locale;
     const initialTimezone = props.timezone ?? '';
     const initialCapitalize = props.capitalize ?? true;
     const initialAs = props.as ?? 'time';
@@ -50,6 +54,7 @@
     let timestamp = $state(initialTimestamp);
     let live = $state(initialLive);
     let updateInterval = $state(initialUpdateInterval);
+    let locale = $state(initialLocale);
     let timezone_prop = $state(initialTimezone);
     let capitalize = $state(initialCapitalize);
     let as = $state(initialAs);
@@ -61,10 +66,33 @@
     let currentTime = $state(initialTimestamp ? new Date(initialTimestamp) : new Date());
     let formattedOutput = $state('');
     let interval: ReturnType<typeof setInterval> | undefined = undefined;
-    let formatDependenciesVersion = $state(0); // Used to track format-related changes
     
+    // Locale loader function using the mapping
+    async function loadLocale(locale: string): Promise<void> {
+        const importLocale = localeImports[locale];
+        if (importLocale) {
+            try {
+                await importLocale();
+                dayjs.locale(locale);
+                formatOutput(); // Update output after changing locale
+            } catch (error) {
+                console.warn(`Failed to load locale ${locale}:`, error);
+                formatOutput();
+            }
+        } else {
+            console.warn(`Locale ${locale} is not supported.`);
+            formatOutput();
+        }
+    }
     
-    // Watch for prop changes
+    // Single reactive effect for locale changes
+    $effect(() => {
+        if (locale) {
+            loadLocale(locale);
+        }
+    });
+    
+    // Watch for other prop changes
     $effect(() => {
         let changed = false;
         
@@ -78,11 +106,11 @@
         }
         if (props.live !== undefined && props.live !== live) {
             live = props.live;
-            setupInterval(); // This needs to be handled separately
+            setupInterval();
         }
         if (props.updateInterval !== undefined && props.updateInterval !== updateInterval) {
             updateInterval = props.updateInterval;
-            if (live) setupInterval(); // Only update if we're in live mode
+            if (live) setupInterval();
         }
         if (props.timezone !== undefined && props.timezone !== timezone_prop) {
             timezone_prop = props.timezone;
@@ -94,11 +122,9 @@
         }
         if (props.as !== undefined && props.as !== as) {
             as = props.as;
-            // No need to update output for this
         }
         if (props.class !== undefined && props.class !== className) {
             className = props.class;
-            // No need to update output for this
         }
         if (props.use24h !== undefined && props.use24h !== use24h) {
             use24h = props.use24h;
@@ -109,35 +135,38 @@
             changed = true;
         }
         
-        // Special handling for timestamp changes
+        // Handle timestamp changes
         if (props.timestamp !== undefined && props.timestamp !== timestamp) {
             timestamp = props.timestamp;
             if (timestamp) {
                 currentTime = new Date(timestamp);
-                // Will cause format update via timeChanged effect
             }
-            setupInterval(); // May need to disable interval if timestamp is set
+            setupInterval();
         }
-        else {
-            // Format update if any other format-affecting prop changed
-            if (changed) formatOutput();
+        
+        // Handle locale changes from props by updating our state.
+        if (props.locale !== undefined && props.locale !== locale) {
+            locale = props.locale;
+        }
+        
+        // If any other format-affecting prop changed, update the output.
+        if (changed) {
+            formatOutput();
         }
     });
     
-    // Handle currentTime changes and reformat output
+    // React to changes in currentTime
     $effect(() => {
         formatOutput();
     });
     
     // Setup interval effect
     function setupInterval() {
-        // Clean up existing interval
         if (interval) {
             clearInterval(interval);
             interval = undefined;
         }
         
-        // If live mode and no specific timestamp is provided
         if (live && !timestamp) {
             interval = setInterval(() => {
                 currentTime = new Date();
@@ -150,7 +179,6 @@
     
     // Get default format based on mode, 24h preference, and seconds preference
     function getDefaultFormat(formatMode: 'date' | 'time' | 'datetime' | 'relative'): string {
-        // Format for time portion based on 24h and seconds settings
         const timeFormat = use24h 
             ? (showSeconds ? 'HH:mm:ss' : 'HH:mm')
             : (showSeconds ? 'hh:mm:ss A' : 'hh:mm A');
@@ -163,7 +191,7 @@
             case 'datetime':
                 return `YYYY-MM-DD ${timeFormat}`;
             case 'relative':
-                return `YYYY-MM-DD ${timeFormat}`; // Used for tooltip
+                return `YYYY-MM-DD ${timeFormat}`;
             default:
                 return `YYYY-MM-DD ${timeFormat}`;
         }
@@ -174,24 +202,13 @@
         try {
             let dayjsObj = dayjs(currentTime);
             
-            // Apply timezone if specified
             if (timezone_prop) {
                 dayjsObj = dayjsObj.tz(timezone_prop);
             }
             
-            // Determine format to use based on mode, 24h, and seconds settings
-            // If custom format is provided, use that instead
             const actualFormat = format || getDefaultFormat(mode);
+            let result = mode === 'relative' ? dayjsObj.fromNow() : dayjsObj.format(actualFormat);
             
-            // Format based on mode
-            let result = '';
-            if (mode === 'relative') {
-                result = dayjsObj.fromNow();
-            } else {
-                result = dayjsObj.format(actualFormat);
-            }
-            
-            // Apply capitalization if enabled
             if (capitalize && result.length > 0) {
                 result = result.charAt(0).toUpperCase() + result.slice(1);
             }
@@ -203,7 +220,7 @@
         }
     }
     
-    // Clean up on component destroy
+    // Cleanup on component destroy
     $effect.root(() => {
         return () => {
             if (interval) {
@@ -213,7 +230,7 @@
         };
     });
     
-    // For tooltip when using relative time
+    // Tooltip for relative time mode
     function getTooltipTitle() {
         if (mode === 'relative') {
             try {
@@ -229,7 +246,7 @@
         return undefined;
     }
 </script>
-
+  
 {#if as === 'time'}
     <time datetime={currentTime.toISOString()} title={getTooltipTitle()} class={className}>
         {formattedOutput}

@@ -2,65 +2,39 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import Loader from '$lib/themes/components/Loader.svelte';
-    import PrayerTimeCalculator, { 
-        nextPrayerTimeSubscribe, 
-        countdownToTextSubscribe,
-        currentPrayerSubscribe, 
-        allPrayerTimesSubscribe 
-    } from '$lib/themes/logic/prayertime_calculator';
     import type { AppDataResult } from '$lib/themes/interfaces/types.js';
     import { error } from '@sveltejs/kit';
-    import { sseClient, EventType, ScreenEventType } from '$lib/sse/client';
     import toast, { Toaster } from 'svelte-french-toast';
-    import { invalidateAll } from '$app/navigation';
     import '$lib/themes/styles/global.css';
+    import { SSEHandler } from '$lib/services/sseHandler';
+    import { PrayerSubscriptionManager } from '$lib/services/prayerSubscriptionManager';
+    
     // Define props
     let { data } = $props();
     
     // Component state
     let pageComponent = $state<typeof Loader | any>(Loader);
-    let prayerCalculator = $state<PrayerTimeCalculator | null>(null);
-    let nextPrayer = $state<any>(null);
-    let currentPrayer = $state<any>(null);
-    let countdownText = $state<string>('--:--:--');
-    let allPrayerTimes = $state<any[]>([]);
     
-    // SSE state
-    let connectionStatus = $state<'online' | 'offline' | 'maintenance' | 'unknown'>('unknown');
-    let lastUpdateTime = $state<string>('');
+    // Services
+    let prayerManager = $state<PrayerSubscriptionManager | null>(null);
+    let sseHandler = $state<SSEHandler | null>(null);
     
-    // Subscription handlers
-    let nextPrayerTimeUnsubscribe: () => void;
-    let countdownToTextUnsubscribe: () => void;
-    let allPrayerTimesUnsubscribe: () => void;
-    let currentPrayerUnsubscribe: () => void;
-    let sseStateUnsubscribe: () => void;
+    // State stores
+    let prayerState = $state<any>({
+        nextPrayer: null,
+        currentPrayer: null,
+        countdownText: '--:--:--',
+        allPrayerTimes: [],
+        calculator: null
+    });
     
-    // SSE event unsubscribe handlers
-    let sseEventUnsubscribes: Array<() => void> = [];
-    
-    // Setup prayer time subscriptions
-    function setupSubscriptions() {
-        nextPrayerTimeUnsubscribe = nextPrayerTimeSubscribe(value => {
-            nextPrayer = value;
-        });
-        
-        currentPrayerUnsubscribe = currentPrayerSubscribe(value => {
-            currentPrayer = value;
-        });
-
-        countdownToTextUnsubscribe = countdownToTextSubscribe(value => {
-            countdownText = value;
-        });
-        
-        allPrayerTimesUnsubscribe = allPrayerTimesSubscribe(value => {
-            allPrayerTimes = value;
-        });
-    }
+    let sseState = $state<any>({
+        connectionStatus: 'unknown',
+        lastUpdateTime: ''
+    });
     
     // Helper function to show toast based on notification level
     function showToast(message: string, level: string = 'info') {
-        
         switch (level) {
             case 'info':
                 toast.success(message);
@@ -76,109 +50,6 @@
             default:
                 toast(message);
         }
-    }
-    
-    // Function to update prayer calculator with new data
-    function updatePrayerCalculator(newData: any) {
-        if (prayerCalculator) {
-            prayerCalculator.destroy();
-        }
-        prayerCalculator = new PrayerTimeCalculator(newData);
-        setupSubscriptions();
-    }
-    
-    // Setup SSE event handlers
-    function setupSSEHandlers() {
-        // Connect to SSE if not already connected
-        if (!sseClient.isConnected()) {
-            sseClient.connect();
-        }
-        
-        // Subscribe to SSE state changes
-        sseStateUnsubscribe = sseClient.state.subscribe(state => {
-            console.log('[Prayer Screen] SSE state changed:', state);
-            
-            // Debug: Check the raw message to understand what's being received
-            if (state.lastMessage) {
-                console.log('[Prayer Screen] Raw SSE message received:', state.lastMessage);
-                lastUpdateTime = new Date().toLocaleTimeString();
-                
-                // Direct handling of theme change from SSE state
-                // This catches theme changes that might come in a different format
-                if (state.lastMessage.type === 'theme_change') {
-                    const theme = state.lastMessage.payload;
-                    console.log('[Prayer Screen] Theme change detected in SSE message:', theme);
-                    handleThemeChange(theme);
-                }
-            }
-            
-            // Handle connection status changes
-            const wasConnected = connectionStatus === 'online';
-            const isConnected = state.connected;
-            
-            connectionStatus = state.connected ? 'online' : 'offline';
-            
-            // Show reconnection toast if we were disconnected and now reconnected
-            if (!wasConnected && isConnected) {
-                 console.log('[Prayer Screen] Reconnected to SSE server');
-            }
-        });
-        
-        // Handle screen events (like page reload or theme change)
-        sseEventUnsubscribes.push(
-            sseClient.on(EventType.SCREEN_EVENT, async (payload) => {
-                console.log('[Prayer Screen] Screen event received:', payload);
-                if (payload.type === ScreenEventType.PAGE_RELOAD) {
-                    showToast('Reloading page...', 'info');
-                    setTimeout(() => window.location.reload(), 1000);
-                } 
-            })
-        );
-        
-        // Handle direct theme change events (if they come through the notification channel)
-        sseEventUnsubscribes.push(
-            sseClient.on(EventType.SCREEN_EVENT, (payload) => {
-                if (payload.type === ScreenEventType.THEME_CHANGE) {
-                    console.log('[Prayer Screen] Direct theme change event:', payload);
-                    const theme = typeof payload.data === 'string' ? payload.data : payload.data?.theme;
-                    if (theme) {
-                        handleThemeChange(theme);
-                    }
-                }
-            })
-        );
-
-        sseEventUnsubscribes.push(
-            sseClient.on(EventType.SCREEN_EVENT, (payload) => {
-                if (payload.type === ScreenEventType.CONTENT_UPDATE) {
-                    console.log('[Prayer Screen] Content update event:', payload);
-                    showToast('Content updated', 'info');
-                    invalidateAll();
-                }
-            })
-        );
-        // Handle notifications
-        sseEventUnsubscribes.push(
-            sseClient.on(EventType.NOTIFICATION, (payload) => {
-                console.log('[Prayer Screen] Notification received:', payload);
-                showToast(payload.message, payload.level);
-            })
-        );
-        
-        // Handle system status updates
-        sseEventUnsubscribes.push(
-            sseClient.on(EventType.SYSTEM_STATUS, (payload) => {
-                console.log('[Prayer Screen] System status update:', payload);
-                connectionStatus = payload.status;
-                
-                if (payload.status === 'maintenance') {
-                    showToast(
-                        payload.message || 'System maintenance in progress', 
-                        'warning'
-                    );
-                }
-            })
-        );
     }
     
     // Extract theme change logic to a dedicated function
@@ -207,38 +78,39 @@
     
     // Watch for changes in data to update the prayer calculator
     $effect(() => {
-        if (data?.data) {
-            // Check if we need to initialize or update the prayer calculator
-            if (!prayerCalculator) {
-                updatePrayerCalculator(data.data);
-            } else {
-                try {
-                    // Simple update check - if API data is available, update the calculator
-                    // This avoids complex comparisons that might cause errors
-                    if (data.data !== prayerCalculator.apiData) {
-                        updatePrayerCalculator(data.data);
-                    }
-                } catch (err) {
-                    console.error('Error comparing prayer calculator data:', err);
-                    // If comparison fails, update anyway to be safe
-                    updatePrayerCalculator(data.data);
-                }
+        if (data?.data && prayerManager) {
+            try {
+                prayerManager.updateCalculator(data.data);
+            } catch (err) {
+                console.error('Error updating prayer calculator:', err);
+                showToast('Error updating prayer times', 'error');
             }
         }
     });
     
     onMount(async () => {
         try {
-            // Initialize prayer time calculator if we have API data
+            // Initialize prayer time manager
             if (data?.data) {
-                prayerCalculator = new PrayerTimeCalculator(data.data);
-                setupSubscriptions();
+                prayerManager = new PrayerSubscriptionManager();
+                prayerManager.initialize(data.data);
+                
+                // Subscribe to prayer state changes
+                const unsubscribe = prayerManager.state.subscribe(state => {
+                    prayerState = state;
+                });
             } else {
                 throw error(500, 'Prayer time data is not available');
             }
             
-            // Set up SSE event handling
-            setupSSEHandlers();
+            // Initialize SSE handler
+            sseHandler = new SSEHandler(showToast, handleThemeChange);
+            sseHandler.initialize();
+            
+            // Subscribe to SSE state changes
+            const sseUnsubscribe = sseHandler.state.subscribe(state => {
+                sseState = state;
+            });
             
             // Load the component dynamically
             const componentModule = await import(
@@ -255,18 +127,12 @@
     });
     
     onDestroy(() => {
-        // Clean up prayer time subscriptions
-        if (nextPrayerTimeUnsubscribe) nextPrayerTimeUnsubscribe();
-        if (countdownToTextUnsubscribe) countdownToTextUnsubscribe();
-        if (allPrayerTimesUnsubscribe) allPrayerTimesUnsubscribe();
-        if (currentPrayerUnsubscribe) currentPrayerUnsubscribe();
-        // Clean up SSE subscriptions
-        if (sseStateUnsubscribe) sseStateUnsubscribe();
-        sseEventUnsubscribes.forEach(unsub => unsub());
-        
-        // Clean up the prayer calculator
-        if (prayerCalculator) {
-            prayerCalculator.destroy();
+        // Clean up services
+        if (prayerManager) {
+            prayerManager.destroy();
+        }
+        if (sseHandler) {
+            sseHandler.destroy();
         }
     });
     
@@ -277,15 +143,15 @@
     const enhancedData: AppDataResult<any> = $derived({
         apiData: data?.data,
         prayerTimes: {
-            currentPrayer,
-            nextPrayer,
-            countdownText,
-            allPrayerTimes,
-            calculator: prayerCalculator
+            currentPrayer: prayerState.currentPrayer,
+            nextPrayer: prayerState.nextPrayer,
+            countdownText: prayerState.countdownText,
+            allPrayerTimes: prayerState.allPrayerTimes,
+            calculator: prayerState.calculator
         },
         sseData: {
-            connectionStatus,
-            lastUpdateTime
+            connectionStatus: sseState.connectionStatus,
+            lastUpdateTime: sseState.lastUpdateTime
         }
     });
 </script>

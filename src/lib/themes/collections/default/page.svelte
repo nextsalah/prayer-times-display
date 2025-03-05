@@ -68,6 +68,7 @@
       timezone={data.apiData.localization.timeSettings.timezone}
       use24h={data.apiData.localization.timeSettings.use24Hour}
       showSeconds={data.apiData.localization.timeSettings.showSeconds}
+      languageCode={data.apiData.localization.language.language_code}
     />
   </div>
 

@@ -5,6 +5,7 @@
         use24h = true,
         showSeconds = true,
         dateFormat = "dddd, MMMM D YYYY",
+        languageCode = "en"
     } = $props();
 </script>
 
@@ -26,6 +27,7 @@
             mode="date" 
             as="span"
             format={dateFormat}
+            locale={languageCode}
         />
     </p>
 </header>
