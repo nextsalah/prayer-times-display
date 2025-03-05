@@ -128,9 +128,7 @@
         const { detail } = event;
         if (!detail.valid) {
             isSubmitting = false;
-            toast.error("Please fix the form errors before submitting", {
-                position: "bottom-center"
-            });
+            toast.error("Please fix the form errors before submitting");
             return;
         }
         
@@ -139,7 +137,6 @@
             isSubmitting = false;
             toast("No changes detected", {
                 style: "background: gray; color: white;",
-                position: "bottom-center",
                 icon: "🤷‍♂️",
             });
             return;
@@ -154,9 +151,7 @@
 
         if (Object.keys(filteredDetail).length === 0) {
             isSubmitting = false;
-            toast.error("No valid data to save", {
-                position: "bottom-center"
-            });
+            toast.error("No valid data to save");
             return;
         }
 
@@ -212,7 +207,6 @@
                     error: (err) => err.message || 'Failed to save settings',
                 },
                 {
-                    position: "bottom-center",
                     duration: 3000
                 }
             );
@@ -233,9 +227,7 @@
             form.action = '?/reset';
             document.body.appendChild(form);
             form.submit();
-            toast.success("Resetting theme to defaults...", {
-                position: "bottom-center"
-            });
+            toast.success("Resetting theme to defaults...");
         }
     }
 </script>

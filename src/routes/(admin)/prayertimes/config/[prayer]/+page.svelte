@@ -19,9 +19,7 @@
         taintedMessage: 'You have unsaved changes. Are you sure you want to leave?',
         onResult: ({ result }) => {
             if (result.type === 'success') {
-                toast.success("Settings saved!", {
-                    position: "bottom-center"
-                });
+                toast.success("Config saved!");
             } else if (result.type === 'error') {
                 toast.error("Could not save settings.", {
                     position: "bottom-center"

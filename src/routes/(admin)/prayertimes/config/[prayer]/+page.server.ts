@@ -5,6 +5,8 @@ import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { fail } from '@sveltejs/kit';
 import { z } from 'zod';
+import { connectionManager } from '$lib/sse/stream';
+import { EventType, ScreenEventType } from '$lib/sse/types';
 
 // Base schema for all prayers
 const baseFormSchema = z.object({
@@ -134,7 +136,10 @@ export const actions = {
             
             // Update prayer settings
             await prayerConfigService.updatePrayer(prayerName, updateData);
-            
+            connectionManager.broadcast(EventType.SCREEN_EVENT, {
+                type: ScreenEventType.CONTENT_UPDATE,
+                data: 'Prayer config updated'
+            }); 
             return { 
                 form,
                 success: `${prayerName.charAt(0).toUpperCase() + prayerName.slice(1)} settings updated successfully`

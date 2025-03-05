@@ -1,7 +1,8 @@
 import { Theme } from '$lib/themes/logic/handler';
 import { error, type Actions } from '@sveltejs/kit';
 import { themeService } from '$lib/db';
-import { connectionManager, ScreenEventType } from '$lib/sse/stream';
+import { connectionManager } from '$lib/sse/stream';
+import { EventType, ScreenEventType } from '$lib/sse/types';
 
 export const load = (async () => {
     try {
@@ -22,6 +23,10 @@ export const load = (async () => {
 
         // Add QR code and disclaimer settings
         const qrCodeEnabled = storedSettings.showQrCode ?? true;
+        connectionManager.broadcast(EventType.SCREEN_EVENT, {
+            type: ScreenEventType.CONTENT_UPDATE,
+            data: 'Theme updated!'
+        }); 
         return {
             title: 'Theme Settings',
             currentTheme: activeTheme.themeData,
@@ -63,7 +68,10 @@ export const actions: Actions = {
             await themeService.updateCustomSettingsObject(theme.defaultSettings || {});
 
             // Broadcast theme change to all connected screens
-            connectionManager.broadcast(ScreenEventType.THEME_CHANGE, themeName);
+            connectionManager.broadcast(EventType.SCREEN_EVENT, {
+                type: ScreenEventType.THEME_CHANGE,
+                data: 'Theme changed!'
+            }); 
             return {
                 success: true,
                 message: `Theme "${theme.name}" has been applied`

@@ -9,6 +9,8 @@ import {
   validateFormData,
   processFormData,
 } from '$lib/themes/logic/theme-settings-manager';
+import { connectionManager } from '$lib/sse/stream';
+import { EventType, ScreenEventType } from '$lib/sse/types';
 
 export const load = (async ({ url }: { url: URL }) => {
     try {
@@ -32,7 +34,10 @@ export const load = (async ({ url }: { url: URL }) => {
         
         // Merge with defaults for any missing values
         const userSettings = mergeWithDefaults(rawUserSettings, activeTheme.customization);
-        
+        connectionManager.broadcast(EventType.SCREEN_EVENT, {
+                                        type: ScreenEventType.CONTENT_UPDATE,
+                                        data: 'Theme settings updated'
+                            });         
         return {
             title: 'Customize Theme',
             theme: {

@@ -28,23 +28,17 @@
             const response = await send_form(form);
             if (response.type === "error" ) {
                 FormHandlerProps.error = response.error.message || "Failed to send form.";
-                toast.error(FormHandlerProps.error || "An error occurred", {
-                    position: "bottom-center"
-                });
+                toast.error(FormHandlerProps.error || "An error occurred");
                 console.error(response.error);
             } else if (response.type === "failure") {
                 FormHandlerProps.error = "Failed to send form.";
-                toast.error(FormHandlerProps.error, {
-                    position: "bottom-center"
-                });
+                toast.error(FormHandlerProps.error);
             }
             else {
                  FormHandlerProps.fetchFinished = true;
                 FormHandlerProps.error = ""; // Clear any previous errors
                 onSuccess(); // Call the onSuccess callback
-                toast.success("Settings saved!", {
-                    position: "bottom-center"
-                });
+                toast.success('Saved succssfuly')
             }
         } catch (e) {
             FormHandlerProps.error = "Failed to send form.";
