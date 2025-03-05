@@ -114,8 +114,9 @@ export type FileMetadata = {
 export interface AppDataResult<T>{
   apiData: AppData<T>;  
   prayerTimes: {
-      nextPrayer: PrayerTimeItem | null;
-      countdownText: string | null;
+      currentPrayer: PrayerTimeItem;
+      nextPrayer: PrayerTimeItem;
+      countdownText: string;
       allPrayerTimes: PrayerTimeItem[];
       calculator: PrayerTimeCalculator | null;
   }

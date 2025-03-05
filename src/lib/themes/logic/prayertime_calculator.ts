@@ -32,6 +32,8 @@ export const { subscribe: nextPrayerTimeSubscribe, set: nextPrayerTimeSet } = wr
 export const { subscribe: allPrayerTimesSubscribe, set: allPrayerTimesSet } = writable<PrayerTimeItem[]>([]);
 // Add an error store to expose errors to the UI
 export const { subscribe: errorMessageSubscribe, set: errorMessageSet } = writable<string | null>(null);
+// Add a current prayer store
+export const { subscribe: currentPrayerSubscribe, set: currentPrayerSet } = writable<PrayerTimeItem | null>(null);
 
 type PrayerKeys = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 type PrayerKeysWithSunrise = PrayerKeys | 'sunrise';
@@ -42,6 +44,7 @@ class PrayerTimeCalculator {
     private prayerTimesKeys: PrayerKeysWithSunrise[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
     private updateInterval: ReturnType<typeof setInterval> | null = null;
     private _nextPrayerTime: PrayerTimeItem = DEFAULT_PRAYER_TIME;
+    private _currentPrayer: PrayerTimeItem | null = null;
     private _nextPrayerTimeCountdown: number = 0;
     private _errorMessage: string | null = null;
 
@@ -65,14 +68,14 @@ class PrayerTimeCalculator {
        
             this.apiData = data;
             this.initializePrayerTimes();
-            this.updateNextPrayerTime();
+            this.updatePrayerTimes();
             
             // Clear any existing interval to prevent memory leaks
             if (this.updateInterval) {
                 clearInterval(this.updateInterval);
             }
             
-            this.updateInterval = setInterval(this.updateNextPrayerTime.bind(this), 1000);
+            this.updateInterval = setInterval(this.updatePrayerTimes.bind(this), 1000);
         } catch (error) {
             this.handleError(`Failed to initialize prayer times: ${error instanceof Error ? error.message : 'Unknown error'}`);
             console.error('Constructor error:', error);
@@ -85,6 +88,10 @@ class PrayerTimeCalculator {
 
     get nextPrayerTime(): PrayerTimeItem {
         return this._nextPrayerTime;
+    }
+
+    get currentPrayer(): PrayerTimeItem | null {
+        return this._currentPrayer;
     }
 
     get nextPrayerTimeCountdown(): number {
@@ -110,7 +117,7 @@ class PrayerTimeCalculator {
         try {
             this.apiData = data;
             this.initializePrayerTimes();
-            this.updateNextPrayerTime();
+            this.updatePrayerTimes();
         }
         catch (error) {
             this.handleError(`Failed to update prayer times: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -430,6 +437,17 @@ class PrayerTimeCalculator {
         }
     }
 
+    private updatePrayerTimes(): void {
+        try {
+            // Update both next prayer and current prayer
+            this.updateNextPrayerTime();
+            this.updateCurrentPrayer();
+        } catch (error) {
+            this.handleError(`Error updating prayer times: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            console.error('Error updating prayer times:', error);
+        }
+    }
+
     private updateNextPrayerTime(): void {
         try {
             const now = dayjs();
@@ -498,6 +516,86 @@ class PrayerTimeCalculator {
         }
     }
 
+    private updateCurrentPrayer(): void {
+        try {
+            const now = dayjs();
+            
+            // Filter prayers for only those with regular prayer times (exclude tomorrow's fajr)
+            const validPrayers = this.prayerTimes.filter(prayer => 
+                prayer && 
+                prayer.time && 
+                dayjs(prayer.time).isValid() && 
+                prayer.id !== 'fajr_tomorrow'
+            );
+            
+            if (validPrayers.length === 0) {
+                console.warn('No valid prayer times found for determining current prayer.');
+                currentPrayerSet(null);
+                this._currentPrayer = null;
+                return;
+            }
+            
+            // Sort prayers by time
+            const sortedPrayers = [...validPrayers].sort((a, b) => {
+                return dayjs(a.time).valueOf() - dayjs(b.time).valueOf();
+            });
+            
+            // Find the most recent prayer time that has passed (excluding sunrise)
+            let currentPrayer: PrayerTimeItem | null = null;
+            
+            for (let i = sortedPrayers.length - 1; i >= 0; i--) {
+                const prayer = sortedPrayers[i];
+                if (
+                    dayjs(prayer.time).isBefore(now) && 
+                    // Exclude sunrise from being the current prayer
+                    prayer.id !== 'sunrise'
+                ) {
+                    currentPrayer = prayer;
+                    break;
+                }
+            }
+            
+            // Special case: Handle the period between Fajr and Sunrise
+            // If sunrise is the next prayer and fajr is the current prayer,
+            // check if we're between fajr and sunrise
+            if (
+                currentPrayer?.id === 'fajr' && 
+                this._nextPrayerTime?.id === 'sunrise'
+            ) {
+                // We are between Fajr and Sunrise - Fajr is indeed the current prayer
+                currentPrayerSet(currentPrayer);
+                this._currentPrayer = currentPrayer;
+                return;
+            }
+            
+            // Special case: If we're past all prayers for the day (including Isha),
+            // set current prayer as Isha
+            if (!currentPrayer) {
+                const ishaTime = sortedPrayers.find(p => p.id === 'isha');
+                if (ishaTime && dayjs(ishaTime.time).isBefore(now)) {
+                    currentPrayer = ishaTime;
+                }
+            }
+            
+            // Update the store and class property if the prayer has changed
+            if (
+                currentPrayer && 
+                (!this._currentPrayer || this._currentPrayer.id !== currentPrayer.id)
+            ) {
+                this._currentPrayer = currentPrayer;
+                currentPrayerSet(currentPrayer);
+            } else if (!currentPrayer) {
+                this._currentPrayer = null;
+                currentPrayerSet(null);
+            }
+            
+        } catch (error) {
+            console.error('Error updating current prayer:', error);
+            currentPrayerSet(null);
+            this._currentPrayer = null;
+        }
+    }
+
     public prayerHasPassed(prayerTime: PrayerTimeItem): boolean {
         if (!prayerTime || !prayerTime.time) return false;
         
@@ -517,6 +615,17 @@ class PrayerTimeCalculator {
             return prayerTime.id === this._nextPrayerTime.id;
         } catch (error) {
             console.error(`Error checking if prayer is active:`, error);
+            return false;
+        }
+    }
+
+    public isCurrentPrayer(prayerTime: PrayerTimeItem): boolean {
+        if (!prayerTime || !this._currentPrayer) return false;
+        
+        try {
+            return prayerTime.id === this._currentPrayer.id;
+        } catch (error) {
+            console.error(`Error checking if prayer is current:`, error);
             return false;
         }
     }

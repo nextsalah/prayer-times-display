@@ -1,3 +1,32 @@
+<script lang="ts">
+  import { onDestroy, onMount } from "svelte";
+
+  let reloadInterval: ReturnType<typeof setInterval> | null = null;
+  
+  onMount(() => {
+    // Refresh the page every 30 seconds, but only when this component is mounted
+    reloadInterval = setInterval(() => {
+      window.location.reload();
+    }, 30000);
+    
+    // Return the cleanup function for onMount (alternative to onDestroy)
+    return () => {
+      if (reloadInterval) {
+        clearInterval(reloadInterval);
+        reloadInterval = null;
+      }
+    };
+  });
+
+  // As a backup, also clear the interval when the component is destroyed
+  onDestroy(() => {
+    if (reloadInterval) {
+      clearInterval(reloadInterval);
+      reloadInterval = null;
+    }
+  });
+</script>
+
 <div class="min-h-screen flex flex-col items-center justify-center bg-base-100 p-4">
   <span class="custom-spinner text-primary mb-12"></span>
   <p class="text-4xl md:text-6xl font-bold text-base-content">
@@ -46,4 +75,3 @@
     100% { opacity: 0; }
   }
 </style>
-

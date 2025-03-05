@@ -4,7 +4,8 @@
     import Loader from '$lib/themes/components/Loader.svelte';
     import PrayerTimeCalculator, { 
         nextPrayerTimeSubscribe, 
-        countdownToTextSubscribe, 
+        countdownToTextSubscribe,
+        currentPrayerSubscribe, 
         allPrayerTimesSubscribe 
     } from '$lib/themes/logic/prayertime_calculator';
     import type { AppDataResult } from '$lib/themes/interfaces/types.js';
@@ -12,7 +13,7 @@
     import { sseClient, EventType, ScreenEventType } from '$lib/sse/client';
     import toast, { Toaster } from 'svelte-french-toast';
     import { invalidateAll } from '$app/navigation';
-
+    import '$lib/themes/styles/global.css';
     // Define props
     let { data } = $props();
     
@@ -20,6 +21,7 @@
     let pageComponent = $state<typeof Loader | any>(Loader);
     let prayerCalculator = $state<PrayerTimeCalculator | null>(null);
     let nextPrayer = $state<any>(null);
+    let currentPrayer = $state<any>(null);
     let countdownText = $state<string>('--:--:--');
     let allPrayerTimes = $state<any[]>([]);
     
@@ -31,6 +33,7 @@
     let nextPrayerTimeUnsubscribe: () => void;
     let countdownToTextUnsubscribe: () => void;
     let allPrayerTimesUnsubscribe: () => void;
+    let currentPrayerUnsubscribe: () => void;
     let sseStateUnsubscribe: () => void;
     
     // SSE event unsubscribe handlers
@@ -42,6 +45,10 @@
             nextPrayer = value;
         });
         
+        currentPrayerUnsubscribe = currentPrayerSubscribe(value => {
+            currentPrayer = value;
+        });
+
         countdownToTextUnsubscribe = countdownToTextSubscribe(value => {
             countdownText = value;
         });
@@ -252,7 +259,7 @@
         if (nextPrayerTimeUnsubscribe) nextPrayerTimeUnsubscribe();
         if (countdownToTextUnsubscribe) countdownToTextUnsubscribe();
         if (allPrayerTimesUnsubscribe) allPrayerTimesUnsubscribe();
-        
+        if (currentPrayerUnsubscribe) currentPrayerUnsubscribe();
         // Clean up SSE subscriptions
         if (sseStateUnsubscribe) sseStateUnsubscribe();
         sseEventUnsubscribes.forEach(unsub => unsub());
@@ -270,6 +277,7 @@
     const enhancedData: AppDataResult<any> = $derived({
         apiData: data?.data,
         prayerTimes: {
+            currentPrayer,
             nextPrayer,
             countdownText,
             allPrayerTimes,

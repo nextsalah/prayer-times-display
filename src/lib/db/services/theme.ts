@@ -69,6 +69,14 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
       return {} as T;
     }
   }
+
+  
+  // get theme name
+  async getThemeName(): Promise<string> {
+    const settings = await this.get();
+    return settings.themeName;
+  }
+
   /**
    * Reset theme to defaults
    */

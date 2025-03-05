@@ -4,6 +4,9 @@ import {
   prayerConfigService,
   prayerTimesService
 } from '$lib/db';
+import { Theme } from '$lib/themes/logic/handler';
+import { loadThemeComponent } from '$lib/themes/logic/theme-loader';
+import { mergeWithDefaults } from '$lib/themes/logic/theme-settings-manager';
 import {type SettingsForPrayer, type DateSettingsSchemaType, type LanguageSchemaType, type Prayer, type PrayerSettings, type PrayerTime, type TimeSettingsSchemaType } from '../schemas';
 
 export type PrayerOptionType<P extends Prayer = Prayer> = SettingsForPrayer<P> & {
@@ -38,13 +41,21 @@ export class AppDataService {
   async getAppData<T= any>() : Promise< AppData<T> > {
     try {
       // Get data
-      const [componentPath, localization, prayerConfig, prayerTimes] = await Promise.all([
+      const [componentPath, localization, prayerConfig, prayerTimes,] = await Promise.all([
         themeService.getComponentPath(),
         localizationService.getLocalization(),
         prayerConfigService.getAll(),
         prayerTimesService.getPrayerTimes()
       ]);
       
+      const activeTheme = await Theme.load(componentPath);
+      if (!activeTheme || activeTheme instanceof Error) {
+        throw new Error(`Failed to load theme component '${componentPath}'`);
+      }
+      
+      const custom_settings = await themeService.getCustomSettingsObject();
+      const userSettings = mergeWithDefaults(custom_settings, activeTheme.customization);
+
       return {
         prayerTimes: {
           today: prayerTimes.today,
@@ -57,7 +68,7 @@ export class AppDataService {
           timeSettings: localization.timeSettings,
           dateSettings: localization.dateSettings
         },
-        custom_settings: themeService.getCustomSettingsObject() as T,
+        custom_settings: userSettings as T,
         componentPath
       };
     } catch (error: unknown) {
