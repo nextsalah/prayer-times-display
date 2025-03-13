@@ -13,6 +13,10 @@
   const currentPrayer = $derived(data.prayerTimes.currentPrayer);
   const countdownText = $derived(data.prayerTimes.countdownText);
   const allPrayerTimes = $derived(data.prayerTimes.allPrayerTimes);
+
+  // Theme selection
+  const themeColor = $derived(data.apiData.custom_settings.theme_color || 'default');
+  const isDefaultTheme = $derived(themeColor === 'default');
   
   // Interface text
   const interfaceText = $derived({
@@ -66,7 +70,7 @@
   })());
 </script>
 
-<div class="container">
+<div class="container" data-theme={themeColor !== 'default' ? themeColor : undefined}>
   <!-- Header Section -->
   <div class="headers">
     <Header 
@@ -75,6 +79,7 @@
       use24h={data.apiData.localization.timeSettings.use24Hour}
       showSeconds={data.apiData.localization.timeSettings.showSeconds}
       languageCode={data.apiData.localization.language.language_code}
+      {isDefaultTheme}
     />
   </div>
 
