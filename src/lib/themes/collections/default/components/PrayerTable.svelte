@@ -220,6 +220,17 @@
           };
       }
   });
+
+  // Helper function to determine text size class based on string length
+  const getTextSizeClass = (text: string): string => {
+    if (!text) return '';
+    
+    const length = text.length;
+    if (length > 12) return 'text-xs';
+    if (length > 9) return 'text-sm';
+    if (length > 7) return 'text-md';
+    return '';  // default size
+  };
 </script>
 
 <div class="body_container">
@@ -231,7 +242,7 @@
 
 <!-- Fajr -->
 <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.FAJR)} class:next={isPrayerNext(PRAYER_IDS.FAJR)}>
-  <h2 class="prayer-column">{prayerMap["Fajr"].name}</h2>
+  <h2 class="prayer-column {getTextSizeClass(prayerMap['Fajr'].name)}">{prayerMap["Fajr"].name}</h2>
   {#if prayerMap["Fajr"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Fajr"].time}</h2>
     <h2 class="iqamah_time">{prayerMap["Fajr"].iqamah}</h2>
@@ -242,7 +253,7 @@
 
 <!-- Sunrise - Always full width since it never has iqamah -->
 <section class="prayer_times_today" class:next={isPrayerNext(PRAYER_IDS.SUNRISE)}>
-  <h2 class="prayer-column">
+  <h2 class="prayer-column {getTextSizeClass(prayerMap['Sunrise'].name)}">
     {prayerMap["Sunrise"].name} <span class="sunrise-icon"><Sunrise /></span>
   </h2>
   <h2 class="prayer_time sunrise-time-background_color full-width">{prayerMap["Sunrise"].time}</h2>
@@ -250,7 +261,7 @@
 
 <!-- Dhuhr -->
 <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.DHUHR)} class:next={isPrayerNext(PRAYER_IDS.DHUHR)}>
-  <h2 class="prayer-column">{prayerMap["Dhuhr"].name}</h2>
+  <h2 class="prayer-column {getTextSizeClass(prayerMap['Dhuhr'].name)}">{prayerMap["Dhuhr"].name}</h2>
   {#if prayerMap["Dhuhr"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Dhuhr"].time}</h2>
     <h2 class="iqamah_time">{prayerMap["Dhuhr"].iqamah}</h2>
@@ -261,7 +272,7 @@
 
 <!-- Asr -->
 <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.ASR)} class:next={isPrayerNext(PRAYER_IDS.ASR)}>
-  <h2 class="prayer-column">{prayerMap["Asr"].name}</h2>
+  <h2 class="prayer-column {getTextSizeClass(prayerMap['Asr'].name)}">{prayerMap["Asr"].name}</h2>
   {#if prayerMap["Asr"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Asr"].time}</h2>
     <h2 class="iqamah_time">{prayerMap["Asr"].iqamah}</h2>
@@ -272,7 +283,7 @@
 
 <!-- Maghrib -->
 <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.MAGHRIB)} class:next={isPrayerNext(PRAYER_IDS.MAGHRIB)}>
-  <h2 class="prayer-column">{prayerMap["Maghrib"].name}</h2>
+  <h2 class="prayer-column {getTextSizeClass(prayerMap['Maghrib'].name)}">{prayerMap["Maghrib"].name}</h2>
   {#if prayerMap["Maghrib"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Maghrib"].time}</h2>
     <h2 class="iqamah_time">{prayerMap["Maghrib"].iqamah}</h2>
@@ -283,7 +294,7 @@
 
 <!-- Isha -->
 <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.ISHA)} class:next={isPrayerNext(PRAYER_IDS.ISHA)}>
-  <h2 class="prayer-column">{prayerMap["Isha"].name}</h2>
+  <h2 class="prayer-column {getTextSizeClass(prayerMap['Isha'].name)}">{prayerMap["Isha"].name}</h2>
   {#if prayerMap["Isha"].iqamah}
     <h2 class="prayer_time time-with-iqamah">{prayerMap["Isha"].time}</h2>
     <h2 class="iqamah_time">{prayerMap["Isha"].iqamah}</h2>
@@ -336,7 +347,7 @@
 .prayer-column {
   flex: 1;
   justify-content: flex-start;
-  padding-left: 5% !important;
+  padding-left: 3% !important;
 }
 
 .time-column {
@@ -360,6 +371,19 @@
     color: white;
     overflow: hidden;
     margin: 0;
+    
+    /* Text size classes based on content length */
+    &.text-xs {
+      font-size: 3vw;  /* For very long text */
+    }
+    
+    &.text-sm {
+      font-size: 4vw; /* For medium-long text */
+    }
+    
+    &.text-md {
+      font-size: 5.5vw; /* For slightly longer than default text */
+    }
   }
   
   &.active {
@@ -425,13 +449,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 95%;
   margin-left: 0.3em;
-  
+  max-height: 90%;  
+  height: 100%;
   :global(svg) {
-    height: 0.95em;
     width: auto;
-    min-height: 20px;
+    max-height: 100%;
+    fill: white;
   }
 }
 
@@ -443,6 +467,18 @@
 
   .prayer_times_today h2 {
     font-size: 5vh !important;
+    
+    &.text-xs {
+      font-size: 3.5vh !important;
+    }
+    
+    &.text-sm {
+      font-size: 4vh !important;
+    }
+    
+    &.text-md {
+      font-size: 4.5vh !important;
+    }
   }
   
   .sunrise-icon {

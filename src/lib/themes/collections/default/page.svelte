@@ -183,6 +183,8 @@
   padding: 1rem 0;
   background-color: #f0f0f0;
   color: rgb(46, 46, 46);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 500;
+  text-align: center;
 }
 </style>
