@@ -4,6 +4,7 @@ import type { FileMetadata } from '$lib/themes/interfaces/types';
 export interface DefaultThemeSettings {
     footer_text: string;
     name_file: FileMetadata[];
+    slide_delay: number;
 }
 
 const customization: IField[] = [
@@ -23,6 +24,20 @@ const customization: IField[] = [
         "value": "بسم الله الرحمن الرحيم"
     },
     {
+        type: 'input', // required
+        name: 'slide_delay', // required
+        value: '30', // optional
+        attributes: {
+            type: 'number', // default = text, or password, email, number, tel, optional
+            id: 'slide_delay', // optional
+            classes: ['input input-bordered input-primary w-full'], // optional
+            label: 'Slide Show Delay', // optional
+            placeholder: 'Number of seconds', // optional
+            disabled: false, // optional
+            readonly: false // optional
+        }
+    },
+    {
         "type": "file",
         "name": "name_file",
         "attributes": {
@@ -30,17 +45,17 @@ const customization: IField[] = [
             "classes": [
                 "file-input file-input-bordered file-input-md w-full my-2"
             ],
-            "label": "Upload File"
+            "label": "Upload Slideshow Images"
         },
         "extra": {
             "multiple": true
         },
         "rules": ["file"],
         "file": {
-            "extensions": ["jpg", "gif", "png"],
-            "maxSize": 5
+            "extensions": ["jpg", "jpeg", "png", "gif"],
+            "maxSize": 3
         }
-    }
+    },
 ];
 
 export default customization;

@@ -22,7 +22,6 @@ export const load = (async () => {
 
         // Add QR code and disclaimer settings
         const qrCodeEnabled = storedSettings.showQrCode ?? true;
-        sseService.updateContent('Theme updated!');
         return {
             title: 'Theme Settings',
             currentTheme: activeTheme.themeData,

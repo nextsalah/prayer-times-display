@@ -2,8 +2,9 @@
   import type { AppDataResult } from "$lib/themes/interfaces/types";
   import Header from "./components/Header.svelte";
   import PrayerTable from "./components/PrayerTable.svelte";
-  import Next from "./components/Next.svelte";
+  import CombinedDisplay from "./components/CombinedDisplay.svelte";
   import type { DefaultThemeSettings } from "./customization";
+    import Next from "./components/Next.svelte";
   
   let { data } : { data: AppDataResult<DefaultThemeSettings> } = $props();
   
@@ -20,6 +21,11 @@
     iqamah: data.apiData.localization?.language?.iqamah || 'Iqamah',
     next: data.apiData.localization?.language?.next || 'Next',
   });
+  
+  // Image slideshow
+  const images = $derived(data.apiData.custom_settings.name_file || []);
+  const showSlideshow = $derived(images.length > 0);
+  const slideshowDuration = $derived(data.apiData.custom_settings.slide_delay || 30); // in seconds
   
   // Get iqamah times from prayer times
   const iqamahTimes = $derived((() => {
@@ -85,17 +91,28 @@
     />
   </div>
 
-  <!-- Next Prayer Section -->
+  <!-- Combined Next Prayer Section and Slideshow -->
   <div class="next-prayer-container">
-    <Next
-      nextText={interfaceText.next}
-      nextPrayer={nextPrayer}
-      nextPrayerTime={nextPrayer.time_readable}
-      countdownText={countdownText || '--:--:--'}
-    />
+    {#if showSlideshow}
+      <CombinedDisplay
+        images={images}
+        slideDuration={slideshowDuration * 1000}
+        nextText={interfaceText.next}
+        nextPrayer={nextPrayer}
+        nextPrayerTime={nextPrayer.time_readable}
+        countdownText={countdownText || '--:--:--'}
+      />
+    {:else}
+      <Next
+        nextText={interfaceText.next}
+        nextPrayer={nextPrayer}
+        nextPrayerTime={nextPrayer.time_readable}
+        countdownText={countdownText || '--:--:--'}
+      />
+    {/if}
   </div>
   
-  <!-- Footer Section - Now outside the next-prayer container -->
+  <!-- Footer Section -->
   <div class="footer">
     <footer id="footer_text">{data.apiData.custom_settings.footer_text}</footer>
   </div>

@@ -55,7 +55,7 @@ export const actions: Actions = {
         try {
             // Get form data
             const formData = await request.formData();
-            
+
             // Get current theme
             const storedSettings = await themeService.get();
             
@@ -80,6 +80,7 @@ export const actions: Actions = {
                 };
             }
 
+            console.log('Form data:', Object.fromEntries(formData));
             // Process the form data with file uploads
             const processedData = await processFormData(
                 formData, 
@@ -87,16 +88,29 @@ export const actions: Actions = {
                 // File uploader function
                 async (file: File) => await MediaService.uploadFile(file)
             );
+            console.log('Processed data:', processedData);
 
             // Get current custom settings
             const currentSettings = await themeService.getCustomSettingsObject();
 
-            // Merge with current settings
-            const updatedSettings = {
-                ...currentSettings,
-                ...processedData
-            };
-
+            // Create the updated settings object properly merging arrays
+            const updatedSettings = { ...currentSettings };
+            
+            // Handle each property from processed data
+            for (const [key, value] of Object.entries(processedData)) {
+                // If it's an array of files, we want to append not replace
+                if (Array.isArray(value) && value.length > 0 && value[0] && 'path' in value[0]) {
+                    // Initialize if it doesn't exist
+                    if (!updatedSettings[key] || !Array.isArray(updatedSettings[key])) {
+                        updatedSettings[key] = [];
+                    }
+                    // Append new files to existing ones
+                    updatedSettings[key] = [...updatedSettings[key], ...value];
+                } else {
+                    // For non-file fields, just replace the value
+                    updatedSettings[key] = value;
+                }
+            }
             // Save updated settings
             await themeService.updateCustomSettingsObject(updatedSettings);
             

@@ -132,16 +132,6 @@
             return;
         }
         
-        // Check if form has actually changed
-        if (!hasFormChanged(detail)) {
-            isSubmitting = false;
-            toast("No changes detected", {
-                style: "background: gray; color: white;",
-                icon: "🤷‍♂️",
-            });
-            return;
-        }
-        
         // Remove special fields
         const filteredDetail = Object.fromEntries(
             Object.entries(detail).filter(([key, value]) => 
