@@ -1,5 +1,5 @@
 import { MediaService, Theme } from '$lib/themes/logic/handler';
-import { error, redirect, type Actions } from '@sveltejs/kit';
+import { error,  type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { themeService } from '$lib/db';
 import type { FileMetadata, ThemeUserSettings } from '$lib/themes/interfaces/types';
@@ -9,8 +9,7 @@ import {
   validateFormData,
   processFormData,
 } from '$lib/themes/logic/theme-settings-manager';
-import { connectionManager } from '$lib/sse/stream';
-import { EventType, ScreenEventType } from '$lib/sse/types';
+import { sseService } from '$lib/server/sse/service';
 
 export const load = (async ({ url }: { url: URL }) => {
     try {
@@ -34,10 +33,9 @@ export const load = (async ({ url }: { url: URL }) => {
         
         // Merge with defaults for any missing values
         const userSettings = mergeWithDefaults(rawUserSettings, activeTheme.customization);
-        connectionManager.broadcast(EventType.SCREEN_EVENT, {
-                                        type: ScreenEventType.CONTENT_UPDATE,
-                                        data: 'Theme settings updated'
-                            });         
+    
+        
+        
         return {
             title: 'Customize Theme',
             theme: {
@@ -103,7 +101,7 @@ export const actions: Actions = {
             await themeService.updateCustomSettingsObject(updatedSettings);
             
             logger.info('Theme settings updated successfully');
-
+            sseService.updateContent('Theme settings updated');
             return {
                 status: 200,
                 body: {
@@ -170,6 +168,8 @@ export const actions: Actions = {
             // Update settings in database
             await themeService.updateCustomSettingsObject(currentSettings);
 
+            sseService.updateContent('File deleted');
+
             return {
                 status: 200,
                 body: { success: true }
@@ -194,6 +194,8 @@ export const actions: Actions = {
             await themeService.updateCustomSettingsObject(activeTheme.defaultSettings || {});
             logger.info('Theme settings reset to default');
             
+            sseService.updateContent('Theme settings reset to default');
+
             return {
                 success: true,
                 message: 'Theme settings reset to defaults'

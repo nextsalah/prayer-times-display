@@ -4,8 +4,7 @@ import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { LanguageSchema } from '$lib/db/schemas';
-import { connectionManager } from '$lib/sse/stream';
-import { EventType, ScreenEventType } from '$lib/sse/types';
+import { sseService } from '$lib/server/sse/service';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -46,10 +45,7 @@ export const actions: Actions = {
             
             // Simply update the main language settings
             await localizationService.updateLanguage(form.data);
-            connectionManager.broadcast(EventType.SCREEN_EVENT, {
-                        type: ScreenEventType.CONTENT_UPDATE,
-                        data: 'Language settings updated'
-                    });           
+            sseService.updateContent('Language settings updated');
             return { 
                 form, 
                 success: true 
