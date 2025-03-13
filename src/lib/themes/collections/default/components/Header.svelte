@@ -10,9 +10,9 @@
     } = $props();
 </script>
 
-<header class={isDefaultTheme ? 'default-header ' : 'bg-base-100'}>
+<header class={isDefaultTheme ? 'default-header' : 'bg-gradient-to-b from-base-300 to-base-100 shadow-md'}>
     <!-- Main Clock -->
-    <p class={isDefaultTheme ? 'default-text clock-display' : 'clock-display text-base-content'}>
+    <p class={isDefaultTheme ? 'default-text clock-display' : 'clock-display text-base-content font-extrabold'}>
         <Time 
             mode="time" 
             as="span"
@@ -23,7 +23,7 @@
     </p>
     
     <!-- Date Display -->
-    <p  class={isDefaultTheme ? 'default-text date-display' : 'date-display text-base-content'}>
+    <p class={isDefaultTheme ? 'default-text date-display' : 'date-display text-base-content/80 font-semibold'}>
         <Time 
             mode="date" 
             as="span"

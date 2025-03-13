@@ -235,21 +235,25 @@
 
   // Updated function with isNext parameter
   const getPrayerNameClass = (odd = false, isActive = false, isNext = false) => {
-    let dasyui = odd 
-      ? 'bg-base-200 text-base-content border-solid border-b border-r border-base-300' 
-      : 'bg-base-100 text-base-content border-solid border-b border-r border-base-300';
+    // Define base classes without the background gradient
+    const baseClass = 'text-base-content border-solid border-b border-r border-base-300';
+    
+    // Only apply gradient if it's odd AND not active
+    const bgClass = odd && !isActive
+      ? 'bg-gradient-to-r from-base-200/60  to-base-100'
+      : 'bg-base-100';
     
     // Active styling takes precedence
     if (isActive) {
-      return `${dasyui} bg-transparent border-none text-base-content`;
+      return `${baseClass} bg-transparent border-none text-base-content`;
     }
     
     // Next prayer styling
     if (isNext) {
-      return `${dasyui} bg-transparent border-r-0`;
+      return `${baseClass} ${bgClass} bg-transparent border-r-0 `;
     }
     
-    return dasyui;
+    return `${baseClass} ${bgClass}`;
   };
   
   // Helper functions for class names based on theme
@@ -283,8 +287,8 @@
 
 <div class={isDefaultTheme ? 'body_container default_background' : 'body_container bg-base-100'} >
   <!-- Table Header -->
-  <section class={isDefaultTheme ? 'default_table_header table_header' : 'table_header border-solid border-b border-t border-base-300'} >
-    <h2 class={isDefaultTheme ? 'prayer-header-column default_h2' : 'prayer-header-column text-base-content font-semibold'}>{prayer}</h2> 
+  <section class={isDefaultTheme ? 'default_table_header table_header' : 'table_header bg-base-200 border-solid border-b border-t border-base-300'} >
+    <h2 class={isDefaultTheme ? 'prayer-header-column default_h2' : 'prayer-header-column text-base-content border-solid border-r-2 border-base-300 font-semibold'}>{prayer}</h2> 
     <h2 class={isDefaultTheme ? 'begins-header-column default_h2' : 'begins-header-column text-base-content font-semibold'}>{begins}</h2>
   </section>
 

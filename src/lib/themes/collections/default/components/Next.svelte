@@ -17,7 +17,7 @@
   } = $props();
 </script>
 
-<div class={`next_section fade ${isDefaultTheme ? 'default_next_section' : 'bg-primary/20 text-primary-content shadow-lg border-4 border-primary-focus'}`}>
+<div class={`next_section fade ${isDefaultTheme ? 'default_next_section' : 'bg-primary/20 text-primary-content shadow-lg border-solid border border-base-300 border-primary-focus'}`}>
   <p id="next_text" class={isDefaultTheme ? '' : 'text-primary-content opacity-80 tracking-wide'}>{nextText}...</p>
   <p id="next_prayer" class={isDefaultTheme ? '' : 'text-primary-content opacity-80 uppercase  font-semibold'}>{nextPrayer ? nextPrayer.name : '--'}</p>
   <p id="next_prayer_time" class={isDefaultTheme ? '' : 'text-primary-content font-bold '}>{nextPrayerTime}</p>
