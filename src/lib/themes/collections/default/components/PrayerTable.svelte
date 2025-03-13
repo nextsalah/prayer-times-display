@@ -242,15 +242,15 @@
   // Helper functions for class names based on theme
   const getPrayerTimeClass = (withIqamah = false) => {
     const baseClasses = withIqamah ? "prayer_time time-with-iqamah border-solid border-b border-base-300" : "prayer_time full-width border-solid border-b border-base-300";
-    return isDefaultTheme ? baseClasses : `${baseClasses} bg-primary border-solid border-b border-base-300 text-base-content/90`;
+    return isDefaultTheme ? baseClasses : `${baseClasses} bg-primary border-solid border-b border-base-300 text-base-100`;
   };
   
   const getIqamahClass = () => {
-    return isDefaultTheme ? "iqamah_time" : "iqamah_time bg-accent/30 text-base-content/90  border-solid border-b border-base-300";
+    return isDefaultTheme ? "iqamah_time" : "iqamah_time bg-accent/30 text-base-100  border-solid border-b border-base-300";
   };
   
   const getSunriseClass = () => {
-    return isDefaultTheme ? "prayer_time  full-width" : "prayer_time  bg-primary    text-base-content/90 full-width border-solid border-b border-base-300";
+    return isDefaultTheme ? "prayer_time  full-width" : "prayer_time  bg-primary   text-base-100 full-width border-solid border-b border-base-300";
   };
   
 </script>

@@ -80,7 +80,6 @@ export const actions: Actions = {
                 };
             }
 
-            console.log('Form data:', Object.fromEntries(formData));
             // Process the form data with file uploads
             const processedData = await processFormData(
                 formData, 
@@ -88,7 +87,6 @@ export const actions: Actions = {
                 // File uploader function
                 async (file: File) => await MediaService.uploadFile(file)
             );
-            console.log('Processed data:', processedData);
 
             // Get current custom settings
             const currentSettings = await themeService.getCustomSettingsObject();
