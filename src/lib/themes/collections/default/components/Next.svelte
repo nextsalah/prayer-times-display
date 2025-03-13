@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PrayerTimeItem } from "$lib/themes/interfaces/types";
+  import { onMount } from "svelte";
 
   // Props for the Next component
   let {
@@ -15,13 +16,23 @@
     countdownText: string
     isDefaultTheme: boolean
   } = $props();
+  
+  // Reference to the container element
+  let nextSectionElement: HTMLElement;
 </script>
 
-<div class={`next_section fade ${isDefaultTheme ? 'default_next_section' : 'bg-primary/20 text-primary-content shadow-lg border-solid border border-base-300 border-primary-focus'}`}>
-  <p id="next_text" class={isDefaultTheme ? '' : 'text-primary-content opacity-80 tracking-wide'}>{nextText}...</p>
-  <p id="next_prayer" class={isDefaultTheme ? '' : 'text-primary-content opacity-80 uppercase  font-semibold'}>{nextPrayer ? nextPrayer.name : '--'}</p>
-  <p id="next_prayer_time" class={isDefaultTheme ? '' : 'text-primary-content font-bold '}>{nextPrayerTime}</p>
-  <p id="next_prayer_countdown" class={isDefaultTheme ? '' : 'text-primary-content opacity-90'}>{countdownText}</p>
+<div 
+  bind:this={nextSectionElement}
+  class={`next_section fade ${isDefaultTheme 
+    ? 'default_next_section' 
+    : 'bg-primary/40 border-solid border-t border-l border-primary/10'}`}
+>
+  <div class="text-container backdrop-blur-sm">
+    <p id="next_text" class="text-white opacity-90 tracking-wide">{nextText}...</p>
+    <p id="next_prayer" class="text-white opacity-90 uppercase font-semibold tracking-wider">{nextPrayer ? nextPrayer.name : '--'}</p>
+    <p id="next_prayer_time" class="text-white font-bold">{nextPrayerTime}</p>
+    <p id="next_prayer_countdown" class="text-white opacity-95">{countdownText}</p>
+  </div>
 </div>
 
 <style lang="scss">
@@ -29,8 +40,6 @@
   color: white;
   font-family: 'Arial', Helvetica, sans-serif;
   background-color: green;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* Next Prayer Section Styles */
@@ -44,6 +53,20 @@
   box-sizing: border-box;
   min-height: 100%;
   padding: 10px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.text-container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+/* No 3D text shadow effects for modern look */
+.text-white {
+  /* No text-shadow for modern flat design */
 }
 
 .next_section p {
@@ -53,16 +76,17 @@
 }
 
 .next_section p:nth-child(1) {
-  opacity: .8;
+  opacity: .9;
   font-size: 0.8em;
   margin-bottom: 0;
 }
 
 .next_section p:nth-child(2) {
-  opacity: .8;
+  opacity: .9;
   text-transform: uppercase;
   margin-top: 0;
   margin-bottom: 0;
+  letter-spacing: 0.05em;
 }
 
 .next_section p:nth-child(3) {
@@ -70,11 +94,30 @@
   font-weight: 700;
   margin-top: -0.05em;
   margin-bottom: -0.05em;
+  letter-spacing: -0.02em;
 }
 
 .next_section p:nth-child(4) {
   font-size: 7vw;
   margin-top: 0;
+}
+
+/* Modern subtle overlay to ensure text readability */
+.next_section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.25));
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Default theme doesn't need the overlay */
+.default_next_section::before {
+  background: none;
 }
 
 /* Keyframe Animation */
@@ -83,10 +126,7 @@
   animation-duration: 2s;
 }
 
-@keyframes fade {
-  from {opacity: 0} 
-  to {opacity: 1}
-}
+
 
 /* Responsive adjustments for landscape mode */
 @media (orientation: landscape) {
