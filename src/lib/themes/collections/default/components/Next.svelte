@@ -17,11 +17,11 @@
   } = $props();
 </script>
 
-<div class="next_section fade {isDefaultTheme ? 'default_next_section' : 'bg-primary text-white border-solid border-2 border-base-300'}">
-  <p id="next_text">{nextText}...</p>
-  <p id="next_prayer">{nextPrayer ? nextPrayer.name : '--'}</p>
-  <p id="next_prayer_time">{nextPrayerTime}</p>
-  <p id="next_prayer_countdown">{countdownText}</p>
+<div class={`next_section fade ${isDefaultTheme ? 'default_next_section' : 'bg-primary/20 text-primary-content shadow-lg border-4 border-primary-focus'}`}>
+  <p id="next_text" class={isDefaultTheme ? '' : 'text-primary-content opacity-80 tracking-wide'}>{nextText}...</p>
+  <p id="next_prayer" class={isDefaultTheme ? '' : 'text-primary-content opacity-80 uppercase  font-semibold'}>{nextPrayer ? nextPrayer.name : '--'}</p>
+  <p id="next_prayer_time" class={isDefaultTheme ? '' : 'text-primary-content font-bold '}>{nextPrayerTime}</p>
+  <p id="next_prayer_countdown" class={isDefaultTheme ? '' : 'text-primary-content opacity-90'}>{countdownText}</p>
 </div>
 
 <style lang="scss">
@@ -29,6 +29,8 @@
   color: white;
   font-family: 'Arial', Helvetica, sans-serif;
   background-color: green;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* Next Prayer Section Styles */
