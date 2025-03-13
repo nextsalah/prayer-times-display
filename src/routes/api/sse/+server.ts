@@ -44,6 +44,9 @@ export const GET = async ({ url }) => {
     case 'update':
       sseService.updateContent();
       return new Response(`Triggered content update for ${sseService.getClientCount()} clients`);
+    case 'cleanup':
+      sseService.cleanupOldConnections();
+      return new Response(`Manually triggered cleanup of stale connections`);
     default:
       return new Response(`SSE server is active with ${sseService.getClientCount()} connected clients`);
   }

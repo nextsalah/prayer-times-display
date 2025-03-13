@@ -9,8 +9,7 @@ import {
 import NextSalahAPI from "$lib/nextsalah_api/handler";
 import { logger } from "$lib/server/logger";
 import { db } from "$lib/db/db.server";
-import { connectionManager } from '$lib/sse/stream';
-import { EventType, ScreenEventType } from '$lib/sse/types';
+import { sseService } from "$lib/server/sse/service";
 
 
 export const load = async () => {
@@ -100,10 +99,9 @@ export const actions: Actions = {
       
       const skippedCount = validatedPrayerData.length - addedCount;
       logger.info(`Prayer times saved successfully! ✅ (Added ${addedCount}, skipped ${skippedCount})`);
-      connectionManager.broadcast(EventType.SCREEN_EVENT, {
-          type: ScreenEventType.CONTENT_UPDATE,
-          data: 'Prayer times successfully added ✅'
-      }); 
+ 
+      sseService.updateContent('Prayer times successfully added ✅')
+
       return {
         status: 200,
         body: {

@@ -9,12 +9,17 @@
     import { EventType, ScreenEventType } from '$lib/sse/types';
     import { invalidateAll } from '$app/navigation';
     import { PrayerSubscriptionManager } from '$lib/services/prayerSubscriptionManager';
+    import InternetStatus from '$lib/themes/components/InternetStatus.svelte';
     
     // Define props
     let { data } = $props();
     
     // Component state
     let pageComponent = $state<typeof Loader | any>(Loader);
+    let lastUpdateId = $state('');  // Track the last update ID
+    let processedEvents = $state<Map<string, number>>(new Map()); // Track events with timestamps
+    let isProcessingEvent = $state(false); // Lock to prevent concurrent processing
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     
     // Services
     let prayerManager = $state<PrayerSubscriptionManager | null>(null);
@@ -98,33 +103,120 @@
         }
     }
     
-    // Handle screen events (theme changes, page reloads, etc.)
-    $effect(() => {
-        if ($screenEvents) {
-            const payload = safeJsonParse($screenEvents);
-            console.log('[Prayer Screen] Screen event received:', payload);
-            
-            // Update state with latest action info
-            const action = payload.type === ScreenEventType.CONTENT_UPDATE 
-                ? 'Content update: ' + (payload.data?.message || 'Data refreshed')
-                : `Screen event: ${payload.type}`;
+    // Function to forcefully refresh content with debouncing
+    function forceContentRefresh() {
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+        
+        debounceTimer = setTimeout(async () => {
+            console.log('[Prayer Screen] Executing content refresh');
+            try {
+                // First invalidate all data
+                await invalidateAll();
                 
-            sseState.lastUpdateTime = new Date().toLocaleTimeString();
-            sseState.lastAction = action;
-            
-            if (payload.type === ScreenEventType.PAGE_RELOAD) {
-                setTimeout(() => window.location.reload(), 1000);
-            } 
-            else if (payload.type === ScreenEventType.CONTENT_UPDATE) {
-                console.log('[Prayer Screen] Refreshing data due to content update');
-                invalidateAll(); // This should refresh the data
-            }
-            else if (payload.type === ScreenEventType.THEME_CHANGE) {
-                console.log('[Prayer Screen] Theme change requested:', payload.data?.theme);
-                if (payload.data?.theme) {
-                    handleThemeChange(payload.data.theme);
+                // Then directly refresh the prayer calculator if available
+                if (prayerManager && data?.data) {
+                    prayerManager.updateCalculator(data.data);
                 }
+
+                sseState.lastAction = 'Content refreshed';
+                sseState.lastUpdateTime = new Date().toLocaleTimeString();
+            } catch (err) {
+                console.error('[Prayer Screen] Error during forced refresh:', err);
+            } finally {
+                // Reset the processing lock after a delay
+                setTimeout(() => {
+                    isProcessingEvent = false;
+                }, 500);
+                debounceTimer = null;
             }
+        }, 100); // Short debounce
+    }
+    
+    // Process content update with deduplication
+    function handleContentUpdate(payload: any) {
+        // Extract update info
+        const updateId = payload.data?.updateId || '';
+        const timestamp = payload.data?.timestamp || Date.now();
+        const message = payload.data?.message || '';
+        
+        // Create a unique event signature that includes the content
+        const eventSignature = `${payload.type}-${updateId}-${message}`;
+        const now = Date.now();
+        
+        // Log the update
+        console.log(`[Prayer Screen] Content update received: ID=${updateId}, Message="${message}"`);
+        
+        // Check if we're still processing a previous event
+        if (isProcessingEvent) {
+            return;
+        }
+        
+        // Check if we've seen this exact event recently (within 2 seconds)
+        if (processedEvents.has(eventSignature)) {
+            const lastTime = processedEvents.get(eventSignature) || 0;
+            if (now - lastTime < 2000) {
+                return;
+            }
+        }
+        
+        // Set processing lock
+        isProcessingEvent = true;
+        
+        // Record this event
+        processedEvents.set(eventSignature, now);
+        
+        // Clean up old events (keep only last 10)
+        if (processedEvents.size > 10) {
+            // Convert to array, sort by timestamp, and keep the newest 10
+            const eventsArray = Array.from(processedEvents.entries());
+            eventsArray.sort((a, b) => b[1] - a[1]); // Sort by timestamp (newest first)
+            
+            // Create new map with just the newest 10 items
+            processedEvents = new Map(eventsArray.slice(0, 10));
+        }
+        
+        // Update the last ID and force a refresh
+        console.log('[Prayer Screen] Processing content update');
+        if (updateId) lastUpdateId = updateId;
+        forceContentRefresh();
+    }
+    
+    // Single event handler for screen events
+    let screenEventsHandler = (event: any) => {
+        if (!event) return;
+        
+        const payload = safeJsonParse(event);
+        console.log('[Prayer Screen] Screen event received:', payload?.type);
+        
+        // Update state with latest action info
+        const action = payload.type === ScreenEventType.CONTENT_UPDATE 
+            ? 'Content update: ' + (payload.data?.message || 'Data refreshed')
+            : `Screen event: ${payload.type}`;
+            
+        sseState.lastUpdateTime = new Date().toLocaleTimeString();
+        sseState.lastAction = action;
+        
+        if (payload.type === ScreenEventType.PAGE_RELOAD) {
+            setTimeout(() => window.location.reload(), 1000);
+        } 
+        else if (payload.type === ScreenEventType.CONTENT_UPDATE) {
+            handleContentUpdate(payload);
+        }
+        else if (payload.type === ScreenEventType.THEME_CHANGE) {
+            console.log('[Prayer Screen] Theme change requested:', payload.data?.theme);
+            if (payload.data?.theme) {
+                handleThemeChange(payload.data.theme);
+            }
+        }
+    };
+    
+    // Handle screen events with proper deduplication
+    $effect(() => {
+        // Use the event but pass it through our handler
+        if ($screenEvents) {
+            screenEventsHandler($screenEvents);
         }
     });
     
@@ -208,6 +300,11 @@
             prayerManager.destroy();
         }
         
+        // Clear any pending timeouts
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+        
         // Close the SSE connection
         connection.close();
     });
@@ -235,6 +332,9 @@
 
 <!-- Add the SSE status component -->
 <SSEStatus {sseState} />
+
+<!-- Add the internet status component -->
+<InternetStatus showQrCode={data?.data.themeSettings.showQrCode || false} />
 
 {#if Component !== Loader}
     <Component data={enhancedData} />

@@ -27,12 +27,12 @@
   });
 </script>
 
-<div class="min-h-screen flex flex-col items-center justify-center bg-base-100 p-4">
+<div class="min-h-screen flex flex-col items-center justify-center bg-base-100 p-4 pb-8">
   <span class="custom-spinner text-primary mb-12"></span>
-  <p class="text-4xl md:text-6xl font-bold">
+  <p class="text-4xl md:text-6xl font-bold leading-relaxed pb-2">
     Loading<span class="dots"><span>.</span><span>.</span><span>.</span></span>
   </p>
-  <p class="mt-6 text-center text-base-content/70 max-w-md">
+  <p class="mt-6 mb-4 text-center text-base-content/70 max-w-md">
      Content is loading. Please wait a moment.
   </p>
 </div>

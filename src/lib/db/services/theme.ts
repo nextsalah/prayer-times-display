@@ -108,6 +108,16 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
       updatedAt: new Date()
     };
   }
+
+  /**
+   * Get All Theme Settings
+  */  
+
+  async getAllThemeSettings(): Promise<Omit<ThemeSettings, 'id'>> {
+    return this.get();
+  }
+
+
 }
 
 // Export singleton instance

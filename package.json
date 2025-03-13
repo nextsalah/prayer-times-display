@@ -65,6 +65,7 @@
   "type": "module",
   "dependencies": {
     "@types/ip": "^1.1.3",
+    "@types/qrcode": "^1.5.5",
     "dayjs": "^1.11.13",
     "drizzle-orm": "^0.30.10",
     "drizzle-zod": "^0.5.1",
@@ -74,6 +75,7 @@
     "pino": "^8.21.0",
     "pino-pretty": "^11.3.0",
     "prayer_times_display": "file:",
+    "qrcode": "^1.5.4",
     "svelte-french-toast": "^1.2.0",
     "svelte-motion": "^0.12.2",
     "uuid": "^11.0.5",

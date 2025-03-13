@@ -7,7 +7,7 @@ import {
 import { Theme } from '$lib/themes/logic/handler';
 import { loadThemeComponent } from '$lib/themes/logic/theme-loader';
 import { mergeWithDefaults } from '$lib/themes/logic/theme-settings-manager';
-import {type SettingsForPrayer, type DateSettingsSchemaType, type LanguageSchemaType, type Prayer, type PrayerSettings, type PrayerTime, type TimeSettingsSchemaType } from '../schemas';
+import {type SettingsForPrayer, type DateSettingsSchemaType, type LanguageSchemaType, type Prayer, type PrayerSettings, type PrayerTime, type TimeSettingsSchemaType, type ThemeSettings } from '../schemas';
 
 export type PrayerOptionType<P extends Prayer = Prayer> = SettingsForPrayer<P> & {
   name: string;
@@ -35,22 +35,22 @@ export interface AppData<T> {
     dateSettings: DateSettingsSchemaType,
   },
   custom_settings: T,
-  componentPath: string
+  themeSettings: Omit<ThemeSettings, 'id'>
 }
 export class AppDataService {
   async getAppData<T= any>() : Promise< AppData<T> > {
     try {
       // Get data
-      const [componentPath, localization, prayerConfig, prayerTimes,] = await Promise.all([
-        themeService.getComponentPath(),
+      const [themeSettings, localization, prayerConfig, prayerTimes,] = await Promise.all([
+        themeService.getAllThemeSettings(),
         localizationService.getLocalization(),
         prayerConfigService.getAll(),
         prayerTimesService.getPrayerTimes()
       ]);
       
-      const activeTheme = await Theme.load(componentPath);
+      const activeTheme = await Theme.load(themeSettings.themeName);
       if (!activeTheme || activeTheme instanceof Error) {
-        throw new Error(`Failed to load theme component '${componentPath}'`);
+        throw new Error(`Failed to load theme component '${themeSettings.themeName}'`);
       }
       
       const custom_settings = await themeService.getCustomSettingsObject();
@@ -69,7 +69,7 @@ export class AppDataService {
           dateSettings: localization.dateSettings
         },
         custom_settings: userSettings as T,
-        componentPath
+        themeSettings
       };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);

@@ -1,138 +1,208 @@
-import { EventType, ScreenEventType, type NotificationPayload, type ScreenEventPayload, type SystemStatusPayload } from '$lib/sse/types';
 import { logger } from '$lib/server/logger';
+import { 
+    EventType, 
+    ScreenEventType, 
+    type ScreenEventPayload, 
+    type NotificationPayload,
+    type SystemStatusPayload,
+    type StatusPayload
+} from '$lib/sse/types';
 
-type EmitFunction = (type: string, data: any) => void;
+// Type for the client connection info
+interface ClientConnection {
+    emit: (type: string, data: any) => void;
+    connectedAt: Date;
+    lastActive: Date;
+}
 
 /**
- * Server-side SSE service to manage client connections and broadcast events
+ * Server-side SSE service for managing client connections
  */
 class SSEService {
-    private clients = new Map<string, EmitFunction>();
+    private clients: Map<string, ClientConnection> = new Map();
+    private readonly CONNECTION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+    
+    constructor() {
+        // Setup automatic cleanup every 30 minutes
+        this.cleanupInterval = setInterval(() => this.cleanupOldConnections(), 30 * 60 * 1000);
+    }
 
     /**
      * Register a new client connection
      */
-    registerClient(id: string, emit: EmitFunction): void {
-        this.clients.set(id, emit);
-        logger.debug(`SSE client registered: ${id}`);
+    registerClient(id: string, emit: (type: string, data: any) => void): void {
+        const now = new Date();
+        this.clients.set(id, {
+            emit,
+            connectedAt: now,
+            lastActive: now
+        });
+        
+        logger.debug(`SSE client connected: ${id} (Total: ${this.clients.size})`);
+        
+        // Run cleanup to remove stale connections when new clients connect
+        this.cleanupOldConnections();
     }
-
+    
     /**
      * Remove a client connection
      */
     removeClient(id: string): void {
         this.clients.delete(id);
-        logger.debug(`SSE client removed: ${id}`);
+        logger.debug(`SSE client disconnected: ${id} (Total: ${this.clients.size})`);
     }
-
+    
     /**
-     * Get the current number of connected clients
+     * Get current client count
      */
     getClientCount(): number {
         return this.clients.size;
     }
-
+    
     /**
-     * Send event to a specific client
+     * Send screen event to all clients
      */
-    sendToClient(id: string, type: string, data: any): void {
-        const emit = this.clients.get(id);
-        if (emit) {
-            try {
-                emit(type, JSON.stringify(data));
-            } catch (error) {
-                logger.error(`Error sending event to client ${id}:`, error);
-            }
-        }
+    broadcastScreenEvent(eventType: ScreenEventType, data?: Record<string, any>): void {
+        const payload: ScreenEventPayload = { type: eventType, data };
+        this.broadcast(EventType.SCREEN_EVENT, payload);
     }
-
+    
     /**
-     * Send status event to a specific client
-     */
-    sendStatus(id: string, status: 'connected' | 'disconnected', message?: string): void {
-        this.sendToClient(id, EventType.STATUS, {
-            id,
-            status,
-            message: message || `Client ${status}`
-        });
-    }
-
-    /**
-     * Broadcast to all connected clients
-     */
-    broadcast(type: string, data: any): void {
-        this.clients.forEach((emit, id) => {
-            try {
-                emit(type, JSON.stringify(data));
-            } catch (error) {
-                logger.error(`Error broadcasting to client ${id}:`, error);
-            }
-        });
-    }
-
-    /**
-     * Reload all connected screens
+     * Send reload command to all screens
      */
     reloadAllScreens(): void {
-        const payload: ScreenEventPayload = { type: ScreenEventType.PAGE_RELOAD };
-        this.broadcast(EventType.SCREEN_EVENT, payload);
-        logger.info(`Triggered page reload for ${this.clients.size} clients`);
+        this.broadcastScreenEvent(ScreenEventType.PAGE_RELOAD);
     }
-
+    
     /**
-     * Change theme for all connected clients
+     * Send theme change command
      */
     changeTheme(theme: string): void {
-        const payload: ScreenEventPayload = { 
-            type: ScreenEventType.THEME_CHANGE, 
-            data: { theme } 
-        };
-        this.broadcast(EventType.SCREEN_EVENT, payload);
-        logger.info(`Changed theme to ${theme} for ${this.clients.size} clients`);
+        this.broadcastScreenEvent(ScreenEventType.THEME_CHANGE, { theme });
     }
-
+    
     /**
-     * Update content for all connected clients
+     * Send content update notification
      */
     updateContent(message?: string): void {
-        const payload: ScreenEventPayload = { 
-            type: ScreenEventType.CONTENT_UPDATE,
-            data: { message: message || 'Content updated' }
-        };
-        this.broadcast(EventType.SCREEN_EVENT, payload);
-        logger.info(`Triggered content update for ${this.clients.size} clients`);
+        this.broadcastScreenEvent(
+            ScreenEventType.CONTENT_UPDATE, 
+            { 
+                message: message || 'Content updated',
+                updateId: crypto.randomUUID(),
+                timestamp: Date.now()
+            }
+        );
     }
-
+    
     /**
-     * Broadcast notification to all clients
+     * Send a notification to all clients
      */
     broadcastNotification(
-        message: string,
+        message: string, 
         level: NotificationPayload['level'] = 'info'
     ): void {
-        const payload: NotificationPayload = {
-            message,
+        const payload: NotificationPayload = { 
+            message, 
             level,
-            id: crypto.randomUUID()
+            id: crypto.randomUUID() 
         };
         this.broadcast(EventType.NOTIFICATION, payload);
-        logger.info(`Sent ${level} notification to ${this.clients.size} clients`);
     }
-
+    
     /**
-     * Broadcast system status to all clients
+     * Update system status for all clients
      */
-    broadcastSystemStatus(
+    updateSystemStatus(
         status: SystemStatusPayload['status'],
         message?: string
     ): void {
-        const payload: SystemStatusPayload = {
-            status,
+        const payload: SystemStatusPayload = { 
+            status, 
             message,
             timestamp: new Date().toISOString()
         };
         this.broadcast(EventType.SYSTEM_STATUS, payload);
-        logger.info(`Updated system status to ${status} for ${this.clients.size} clients`);
+    }
+    
+    /**
+     * Send connection status to a specific client
+     */
+    sendStatus(clientId: string, status: StatusPayload['status'], message?: string): void {
+        const client = this.clients.get(clientId);
+        if (!client) return;
+        
+        const payload: StatusPayload = {
+            id: clientId,
+            status,
+            message
+        };
+        
+        try {
+            // Update last active timestamp
+            client.lastActive = new Date();
+            client.emit(EventType.STATUS, JSON.stringify(payload));
+        } catch (error) {
+            logger.error(`Error sending status to client ${clientId}:`, error);
+            this.removeClient(clientId);
+        }
+    }
+    
+    /**
+     * Generic broadcast method for any event type
+     */
+    private broadcast<T extends EventType>(type: T, payload: any): void {
+        const clientsToRemove: string[] = [];
+        
+        this.clients.forEach((client, id) => {
+            try {
+                // Update last active timestamp for successful broadcasts
+                client.lastActive = new Date();
+                client.emit(type, JSON.stringify(payload));
+            } catch (error) {
+                logger.error(`Error broadcasting to client ${id}:`, error);
+                clientsToRemove.push(id);
+            }
+        });
+        
+        // Remove any clients that failed to receive the broadcast
+        clientsToRemove.forEach(id => this.removeClient(id));
+        
+        logger.debug(`Broadcast ${type} to ${this.clients.size} clients`);
+    }
+    
+    /**
+     * Clean up old connections
+     */
+    cleanupOldConnections(): void {
+        const now = new Date();
+        const clientsToRemove: string[] = [];
+        
+        this.clients.forEach((client, id) => {
+            const connectionAge = now.getTime() - client.connectedAt.getTime();
+            const inactiveTime = now.getTime() - client.lastActive.getTime();
+            
+            // Remove connections older than 8 hours or inactive for more than 1 hour
+            if (connectionAge > this.CONNECTION_TIMEOUT || inactiveTime > 60 * 60 * 1000) {
+                clientsToRemove.push(id);
+            }
+        });
+        
+        if (clientsToRemove.length > 0) {
+            clientsToRemove.forEach(id => this.removeClient(id));
+            logger.info(`Cleaned up ${clientsToRemove.length} stale SSE connections`);
+        }
+    }
+    
+    /**
+     * Clean up resources when the service is stopped
+     */
+    destroy(): void {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+        }
     }
 }
 
