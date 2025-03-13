@@ -37,7 +37,8 @@
       
       // Active and next prayer indicators - could be string or PrayerTimeItem object
       activePrayer,
-      nextPrayer
+      nextPrayer,
+      isDefaultTheme = true
   }:{
       prayer: string,
       begins: string,
@@ -58,7 +59,8 @@
       },
       iqamahTimes: {  [key: string]: string } | undefined | null,
       activePrayer: PrayerTimeItem,
-      nextPrayer: PrayerTimeItem
+      nextPrayer: PrayerTimeItem,
+      isDefaultTheme: boolean
   } = $props();
 
   // Helper function to safely get ID from prayer item
@@ -231,81 +233,108 @@
     if (length > 7) return 'text-md';
     return '';  // default size
   };
+
+  // Helper functions for class names based on theme
+  const getPrayerTimeClass = (withIqamah = false) => {
+    const baseClasses = withIqamah ? "prayer_time time-with-iqamah" : "prayer_time full-width";
+    return isDefaultTheme ? baseClasses : `${baseClasses} bg-primary/80 text-base-content/70`;
+  };
+  
+  const getIqamahClass = () => {
+    return isDefaultTheme ? "iqamah_time" : "iqamah_time bg-accent text-base-100	";
+  };
+  
+  const getSunriseClass = () => {
+    return isDefaultTheme ? "prayer_time sunrise-time-background_color full-width" : "prayer_time  bg-primary/80  text-base-100/70 full-width";
+  };
+  
 </script>
 
-<div class="body_container">
-<!-- Table Header -->
-<section class="table_header">
-  <h2 class="prayer-column">{prayer}</h2>
-  <h2 class="time-column">{begins}</h2>
-</section>
+<div class={isDefaultTheme ? 'body_container default_background' : 'body_container bg-base-100 '} >
+  <!-- Table Header -->
+  <section class={isDefaultTheme ? 'default_table_header table_header ' : 'table_header text-base-100 bg-base-300'}>
+    <h2 class={isDefaultTheme ? 'prayer-column default_h2' : 'prayer-column text-base-content'}>{prayer}</h2> 
+    <h2 class={isDefaultTheme ? 'prayer-column default_h2' : 'prayer-column text-base-content'}>{begins}</h2>
+  </section>
 
-<!-- Fajr -->
-<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.FAJR)} class:next={isPrayerNext(PRAYER_IDS.FAJR)}>
-  <h2 class="prayer-column {getTextSizeClass(prayerMap['Fajr'].name)}">{prayerMap["Fajr"].name}</h2>
-  {#if prayerMap["Fajr"].iqamah}
-    <h2 class="prayer_time time-with-iqamah">{prayerMap["Fajr"].time}</h2>
-    <h2 class="iqamah_time">{prayerMap["Fajr"].iqamah}</h2>
-  {:else}
-    <h2 class="prayer_time full-width">{prayerMap["Fajr"].time}</h2>
-  {/if}
-</section>
+  <!-- Fajr -->
+  <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.FAJR)} class:default_h2={isDefaultTheme} class:next={isPrayerNext(PRAYER_IDS.FAJR)}>
+    <h2 class="prayer-column {getTextSizeClass(prayerMap['Fajr'].name)}" >{prayerMap["Fajr"].name}</h2>
+    {#if prayerMap["Fajr"].iqamah}
+      <h2 class={getPrayerTimeClass(true) }  >{prayerMap["Fajr"].time}</h2>
+      <h2 class={getIqamahClass()}>{prayerMap["Fajr"].iqamah}</h2>
+    {:else}
+      <h2 class={getPrayerTimeClass()}>{prayerMap["Fajr"].time}</h2>
+    {/if}
+  </section>
 
-<!-- Sunrise - Always full width since it never has iqamah -->
-<section class="prayer_times_today" class:next={isPrayerNext(PRAYER_IDS.SUNRISE)}>
-  <h2 class="prayer-column {getTextSizeClass(prayerMap['Sunrise'].name)}">
-    {prayerMap["Sunrise"].name} <span class="sunrise-icon"><Sunrise /></span>
-  </h2>
-  <h2 class="prayer_time sunrise-time-background_color full-width">{prayerMap["Sunrise"].time}</h2>
-</section>
+  <!-- Sunrise - Always full width since it never has iqamah -->
+  <section class="prayer_times_today" class:next={isPrayerNext(PRAYER_IDS.SUNRISE)} class:default_h2={isDefaultTheme}>
+    <h2 class="prayer-column {getTextSizeClass(prayerMap['Sunrise'].name)}">
+      {prayerMap["Sunrise"].name} <span class="sunrise-icon"><Sunrise /></span>
+    </h2>
+    <h2 class={getSunriseClass()}>{prayerMap["Sunrise"].time}</h2>
+  </section>
 
-<!-- Dhuhr -->
-<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.DHUHR)} class:next={isPrayerNext(PRAYER_IDS.DHUHR)}>
-  <h2 class="prayer-column {getTextSizeClass(prayerMap['Dhuhr'].name)}">{prayerMap["Dhuhr"].name}</h2>
-  {#if prayerMap["Dhuhr"].iqamah}
-    <h2 class="prayer_time time-with-iqamah">{prayerMap["Dhuhr"].time}</h2>
-    <h2 class="iqamah_time">{prayerMap["Dhuhr"].iqamah}</h2>
-  {:else}
-    <h2 class="prayer_time full-width">{prayerMap["Dhuhr"].time}</h2>
-  {/if}
-</section>
+  <!-- Dhuhr -->
+  <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.DHUHR)} class:default_h2={isDefaultTheme} class:next={isPrayerNext(PRAYER_IDS.DHUHR)}>
+    <h2 class="prayer-column {getTextSizeClass(prayerMap['Dhuhr'].name)}">{prayerMap["Dhuhr"].name}</h2>
+    {#if prayerMap["Dhuhr"].iqamah}
+      <h2 class={getPrayerTimeClass(true)}>{prayerMap["Dhuhr"].time}</h2>
+      <h2 class={getIqamahClass()}>{prayerMap["Dhuhr"].iqamah}</h2>
+    {:else}
+      <h2 class={getPrayerTimeClass()}>{prayerMap["Dhuhr"].time}</h2>
+    {/if}
+  </section>
 
-<!-- Asr -->
-<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.ASR)} class:next={isPrayerNext(PRAYER_IDS.ASR)}>
-  <h2 class="prayer-column {getTextSizeClass(prayerMap['Asr'].name)}">{prayerMap["Asr"].name}</h2>
-  {#if prayerMap["Asr"].iqamah}
-    <h2 class="prayer_time time-with-iqamah">{prayerMap["Asr"].time}</h2>
-    <h2 class="iqamah_time">{prayerMap["Asr"].iqamah}</h2>
-  {:else}
-    <h2 class="prayer_time full-width">{prayerMap["Asr"].time}</h2>
-  {/if}
-</section>
+  <!-- Asr -->
+  <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.ASR)} class:default_h2={isDefaultTheme} class:next={isPrayerNext(PRAYER_IDS.ASR)}>
+    <h2 class="prayer-column {getTextSizeClass(prayerMap['Asr'].name)}">{prayerMap["Asr"].name}</h2>
+    {#if prayerMap["Asr"].iqamah}
+      <h2 class={getPrayerTimeClass(true)}>{prayerMap["Asr"].time}</h2>
+      <h2 class={getIqamahClass()}>{prayerMap["Asr"].iqamah}</h2>
+    {:else}
+      <h2 class={getPrayerTimeClass()}>{prayerMap["Asr"].time}</h2>
+    {/if}
+  </section>
 
-<!-- Maghrib -->
-<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.MAGHRIB)} class:next={isPrayerNext(PRAYER_IDS.MAGHRIB)}>
-  <h2 class="prayer-column {getTextSizeClass(prayerMap['Maghrib'].name)}">{prayerMap["Maghrib"].name}</h2>
-  {#if prayerMap["Maghrib"].iqamah}
-    <h2 class="prayer_time time-with-iqamah">{prayerMap["Maghrib"].time}</h2>
-    <h2 class="iqamah_time">{prayerMap["Maghrib"].iqamah}</h2>
-  {:else}
-    <h2 class="prayer_time full-width">{prayerMap["Maghrib"].time}</h2>
-  {/if}
-</section>
+  <!-- Maghrib -->
+  <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.MAGHRIB)} class:default_h2={isDefaultTheme} class:next={isPrayerNext(PRAYER_IDS.MAGHRIB)}>
+    <h2 class="prayer-column {getTextSizeClass(prayerMap['Maghrib'].name)}">{prayerMap["Maghrib"].name}</h2>
+    {#if prayerMap["Maghrib"].iqamah}
+      <h2 class={getPrayerTimeClass(true)}>{prayerMap["Maghrib"].time}</h2>
+      <h2 class={getIqamahClass()}>{prayerMap["Maghrib"].iqamah}</h2>
+    {:else}
+      <h2 class={getPrayerTimeClass()}>{prayerMap["Maghrib"].time}</h2>
+    {/if}
+  </section>
 
-<!-- Isha -->
-<section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.ISHA)} class:next={isPrayerNext(PRAYER_IDS.ISHA)}>
-  <h2 class="prayer-column {getTextSizeClass(prayerMap['Isha'].name)}">{prayerMap["Isha"].name}</h2>
-  {#if prayerMap["Isha"].iqamah}
-    <h2 class="prayer_time time-with-iqamah">{prayerMap["Isha"].time}</h2>
-    <h2 class="iqamah_time">{prayerMap["Isha"].iqamah}</h2>
-  {:else}
-    <h2 class="prayer_time full-width">{prayerMap["Isha"].time}</h2>
-  {/if}
-</section>
+  <!-- Isha -->
+  <section class="prayer_times_today" class:active={isPrayerActive(PRAYER_IDS.ISHA)} class:default_h2={isDefaultTheme} class:next={isPrayerNext(PRAYER_IDS.ISHA)}>
+    <h2 class="prayer-column {getTextSizeClass(prayerMap['Isha'].name)}">{prayerMap["Isha"].name}</h2>
+    {#if prayerMap["Isha"].iqamah}
+      <h2 class={getPrayerTimeClass(true)}>{prayerMap["Isha"].time}</h2>
+      <h2 class={getIqamahClass()}>{prayerMap["Isha"].iqamah}</h2>
+    {:else}
+      <h2 class={getPrayerTimeClass()}>{prayerMap["Isha"].time}</h2>
+    {/if}
+  </section>
 </div>
 
 <style lang="scss">
 /* ------------------ Body ------------------*/
+/* Set indicator colors based on theme */
+:global(.default_background) {
+  --indicator-color: rgba(0, 128, 0, 0.7);
+  --next-indicator-color: #ff8c00;
+  --active-bg-color: rgba(0, 128, 0, 0.15);
+  --next-bg-color: rgba(255, 165, 0, 0.3);
+}
+
+.default_background{
+  background-color: #2a2a2a; /* Background color for the gaps */
+}
+
 .body_container {
   display: grid;
   width: 100%;
@@ -313,19 +342,15 @@
   grid-template-columns: 1fr;
   grid-template-rows: repeat(7, 1fr); /* Equal rows for all 7 sections */
   gap: 2px; /* Add small gap between rows */
-  background-color: #2a2a2a; /* Background color for the gaps */
 }
 
-.body_container section:nth-child(odd) {
-  background-color: #383838;
-}
 
-.body_container section:nth-child(even) {
-  background-color: #3d3d3d;
-}
 
-.table_header { 
+.default_table_header {
   background-color: black !important;
+  color: white !important;
+}
+.table_header { 
   display: flex;
   justify-content: center;
   text-transform: uppercase;
@@ -337,8 +362,6 @@
   align-self: center;
   padding: 1.5% 0% 1.5% 0%;
   font-size: 5vw;
-  color: white;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
   text-transform: uppercase;
   text-align: center; 
   margin: 0;
@@ -355,6 +378,12 @@
   justify-content: center;
 }
 
+
+.default_h2{
+  font-family: Arial, Helvetica, sans-serif;
+  color: white;
+}
+
 .prayer_times_today {
   display: flex;
   justify-content: center;
@@ -366,9 +395,7 @@
     align-items: center;
     padding: 1.6% 0;
     font-size: 6vw;
-    font-family: Arial, Helvetica, sans-serif;
     font-weight: 550;
-    color: white;
     overflow: hidden;
     margin: 0;
     
@@ -387,7 +414,6 @@
   }
   
   &.active {
-    background-color: rgba(0, 128, 0, 0.15) !important; /* Subtle green */
     position: relative;
     
     &::before {
@@ -397,13 +423,12 @@
       top: 0;
       height: 100%;
       width: 4px;
-      background-color: rgba(0, 128, 0, 0.7);
+      background-color: var(--indicator-color, rgba(0, 128, 0, 0.7));
       z-index: 2;
     }
   }
 
   &.next {
-    background-color: rgba(255, 165, 0, 0.3) !important; /* More subtle orange */
     position: relative;
     
     &::before {
@@ -413,13 +438,12 @@
       top: 0;
       height: 100%;
       width: 4px;
-      background-color: #ff8c00;
+      background-color: var(--next-indicator-color, rgba(255, 165, 0, 0.7));
       z-index: 2;
     }
     
     h2 {
       font-weight: 600;
-      color: #fff; /* Ensure text is white */
     }
   }
 }
@@ -427,7 +451,6 @@
 .prayer_time {
   flex: 2; /* Default is full-width (2 columns) */
   justify-content: center;
-  background-color: #dd8500;
   
   &.time-with-iqamah {
     flex: 1; /* When paired with iqamah column */
@@ -437,7 +460,6 @@
 .iqamah_time {
   flex: 1;
   justify-content: center;
-  background-color: #0066bf;
 }
 
 .sunrise-time-background_color {
@@ -490,4 +512,33 @@
   
   /* No special treatment needed for next prayer in landscape mode */
 }
+
+/* Only set background-color in these classes when using default theme */
+.prayer_time {
+  flex: 2;
+  justify-content: center;
+  
+  &.time-with-iqamah {
+    flex: 1;
+  }
+}
+
+/* Default theme will use these background colors */
+:global(.default_background) {
+  .prayer_time {
+    background-color: #dd8500;
+  }
+  
+  .sunrise-time-background_color {
+    background-color: #dd8500;
+  }
+  
+  .iqamah_time {
+    background-color: #0066bf;
+  }
+}
+
+/* For non-default themes, the background colors come from DaisyUI classes */
+
+/* Rest of your styles remain unchanged */
 </style>

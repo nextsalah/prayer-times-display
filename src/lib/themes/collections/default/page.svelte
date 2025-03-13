@@ -4,7 +4,8 @@
   import PrayerTable from "./components/PrayerTable.svelte";
   import CombinedDisplay from "./components/CombinedDisplay.svelte";
   import type { DefaultThemeSettings } from "./customization";
-    import Next from "./components/Next.svelte";
+  import Next from "./components/Next.svelte";
+    import { onMount } from "svelte";
   
   let { data } : { data: AppDataResult<DefaultThemeSettings> } = $props();
   
@@ -68,6 +69,7 @@
       isha_time: isha?.time_readable || "--:--"
     };
   })());
+ 
 </script>
 
 <div class="container" data-theme={themeColor !== 'default' ? themeColor : undefined}>
@@ -93,6 +95,7 @@
       iqamah={interfaceText.iqamah}
       activePrayer={currentPrayer}
       nextPrayer={nextPrayer}
+      {isDefaultTheme}
     />
   </div>
 
@@ -175,7 +178,6 @@
 
 .body { 
   grid-area: body; 
-  background-color: black;
   width: 100%;
   height: 100%;
   overflow: hidden;

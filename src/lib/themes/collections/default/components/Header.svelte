@@ -12,7 +12,7 @@
 
 <header class={isDefaultTheme ? 'default-header ' : 'bg-base-100'}>
     <!-- Main Clock -->
-    <p class={isDefaultTheme ? 'default-text clock-display' : 'clock-display'}>
+    <p class={isDefaultTheme ? 'default-text clock-display' : 'clock-display text-base-content'}>
         <Time 
             mode="time" 
             as="span"
@@ -23,7 +23,7 @@
     </p>
     
     <!-- Date Display -->
-    <p class="date-display" class:custom-text={isDefaultTheme} class:text-base-content={!isDefaultTheme}>
+    <p  class={isDefaultTheme ? 'default-text date-display' : 'date-display text-base-content'}>
         <Time 
             mode="date" 
             as="span"
@@ -49,10 +49,10 @@
     .default-text {
         color: rgb(46, 46, 46);
         font-family: Arial, Helvetica, sans-serif;
-        font-weight: bold;
     }
 
     .clock-display, .date-display {
+        font-weight: bold;
         text-align: center;
         display: block;
         width: 100%;
