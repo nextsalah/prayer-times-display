@@ -109,6 +109,7 @@
         nextPrayer={nextPrayer}
         nextPrayerTime={nextPrayer.time_readable}
         countdownText={countdownText || '--:--:--'}
+        {isDefaultTheme}
       />
     {:else}
       <Next
@@ -116,13 +117,16 @@
         nextPrayer={nextPrayer}
         nextPrayerTime={nextPrayer.time_readable}
         countdownText={countdownText || '--:--:--'}
+        {isDefaultTheme}
       />
     {/if}
   </div>
   
   <!-- Footer Section -->
   <div class="footer">
-    <footer id="footer_text">{data.apiData.custom_settings.footer_text}</footer>
+    <footer
+      class="footer_text {isDefaultTheme ? 'footer_text_default' : 'text-base-content font-bold'}"
+    >{data.apiData.custom_settings.footer_text}</footer>
   </div>
 </div>
 
@@ -185,7 +189,6 @@
 
 .next-prayer-container { 
   grid-area: next-prayer; 
-  background-color: green;
   width: 100%;
   height: 100%;
   display: flex;
@@ -197,18 +200,20 @@
   grid-area: footer;
   width: 100%;
 }
+.footer_text_default{
+  background-color: #f0f0f0;
+  color: rgb(46, 46, 46);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 500;
+}
 
-#footer_text { 
+.footer_text { 
   display: flex;
   width: 100%;
   justify-content: center;
   align-items: center;
   font-size: 1.5rem;
   padding: 1rem 0;
-  background-color: #f0f0f0;
-  color: rgb(46, 46, 46);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-weight: 500;
   text-align: center;
 }
 </style>

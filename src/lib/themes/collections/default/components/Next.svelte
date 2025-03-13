@@ -6,16 +6,18 @@
     nextText = 'Next',
     nextPrayer = null,
     nextPrayerTime = '--:--',
-    countdownText = '--:--:--'
+    countdownText = '--:--:--',
+    isDefaultTheme
   } : {
     nextText: string,
     nextPrayer: PrayerTimeItem | null,
     nextPrayerTime: string,
     countdownText: string
+    isDefaultTheme: boolean
   } = $props();
 </script>
 
-<div class="next_section fade" id="slide_next_prayer">
+<div class="next_section fade {isDefaultTheme ? 'default_next_section' : 'bg-primary text-white border-solid border-2 border-base-300'}">
   <p id="next_text">{nextText}...</p>
   <p id="next_prayer">{nextPrayer ? nextPrayer.name : '--'}</p>
   <p id="next_prayer_time">{nextPrayerTime}</p>
@@ -23,11 +25,15 @@
 </div>
 
 <style lang="scss">
+.default_next_section {
+  color: white;
+  font-family: 'Arial', Helvetica, sans-serif;
+  background-color: green;
+}
+
 /* Next Prayer Section Styles */
 .next_section {
-  color: white;
   text-align: center;
-  font-family: 'Arial', Helvetica, sans-serif;
   font-size: 10vw; 
   height: 100%;
   display: flex;

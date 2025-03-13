@@ -10,7 +10,8 @@
     nextText = "Next",
     nextPrayer,
     nextPrayerTime,
-    countdownText
+    countdownText,
+    isDefaultTheme
   }: {
     images: FileMetadata[],
     slideDuration: number,
@@ -18,6 +19,7 @@
     nextPrayer: PrayerTimeItem,
     nextPrayerTime: string,
     countdownText: string
+    isDefaultTheme: boolean
   } = $props();
   
   // State
@@ -118,6 +120,7 @@
         nextPrayer={nextPrayer}
         nextPrayerTime={nextPrayerTime}
         countdownText={countdownText}
+        {isDefaultTheme}
       />
     </div>
   {:else}
