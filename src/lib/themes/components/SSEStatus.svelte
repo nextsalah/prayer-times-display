@@ -2,19 +2,27 @@
     import { onDestroy } from 'svelte';
     import { fade } from 'svelte/transition';
     
-    // Props
-    let { sseState } = $props();
+    // Define proper type for SSE state
+    interface SSEState {
+        connectionStatus: 'unknown' | 'connected' | 'disconnected' | 'error';
+        lastUpdateTime: string;
+        lastAction: string;
+    }
+    
+    // Props with proper typing
+    let { sseState } = $props<{ sseState: SSEState }>();
     
     // Track visibility state and timeout
     let showActionText = $state(false);
     let actionTimeout: ReturnType<typeof setTimeout> | null = null;
     
-    // Determine status color
-    function getStatusColor(status: string): string {
+    // Determine status color based on actual status values
+    function getStatusColor(status: SSEState['connectionStatus']): string {
         switch (status) {
-            case 'online': return 'bg-green-500';
-            case 'offline': return 'bg-red-500';
-            case 'maintenance': return 'bg-orange-500';
+            case 'connected': return 'bg-green-500';
+            case 'disconnected': return 'bg-red-500';
+            case 'error': return 'bg-orange-500';
+            case 'unknown':
             default: return 'bg-gray-500';
         }
     }
@@ -23,7 +31,7 @@
     function shouldShowText(action: string): boolean {
         return action.includes('reload') || 
                action.includes('update') || 
-               sseState.connectionStatus !== 'online';
+               sseState.connectionStatus !== 'connected';
     }
     
     // Watch for changes to lastAction

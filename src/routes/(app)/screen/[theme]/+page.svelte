@@ -4,9 +4,11 @@
     import type { AppDataResult } from '$lib/themes/interfaces/types.js';
     import { error } from '@sveltejs/kit';
     import '$lib/themes/styles/global.css';
-    import { SSEHandler } from '$lib/services/sseHandler';
-    import { PrayerSubscriptionManager } from '$lib/services/prayerSubscriptionManager';
     import SSEStatus from '$lib/themes/components/SSEStatus.svelte';
+    import { source } from 'sveltekit-sse';
+    import { EventType, ScreenEventType } from '$lib/sse/types';
+    import { invalidateAll } from '$app/navigation';
+    import { PrayerSubscriptionManager } from '$lib/services/prayerSubscriptionManager';
     
     // Define props
     let { data } = $props();
@@ -16,7 +18,33 @@
     
     // Services
     let prayerManager = $state<PrayerSubscriptionManager | null>(null);
-    let sseHandler = $state<SSEHandler | null>(null);
+    
+    // Create SSE connection with better event handling
+    const connection = source('/api/sse', {
+        open() {
+            console.log('[Prayer Screen] SSE connection opened');
+            sseState.connectionStatus = 'connected';
+            sseState.lastAction = 'Connection established';
+        },
+        close({ connect }) {
+            console.log('[Prayer Screen] SSE connection closed, reconnecting...');
+            sseState.connectionStatus = 'disconnected';
+            sseState.lastAction = 'Connection closed, reconnecting...';
+            // Reconnect after 2 seconds if disconnected
+            setTimeout(() => connect(), 2000);
+        },
+        error(err) {
+            console.error('[Prayer Screen] SSE connection error:', err);
+            sseState.connectionStatus = 'error';
+            sseState.lastAction = 'Connection error';
+        }
+    });
+    
+    // Subscribe to specific event types
+    const screenEvents = connection.select(EventType.SCREEN_EVENT);
+    const notifications = connection.select(EventType.NOTIFICATION);
+    const systemStatus = connection.select(EventType.SYSTEM_STATUS);
+    const status = connection.select(EventType.STATUS);
     
     // State stores
     let prayerState = $state<any>({
@@ -27,7 +55,11 @@
         calculator: null
     });
     
-    let sseState = $state({
+    let sseState = $state<{
+        connectionStatus: 'unknown' | 'connected' | 'disconnected' | 'error';
+        lastUpdateTime: string;
+        lastAction: string;
+    }>({
         connectionStatus: 'unknown',
         lastUpdateTime: '',
         lastAction: ''
@@ -55,6 +87,81 @@
         }
     }
     
+    // Helper to safely parse JSON
+    function safeJsonParse(data: any) {
+        if (typeof data !== 'string') return data;
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            console.warn('[Prayer Screen] Failed to parse JSON:', e);
+            return data;
+        }
+    }
+    
+    // Handle screen events (theme changes, page reloads, etc.)
+    $effect(() => {
+        if ($screenEvents) {
+            const payload = safeJsonParse($screenEvents);
+            console.log('[Prayer Screen] Screen event received:', payload);
+            
+            // Update state with latest action info
+            const action = payload.type === ScreenEventType.CONTENT_UPDATE 
+                ? 'Content update: ' + (payload.data?.message || 'Data refreshed')
+                : `Screen event: ${payload.type}`;
+                
+            sseState.lastUpdateTime = new Date().toLocaleTimeString();
+            sseState.lastAction = action;
+            
+            if (payload.type === ScreenEventType.PAGE_RELOAD) {
+                setTimeout(() => window.location.reload(), 1000);
+            } 
+            else if (payload.type === ScreenEventType.CONTENT_UPDATE) {
+                console.log('[Prayer Screen] Refreshing data due to content update');
+                invalidateAll(); // This should refresh the data
+            }
+            else if (payload.type === ScreenEventType.THEME_CHANGE) {
+                console.log('[Prayer Screen] Theme change requested:', payload.data?.theme);
+                if (payload.data?.theme) {
+                    handleThemeChange(payload.data.theme);
+                }
+            }
+        }
+    });
+    
+    // Handle notification events
+    $effect(() => {
+        if ($notifications) {
+            const payload = safeJsonParse($notifications);
+            console.log('[Prayer Screen] Notification received:', payload);
+            sseState.lastUpdateTime = new Date().toLocaleTimeString();
+            sseState.lastAction = `Notification: ${payload.message}`;
+        }
+    });
+    
+    // Handle system status updates
+    $effect(() => {
+        if ($systemStatus) {
+            const payload = safeJsonParse($systemStatus);
+            console.log('[Prayer Screen] System status update:', payload);
+            sseState.connectionStatus = payload.status;
+            sseState.lastUpdateTime = new Date().toLocaleTimeString();
+            sseState.lastAction = `System status: ${payload.status}`;
+        }
+    });
+    
+    // Handle connection status updates
+    $effect(() => {
+        if ($status) {
+            const payload = safeJsonParse($status);
+            console.log('[Prayer Screen] Status update:', payload);
+            if (payload && payload.status) {
+                sseState.connectionStatus = payload.status;
+                sseState.lastUpdateTime = new Date().toLocaleTimeString();
+                sseState.lastAction = payload.message || `Status: ${payload.status}`;
+            }
+        }
+    });
+    
     // Watch for changes in data to update the prayer calculator
     $effect(() => {
         if (data?.data && prayerManager) {
@@ -81,22 +188,6 @@
                 throw error(500, 'Prayer time data is not available');
             }
             
-            // Initialize SSE handler with explicit callback for theme changes
-            sseHandler = new SSEHandler((theme) => {
-                sseState.lastAction = `Received theme change: ${theme}`;
-                handleThemeChange(theme);
-            });
-            
-            sseHandler.initialize();
-            
-            // Subscribe to SSE state changes with more detailed tracking
-            const sseUnsubscribe = sseHandler.state.subscribe(state => {
-                sseState = {
-                    ...sseState,
-                    ...state,
-                };
-            });
-            
             // Load the component dynamically
             const componentModule = await import(
                 `$lib/themes/collections/${data.themePath}/page.svelte`
@@ -116,9 +207,9 @@
         if (prayerManager) {
             prayerManager.destroy();
         }
-        if (sseHandler) {
-            sseHandler.destroy();
-        }
+        
+        // Close the SSE connection
+        connection.close();
     });
     
     // Derive the component for use in template
@@ -133,11 +224,6 @@
             countdownText: prayerState.countdownText,
             allPrayerTimes: prayerState.allPrayerTimes,
             calculator: prayerState.calculator
-        },
-        sseData: {
-            connectionStatus: sseState.connectionStatus,
-            lastUpdateTime: sseState.lastUpdateTime,
-            lastAction: sseState.lastAction,
         }
     });
 </script>
