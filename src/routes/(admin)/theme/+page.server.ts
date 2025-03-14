@@ -1,12 +1,12 @@
-import { Theme } from '$themes/logic/handler';
-import { error, redirect, type Actions } from '@sveltejs/kit';
-import type { PageServerLoad } from '../sources/$types';
-import { ThemeService } from '$lib/db';
+import { Theme } from '$lib/themes/logic/handler';
+import { error, type Actions } from '@sveltejs/kit';
+import { themeService } from '$lib/db';
+import { sseService } from '$lib/server/sse/service';
 
 export const load = (async () => {
     try {
         // Get stored theme settings
-        const storedSettings = await ThemeService.get();
+        const storedSettings = await themeService.get();
         
         // Load the active theme
         const activeTheme = await Theme.load(storedSettings.themeName);
@@ -19,18 +19,25 @@ export const load = (async () => {
         if (!availableThemes?.length) {
             throw error(500, 'No themes available');
         }
+
+        // Add QR code and disclaimer settings
+        const qrCodeEnabled = storedSettings.showQrCode ?? true;
         return {
             title: 'Theme Settings',
             currentTheme: activeTheme.themeData,
             availableThemes,
+            settings: {
+                qrCodeEnabled,
+            }
         };
     } catch (err) {
         console.error('Failed to load theme page:', err);
         throw error(500, 'Failed to load theme settings');
     }
-}) satisfies PageServerLoad;
+});
 
 export const actions: Actions = {
+    // Select a theme
     select: async ({ request }) => {
         try {
             const formData = await request.formData();
@@ -50,10 +57,13 @@ export const actions: Actions = {
             }
 
             // Update theme settings
-            await ThemeService.update({
-                themeName,
-                customSettings: JSON.stringify(theme.defaultSettings)
-            });
+            await themeService.updateThemeName(themeName);
+            
+            // Reset custom settings to theme defaults
+            await themeService.updateCustomSettingsObject(theme.defaultSettings || {});
+
+            // Broadcast theme change to all connected screens
+            sseService.changeTheme(themeName);
 
             return {
                 success: true,
@@ -64,6 +74,26 @@ export const actions: Actions = {
             throw error(500, getErrorMessage(err));
         }
     },
+    
+    // Toggle QR code display
+    toggleQrCode: async ({ request }) => {
+        try {
+            const formData = await request.formData();
+            const qrCodeEnabled = formData.get('qrCodeEnabled') === 'true';
+            
+            // Update the QR code setting
+            await themeService.setQrCodeVisibility(qrCodeEnabled);
+            sseService.updateContent(`QR code ${qrCodeEnabled ? 'enabled' : 'disabled'}`);
+            
+            return {
+                success: true,
+                message: `QR code ${qrCodeEnabled ? 'enabled' : 'disabled'}`
+            };
+        } catch (err) {
+            console.error('QR code toggle failed:', err);
+            throw error(500, getErrorMessage(err));
+        }
+    }
 };
 
 // Helper functions

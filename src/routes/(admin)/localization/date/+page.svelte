@@ -6,6 +6,7 @@
     import { DateSettingsSchema } from '$lib/db/schemas';
     import { zod } from 'sveltekit-superforms/adapters';
     import type { PageData } from './$types';
+    import toast from 'svelte-french-toast';
 
     let { data } = $props();
     
@@ -23,6 +24,7 @@
             if (result.type === 'success') {
                 saved = true;
                 formError = null;
+                toast.success("Successfully saved date format settings"); 
                 setTimeout(() => {
                     saved = false;
                 }, 3000);

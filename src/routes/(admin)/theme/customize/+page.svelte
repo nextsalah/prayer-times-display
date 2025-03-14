@@ -3,20 +3,21 @@
     import { Formly } from '@ismail424/svelte-formly';
     import { Settings, Brush } from 'lucide-svelte';
     import { onMount } from 'svelte';
-    import type { FileMetadata } from '$themes/interfaces/types';
-
+    import toast from 'svelte-french-toast';
+    import type { FileMetadata } from '$lib/themes/interfaces/types.js';
     let { data } = $props();
     
     let formFields: IField[] = $state([]);
     let isLoaded = $state(false);
     let isSubmitting = $state(false);
     let errors = $state<Record<string, string>>({});
+    let originalValues = $state<Record<string, any>>({});
 
     async function initializeFields() {
         // Clone the form definition to avoid mutations
         formFields = [...data.theme.customizationForm];
         
-        // Initialize with user settings
+        // Initialize with user settings and capture original values
         for (const field of formFields) {
             const userValue = data.userSettings[field.name];
             if (userValue !== undefined && userValue !== null) {
@@ -48,12 +49,17 @@
                             }
                         }
                         field.value = files;
+                        originalValues[field.name] = [...files]; // Store a copy of the files array
                     } catch (error) {
                         field.value = [];
+                        originalValues[field.name] = [];
                     }
                 } else {
                     field.value = userValue;
+                    originalValues[field.name] = userValue; // Store original value
                 }
+            } else {
+                originalValues[field.name] = field.value; // Store default value
             }
         }
         
@@ -68,6 +74,52 @@
         }
     });
 
+    // Helper function to check if form values have changed
+    function hasFormChanged(newValues: Record<string, unknown>): boolean {
+        // Filter out special form properties
+        const formValues = Object.fromEntries(
+            Object.entries(newValues).filter(([key]) => 
+                key !== 'touched' && key !== 'valid'
+            )
+        );
+        
+        // Check for changes in each field
+        for (const [key, newValue] of Object.entries(formValues)) {
+            const originalValue = originalValues[key];
+            
+            // Skip fields that don't have original values
+            if (originalValue === undefined) continue;
+            
+            // Special handling for file fields
+            if (Array.isArray(newValue) && Array.isArray(originalValue)) {
+                // If lengths are different, there's a change
+                if (newValue.length !== originalValue.length) return true;
+                
+                // Check if there are any new files (not stored)
+                const hasNewFiles = newValue.some((file: any) => 
+                    file instanceof File || (file.blob && !file.isStoredFile)
+                );
+                
+                if (hasNewFiles) return true;
+                
+                // For existing files, check if they're the same
+                for (let i = 0; i < newValue.length; i++) {
+                    const newFile = newValue[i] as any;
+                    const origFile = originalValue[i] as any;
+                    
+                    if (!newFile.isStoredFile || !origFile.isStoredFile) return true;
+                    if (newFile.path !== origFile.path) return true;
+                }
+            } 
+            // For regular fields, simple comparison
+            else if (newValue !== originalValue) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     async function handleSubmit(event: CustomEvent<Record<string, unknown>>) { 
         if (isSubmitting) return;
         isSubmitting = true;
@@ -76,6 +128,7 @@
         const { detail } = event;
         if (!detail.valid) {
             isSubmitting = false;
+            toast.error("Please fix the form errors before submitting");
             return;
         }
         
@@ -88,49 +141,65 @@
 
         if (Object.keys(filteredDetail).length === 0) {
             isSubmitting = false;
+            toast.error("No valid data to save");
             return;
         }
 
         const formData = new FormData();
         try {
-            // Process form data
-            for (const [key, value] of Object.entries(filteredDetail)) {
-                if (Array.isArray(value)) {
-                    // Handle file arrays
-                    value.forEach((item: any) => {
-                        if (item.blob) {
-                            // This is a new file with a blob
-                            formData.append(key, item.blob, item.name);
-                        } else if (!item.isStoredFile && item instanceof File) {
-                            // This is a direct File object
-                            formData.append(key, item, item.name);
+            toast.promise(
+                (async () => {
+                    // Process form data
+                    for (const [key, value] of Object.entries(filteredDetail)) {
+                        if (Array.isArray(value)) {
+                            // Handle file arrays
+                            value.forEach((item: any) => {
+                                if (item.blob) {
+                                    // This is a new file with a blob
+                                    formData.append(key, item.blob, item.name);
+                                } else if (!item.isStoredFile && item instanceof File) {
+                                    // This is a direct File object
+                                    formData.append(key, item, item.name);
+                                }
+                            });
+                        } else if (value instanceof File) {
+                            // Handle single file
+                            formData.append(key, value, value.name);
+                        } else {
+                            // Handle non-file values
+                            formData.append(key, String(value));
                         }
+                    }
+
+                    const response = await fetch('?/save', {
+                        method: 'POST',
+                        body: formData
                     });
-                } else if (value instanceof File) {
-                    // Handle single file
-                    formData.append(key, value, value.name);
-                } else {
-                    // Handle non-file values
-                    formData.append(key, String(value));
-                }
-            }
 
-            const response = await fetch('?/save', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json().catch(() => null);
-            
-            if (response.ok) {
-                window.location.reload();
-            } else {
-                if (result?.errors) {
-                    errors = result.errors;
-                } else {
-                    throw new Error(result?.message || 'Failed to save settings');
+                    const result = await response.json().catch(() => null);
+                    
+                    if (response.ok) {
+                        // Small delay before reload to let the toast appear
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                        return result;
+                    } else {
+                        if (result?.errors) {
+                            errors = result.errors;
+                        }
+                        throw new Error(result?.message || 'Failed to save settings');
+                    }
+                })(),
+                {
+                    loading: 'Saving theme settings...',
+                    success: 'Theme settings saved successfully!',
+                    error: (err) => err.message || 'Failed to save settings',
+                },
+                {
+                    duration: 3000
                 }
-            }
+            );
         } catch (error) {
             console.error('Failed to save settings:', error);
             // Show user-friendly error
@@ -142,7 +211,13 @@
 
     function handleReset() {
         if (confirm('Are you sure you want to restore the default theme? All custom settings will be reset.')) {
-            window.location.href = '?reset=true';
+            // Submit a form to the reset action instead of changing the URL
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?/reset';
+            document.body.appendChild(form);
+            form.submit();
+            toast.success("Resetting theme to defaults...");
         }
     }
 </script>

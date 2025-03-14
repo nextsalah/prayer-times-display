@@ -1,1 +1,0 @@
-ALTER TABLE `language_settings` ADD `language_code` text DEFAULT 'en' NOT NULL;

@@ -10,9 +10,6 @@ const __dirname = path.dirname(__filename);
 
 const config: UserConfig = {
     server: {
-        fs: {
-            allow: ['..', '../themes']
-        },
         port: 5000,
         allowedHosts: ['.ngrok-free.app']
     },
@@ -21,13 +18,8 @@ const config: UserConfig = {
         tsconfigPaths(),
         dynamicImport()
     ],
-    resolve: {
-        alias: {
-            $themes: path.resolve(__dirname, 'themes'),
-        },
-    },
     optimizeDeps: {
-        include: ['dayjs', 'dayjs/plugin/relativeTime'], // Since you're using these
+        include: ['dayjs', 'dayjs/plugin/relativeTime'], 
     }
 };
 

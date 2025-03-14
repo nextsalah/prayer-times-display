@@ -4,6 +4,7 @@ import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { LanguageSchema } from '$lib/db/schemas';
+import { sseService } from '$lib/server/sse/service';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -44,7 +45,7 @@ export const actions: Actions = {
             
             // Simply update the main language settings
             await localizationService.updateLanguage(form.data);
-            
+            sseService.updateContent('Language settings updated');
             return { 
                 form, 
                 success: true 

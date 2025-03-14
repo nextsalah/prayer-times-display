@@ -5,6 +5,7 @@ import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { fail } from '@sveltejs/kit';
 import { z } from 'zod';
+import { sseService } from '$lib/server/sse/service';
 
 // Base schema for all prayers
 const baseFormSchema = z.object({
@@ -134,7 +135,7 @@ export const actions = {
             
             // Update prayer settings
             await prayerConfigService.updatePrayer(prayerName, updateData);
-            
+            sseService.updateContent('Changed Prayer Config');
             return { 
                 form,
                 success: `${prayerName.charAt(0).toUpperCase() + prayerName.slice(1)} settings updated successfully`

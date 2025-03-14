@@ -5,6 +5,7 @@
     import { LanguageSchema, type LanguageSchemaType } from '$lib/db/schemas';
     import { zod } from 'sveltekit-superforms/adapters';
     import { languageConfigs } from '$lib/config/languageConfiguration';
+	import toast from 'svelte-french-toast';
 
     const { data } = $props();
     
@@ -15,7 +16,7 @@
         resetForm: false,
         onResult: ({ result }) => {
             if (result.type === 'success') {
-                console.log('Language settings saved successfully');
+                toast.success("Successfully saved language settings");           
             }
         }
     });

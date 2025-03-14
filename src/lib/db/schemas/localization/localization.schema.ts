@@ -54,10 +54,8 @@ export const LanguageSchema = z.object({
 // 2. Time Settings Schema
 export const TimeSettingsSchema = z.object({
   timezone: z.string().min(1).default('UTC'),
-  timeFormat: z.enum(['12h', '24h']).default('24h'),
   showSeconds: z.boolean().default(true),
   use24Hour: z.boolean().default(true),
-  timeStyle: z.enum(['short', 'medium', 'long']).default('medium'),
 });
 
 // 3. Date Settings Schema
@@ -84,7 +82,6 @@ export const LocalizationSchema = z.object({
 export type LanguageSettings = typeof languageSettings.$inferSelect;
 export type NewLanguageSettings = typeof languageSettings.$inferInsert;
 export type LanguageSchemaType = z.infer<typeof LanguageSchema>;
-
 // Time settings types
 export type TimeSettings = typeof timeSettings.$inferSelect;
 export type NewTimeSettings = typeof timeSettings.$inferInsert;

@@ -1,7 +1,7 @@
 <script lang="ts">
      import { XCircle, ArrowRight, RefreshCcwIcon } from 'lucide-svelte';
     import Preview from '$lib/components/Preview.svelte';
-    import type { ThemeList } from '$themes/interfaces/types';
+    import type { ThemeList } from '$lib/themes/interfaces/types';
     
     interface Theme {
         name: string;
@@ -19,9 +19,13 @@
     let isLoading = $state(false);
     let errorMessage = $state('');
     
+    // Get the current theme data for reference
+    const currentTheme = themes.find(t => t.name === currentThemeName);
+    
     function handleThemeChange(event: Event) {
         const select = event.target as HTMLSelectElement;
         selectedTheme = select.value;
+        // Find theme data from the complete themes list
         selectedThemeData = themes.find(t => t.value === selectedTheme) || null;
         errorMessage = '';
     }

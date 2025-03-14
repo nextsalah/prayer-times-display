@@ -190,3 +190,15 @@ export function getLanguageConfigByCode(code: string) {
     const entry = Object.entries(languageConfigs).find(([_, config]) => config.code === code);
     return entry ? entry[1] : undefined;
 }
+
+export const localeImports: { [key: string]: () => Promise<any> } = {
+    en: () => import('dayjs/locale/en'),
+    sv: () => import('dayjs/locale/sv'),
+    tr: () => import('dayjs/locale/tr'),
+    ur: () => import('dayjs/locale/ur'),
+    de: () => import('dayjs/locale/de'),
+    fr: () => import('dayjs/locale/fr'),
+    es: () => import('dayjs/locale/es'),
+    ar: () => import('dayjs/locale/ar'),
+    bs: () => import('dayjs/locale/bs'),
+};

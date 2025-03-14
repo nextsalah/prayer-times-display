@@ -4,6 +4,7 @@ import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { localizationService } from '$lib/db';
 import { DateSettingsSchema } from '$lib/db/schemas';
+import { sseService } from '$lib/server/sse/service';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -31,8 +32,16 @@ export const actions: Actions = {
             if (!form.valid) {
                 return fail (400, { form });
             }
+            
+            // Update the database
             await localizationService.updateDateSettings(form.data);
-
+            
+            // Small delay to prevent accidental double submissions
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Trigger content update notification
+            sseService.updateContent('Date settings updated');
+            
             return { form };
         } catch (error) {
             const form = await superValidate(formData, zod(DateSettingsSchema));

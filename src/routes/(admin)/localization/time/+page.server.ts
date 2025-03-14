@@ -4,11 +4,13 @@ import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { localizationService } from '$lib/db';
 import { TimeSettingsSchema } from '$lib/db/schemas';
+import { sseService } from '$lib/server/sse/service';
 
 export const load: PageServerLoad = async () => {
     try {
         const localization = await localizationService.getLocalization();
         const form = await superValidate(localization.timeSettings, zod(TimeSettingsSchema));
+        
         return {
             title: 'Time Settings',
             form,
@@ -33,6 +35,9 @@ export const actions: Actions = {
             }
             await localizationService.updateTimeSettings(form.data);
 
+            // SSE update
+            sseService.updateContent('Time settings updated');
+            
             return { form };
         } catch (error) {
             const form = await superValidate(formData, zod(TimeSettingsSchema));

@@ -5,11 +5,14 @@
         PaintBucket, 
         Settings2, 
         Maximize2, 
-        Minimize2 
+        Minimize2,
+        QrCode
     } from 'lucide-svelte';
+    import toast from 'svelte-french-toast';
 
     let { data } = $props();
     let showPreview = $state(false);
+    let qrCodeEnabled = $state(data.settings.qrCodeEnabled);
 </script>
 
 <div class="p-4 rounded-lg">
@@ -39,6 +42,43 @@
                                 />
                             </div>
                         {/if}
+                    </div>
+                </div>
+
+                <!-- QR Code Setting -->
+                <div class="bg-base-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <QrCode class="w-5 h-5 text-primary" />
+                        <h3 class="font-medium">QR Code Settings</h3>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="flex items-center">
+                            <label class="cursor-pointer flex items-center gap-3">
+                                <input 
+                                    type="checkbox" 
+                                    class="toggle toggle-primary" 
+                                    checked={qrCodeEnabled}
+                                    onchange={async (e) => {
+                                        qrCodeEnabled = e.currentTarget.checked;
+                                        try {
+                                            await fetch('?/toggleQrCode', {
+                                                method: 'POST',
+                                                body: new URLSearchParams({
+                                                    qrCodeEnabled: e.currentTarget.checked.toString()
+                                                })
+                                            });
+                                            toast.success("QR Code setting updated", {
+                                                position: "bottom-center"
+                                            });
+                                        } catch (error) {
+                                            toast.error("Failed to update QR Code setting");
+                                        }
+                                    }}
+                                />
+                                <span>Show QR Code on Login Page</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
