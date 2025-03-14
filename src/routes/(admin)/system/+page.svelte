@@ -89,9 +89,14 @@
                     text: result.data?.error ?? 'Failed to update system',
                     type: 'error'
                 };
-            } else {
+            } else if (result.type === 'success') {
                 message = {
                     text: result.data?.message ?? 'System updated successfully!',
+                    type: 'success'
+                };
+            } else {
+                message = {
+                    text: 'System updated successfully!',
                     type: 'success'
                 };
             }
