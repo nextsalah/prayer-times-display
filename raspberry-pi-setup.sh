@@ -58,7 +58,6 @@ apt-get install -y curl git unclutter chromium-browser xserver-xorg x11-xserver-
 # 2. INSTALL BUN
 log "Installing Bun runtime..."
 if ! command -v bun &> /dev/null; then
-  export HOME="$HOME_DIR"  # Force HOME to the target user's home directory
   curl -fsSL https://bun.sh/install | bash
 fi
 
@@ -114,6 +113,10 @@ chown -R "$ACTUAL_USER:$ACTUAL_USER" "$INSTALL_DIR"
 log "Installing application dependencies..."
 cd "$INSTALL_DIR"
 sudo -u "$ACTUAL_USER" bash -c "PATH=\"$HOME_DIR/.bun/bin:\$PATH\" && cd \"$INSTALL_DIR\" && bun install"
+
+# Build the app
+log "Building the application..."
+sudo -u "$ACTUAL_USER" bash -c "PATH=\"$HOME_DIR/.bun/bin:\$PATH\" && cd \"$INSTALL_DIR\" && bun build"
 
 # 7. CREATE SYSTEMD SERVICE
 log "Creating systemd service..."

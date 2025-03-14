@@ -59,6 +59,7 @@ jobs:
         run: |
           mkdir -p dist/prayer-times-display
           cp -r build dist/prayer-times-display/
+          cp -r drizzle dist/prayer-times-display/
           cp package.json dist/prayer-times-display/
           cp bun.lockb dist/prayer-times-display/ || echo "No bun.lockb found"
           cp README.md dist/prayer-times-display/ || echo "No README.md found"
