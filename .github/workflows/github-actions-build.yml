@@ -33,13 +33,15 @@ jobs:
         run: bun install
         
       - name: Build application
-        run: bun run build
+        run: bun run build || (echo "Build command hung, forcing exit" && exit 1)
+        timeout-minutes: 3
         
       - name: Create distribution package
         run: |
           mkdir -p dist/prayer-times-display
           cp -r build dist/prayer-times-display/
           cp package.json dist/prayer-times-display/
+          cp bun.lockb dist/prayer-times-display/ || echo "No bun.lockb found"
           cp README.md dist/prayer-times-display/ || echo "No README.md found"
           
           # Create service file for systemd
@@ -52,78 +54,365 @@ jobs:
           Type=simple
           User=pi
           WorkingDirectory=/opt/prayer-times-display
-          ExecStart=/usr/bin/bun run start
+          Environment="PORT=80"
+          Environment="HOST=0.0.0.0"
+          ExecStart=/home/pi/.bun/bin/bun ./build/index.js --port=80 --host=0.0.0.0
           Restart=on-failure
-          RestartSec=5s
+          RestartSec=10
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier=prayer-times
           
           [Install]
           WantedBy=multi-user.target
           EOL
           
+          # Create kiosk setup script
+          cat > dist/prayer-times-display/setup-kiosk.sh << EOL
+          #!/bin/bash
+          # Script to set up a kiosk mode for Prayer Times Display on Raspberry Pi
+          
+          # Function for logging
+          log() {
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] \$1"
+          }
+          
+          log "Setting up kiosk mode for Prayer Times Display..."
+          
+          # Create directory for our scripts
+          mkdir -p \$HOME/.config/prayer-times-kiosk
+          
+          # Create the kiosk launch script
+          cat > \$HOME/.config/prayer-times-kiosk/start-kiosk.sh << 'EOF'
+          #!/bin/bash
+          
+          # Wait for network and server to be available
+          count=0
+          while ! curl -s http://localhost/screen > /dev/null; do
+            count=\$((count + 1))
+            if [ \$count -gt 60 ]; then
+              # After 60 seconds, try to start anyway
+              break
+            fi
+            sleep 1
+          done
+          
+          # Kill any existing Chromium processes
+          pkill -o chromium || true
+          
+          # Hide the mouse cursor
+          unclutter -idle 0 &
+          
+          # Prevent screen from going blank
+          xset s off
+          xset -dpms
+          xset s noblank
+          
+          # Wait a moment for everything to settle
+          sleep 5
+          
+          # Launch Chromium in kiosk mode pointing to /screen endpoint
+          chromium-browser --noerrdialogs \\
+            --disable-infobars \\
+            --disable-features=TranslateUI \\
+            --disable-pinch \\
+            --overscroll-history-navigation=0 \\
+            --disable-features=TouchpadOverscrollHistoryNavigation \\
+            --kiosk http://localhost/screen \\
+            --incognito \\
+            --disable-restore-session-state \\
+            --disable-session-crashed-bubble
+          EOF
+          
+          chmod +x \$HOME/.config/prayer-times-kiosk/start-kiosk.sh
+          
+          # Create autostart entry
+          mkdir -p \$HOME/.config/autostart
+          cat > \$HOME/.config/autostart/prayer-times-kiosk.desktop << EOF
+          [Desktop Entry]
+          Name=Prayer Times Kiosk
+          Comment=Start Prayer Times Display in kiosk mode
+          Exec=/bin/bash \$HOME/.config/prayer-times-kiosk/start-kiosk.sh
+          Type=Application
+          X-GNOME-Autostart-enabled=true
+          EOF
+          
+          # Install required packages
+          log "Installing required packages..."
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser unclutter
+          
+          # Configure screen sleep prevention
+          log "Configuring screen sleep prevention..."
+          
+          # For X11
+          if sudo mkdir -p /etc/X11/xorg.conf.d; then
+            log "Creating X11 configuration to prevent screen sleep..."
+            
+            sudo tee /etc/X11/xorg.conf.d/10-blanking.conf > /dev/null << EOF
+          Section "ServerFlags"
+              Option "BlankTime" "0"
+              Option "StandbyTime" "0"
+              Option "SuspendTime" "0"
+              Option "OffTime" "0"
+          EndSection
+          EOF
+          fi
+          
+          log "Kiosk setup complete! Please reboot your Raspberry Pi."
+          log "The Prayer Times Display will start automatically in kiosk mode."
+          EOL
+          
+          chmod +x dist/prayer-times-display/setup-kiosk.sh
+          
           # Create update script
           cat > dist/prayer-times-display/update.sh << EOL
           #!/bin/bash
+          set -e
           
-          # Script for updating prayer times display
+          # Script for updating Prayer Times Display
+          REPO_OWNER=\${REPO_OWNER:-"nextsalah"}
+          REPO_NAME=\${REPO_NAME:-"prayer-times-display"}
+          INSTALL_DIR=\${INSTALL_DIR:-"/opt/prayer-times-display"}
+          LOG_FILE="\$INSTALL_DIR/update.log"
+          
+          # Function for logging
+          log() {
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] \$1"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] \$1" >> "\$LOG_FILE" 2>/dev/null || true
+          }
+          
+          # Make sure log file exists and is writable
+          touch "\$LOG_FILE" 2>/dev/null || sudo touch "\$LOG_FILE"
+          [ -w "\$LOG_FILE" ] || sudo chmod 666 "\$LOG_FILE"
+          
+          log "Starting update check for Prayer Times Display..."
+          
+          # Get current version from package.json
+          if [ -f "\$INSTALL_DIR/package.json" ]; then
+            CURRENT_VERSION=\$(grep -o '"version": *"[^"]*"' "\$INSTALL_DIR/package.json" | cut -d'"' -f4)
+            log "Current installed version: \$CURRENT_VERSION"
+          else
+            log "Error: Cannot find package.json. Is Prayer Times Display installed correctly?"
+            exit 1
+          fi
+          
+          # Fetch latest release version
+          log "Checking for updates..."
+          LATEST_VERSION=\$(curl -s https://api.github.com/repos/\$REPO_OWNER/\$REPO_NAME/releases/latest | 
+            grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)
+          
+          if [ -z "\$LATEST_VERSION" ]; then
+            log "Error: Failed to fetch latest version from GitHub."
+            exit 1
+          fi
+          
+          # Remove leading "v" if present
+          LATEST_VERSION_CLEAN="\${LATEST_VERSION#v}"
+          log "Latest available version: \$LATEST_VERSION_CLEAN"
+          
+          # Compare versions
+          if [ "\$CURRENT_VERSION" = "\$LATEST_VERSION_CLEAN" ]; then
+            log "Already running the latest version. No update needed."
+            exit 0
+          fi
+          
+          log "Update available: \$CURRENT_VERSION → \$LATEST_VERSION_CLEAN"
+          
+          # Create temporary directory for downloads
+          TMP_DIR=\$(mktemp -d)
+          trap 'rm -rf "\$TMP_DIR"' EXIT
+          
+          # Download the release tarball from GitHub
+          TARBALL_URL="https://github.com/\$REPO_OWNER/\$REPO_NAME/releases/download/\$LATEST_VERSION/prayer-times-display-\$LATEST_VERSION_CLEAN.tar.gz"
+          log "Downloading release tarball from \$TARBALL_URL..."
+          
+          # Download with proper error handling
+          if ! curl -L --fail -o "\$TMP_DIR/release.tar.gz" "\$TARBALL_URL"; then
+            # Try alternate URL format if the first one fails
+            TARBALL_URL="https://github.com/\$REPO_OWNER/\$REPO_NAME/releases/download/\$LATEST_VERSION/prayer-times-display-v\$LATEST_VERSION_CLEAN.tar.gz"
+            log "First download attempt failed. Trying alternate URL: \$TARBALL_URL"
+            
+            if ! curl -L --fail -o "\$TMP_DIR/release.tar.gz" "\$TARBALL_URL"; then
+              log "Error: Failed to download release. Update failed."
+              exit 1
+            fi
+          fi
+          
+          # Verify the download was successful
+          if [ ! -s "\$TMP_DIR/release.tar.gz" ]; then
+            log "Error: Downloaded file is empty. Update failed."
+            exit 1
+          fi
+          
+          # Extract the tarball
+          log "Extracting release tarball..."
+          mkdir -p "\$TMP_DIR/extract"
+          if ! tar -xzf "\$TMP_DIR/release.tar.gz" -C "\$TMP_DIR/extract"; then
+            log "Error: Failed to extract the tarball. The file might be corrupted."
+            exit 1
+          fi
+          
+          # Find the directory containing the app
+          EXTRACT_DIR="\$TMP_DIR/extract"
+          if [ -d "\$TMP_DIR/extract/prayer-times-display" ]; then
+            EXTRACT_DIR="\$TMP_DIR/extract/prayer-times-display"
+          elif [ -d "\$TMP_DIR/extract/app" ]; then
+            EXTRACT_DIR="\$TMP_DIR/extract/app"
+          fi
+          
+          # Backup current installation
+          BACKUP_DIR="\$INSTALL_DIR.backup-\$(date +%Y%m%d%H%M%S)"
+          log "Backing up current installation to \$BACKUP_DIR"
+          cp -a "\$INSTALL_DIR" "\$BACKUP_DIR"
+          
+          # Stop the service if it's running
+          if systemctl is-active --quiet prayer-times.service; then
+            log "Stopping prayer-times service..."
+            sudo systemctl stop prayer-times.service
+          fi
+          
+          # Copy the extracted files to the installation directory
+          log "Installing updated files to \$INSTALL_DIR..."
+          rsync -av --delete "\$EXTRACT_DIR/" "\$INSTALL_DIR/" --exclude "node_modules" --exclude "update.log" --exclude "install.log"
+          
+          # Install dependencies
+          log "Updating dependencies..."
+          cd "\$INSTALL_DIR"
+          if ! command -v bun &> /dev/null; then
+            log "Bun is not available. Adding to PATH..."
+            export PATH="\$HOME/.bun/bin:\$PATH"
+          fi
+          
+          if ! bun install; then
+            log "Error: Failed to update dependencies. Restoring from backup..."
+            rsync -av "\$BACKUP_DIR/" "\$INSTALL_DIR/"
+            sudo systemctl start prayer-times.service || true
+            exit 1
+          fi
+          
+          # Start the service
+          log "Starting updated service..."
+          sudo systemctl start prayer-times.service
+          
+          # Verify service is running
+          if systemctl is-active --quiet prayer-times.service; then
+            log "Update successful! Prayer Times Display updated to version \$LATEST_VERSION_CLEAN"
+          else
+            log "Warning: Service failed to start after update. Check the systemd logs."
+            log "You can try to manually start it with: sudo systemctl start prayer-times.service"
+            exit 1
+          fi
+          
+          # Clean up old backups (keep the 3 most recent)
+          log "Cleaning up old backups..."
+          ls -1d "\$INSTALL_DIR".backup-* 2>/dev/null | sort -r | tail -n +4 | xargs -r rm -rf
+          
+          log "Update process completed."
+          EOL
+          
+          chmod +x dist/prayer-times-display/update.sh
+          
+          # Create installation script
+          cat > dist/prayer-times-display/install.sh << EOL
+          #!/bin/bash
+          set -e
+          
+          # Script for installing Prayer Times Display
           REPO_OWNER=\${REPO_OWNER:-"nextsalah"}
           REPO_NAME=\${REPO_NAME:-"prayer-times-display"}
           INSTALL_DIR=\${INSTALL_DIR:-"/opt/prayer-times-display"}
           
-          echo "Checking for updates..."
+          # Colors for output
+          GREEN='\033[0;32m'
+          BLUE='\033[0;34m'
+          RED='\033[0;31m'
+          NC='\033[0m' # No Color
           
-          # Get the current installed version
-          CURRENT_VERSION=\$(cat \$INSTALL_DIR/package.json | grep version | head -1 | awk -F: '{ print \$2 }' | sed 's/[",]//g' | tr -d '[:space:]')
-          echo "Current version: \$CURRENT_VERSION"
+          # Function for logging with timestamp
+          log() {
+            echo -e "\${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]\${NC} \$1"
+          }
           
-          # Get the latest release version from GitHub
-          LATEST_VERSION=\$(curl -s https://api.github.com/repos/\$REPO_OWNER/\$REPO_NAME/releases/latest | grep tag_name | head -1 | awk -F: '{ print \$2 }' | sed 's/[",v]//g' | tr -d '[:space:]')
-          echo "Latest version: \$LATEST_VERSION"
+          error() {
+            echo -e "\${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR:\${NC} \$1"
+          }
           
-          # Compare versions
-          if [ "\$CURRENT_VERSION" == "\$LATEST_VERSION" ]; then
-            echo "Already running the latest version."
-            exit 0
+          success() {
+            echo -e "\${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')]\${NC} \$1"
+          }
+          
+          # Check if running as root/sudo
+          if [ "\$EUID" -ne 0 ]; then
+            error "Please run this script with sudo: sudo \$0"
+            exit 1
           fi
           
-          echo "Update available! Downloading version \$LATEST_VERSION..."
+          log "Installing Prayer Times Display..."
           
-          # Download the latest release
-          TMP_DIR=\$(mktemp -d)
-          curl -L -o \$TMP_DIR/release.tar.gz https://github.com/\$REPO_OWNER/\$REPO_NAME/releases/download/v\$LATEST_VERSION/prayer-times-display-v\$LATEST_VERSION.tar.gz
+          # Create installation directory if it doesn't exist
+          sudo mkdir -p "\$INSTALL_DIR"
           
-          # Extract the release
-          mkdir -p \$TMP_DIR/extract
-          tar -xzf \$TMP_DIR/release.tar.gz -C \$TMP_DIR/extract
-          
-          # Stop the service
-          sudo systemctl stop prayer-times.service
-          
-          # Backup the current config
-          if [ -f \$INSTALL_DIR/.env ]; then
-            cp \$INSTALL_DIR/.env \$TMP_DIR/
+          # Determine user to own the files - detect the actual user when run with sudo
+          ACTUAL_USER=\$(logname 2>/dev/null || echo "\$SUDO_USER" || echo "\$USER")
+          if [ -z "\$ACTUAL_USER" ] || [ "\$ACTUAL_USER" = "root" ]; then
+            ACTUAL_USER="pi" # Fallback to pi if we can't determine the real user
           fi
           
-          # Update the files
-          sudo cp -r \$TMP_DIR/extract/* \$INSTALL_DIR/
+          log "Installing as user: \$ACTUAL_USER"
+          sudo chown "\$ACTUAL_USER:\$ACTUAL_USER" "\$INSTALL_DIR"
           
-          # Restore config
-          if [ -f \$TMP_DIR/.env ]; then
-            cp \$TMP_DIR/.env \$INSTALL_DIR/
+          # Check if Bun is installed; if not, install it
+          if ! command -v bun &> /dev/null; then
+            log "Installing Bun runtime..."
+            curl -fsSL https://bun.sh/install | bash
+            
+            # Add Bun to PATH for current user
+            if [ -d "/home/\$ACTUAL_USER/.bun" ]; then
+              chown -R "\$ACTUAL_USER:\$ACTUAL_USER" "/home/\$ACTUAL_USER/.bun"
+            fi
+            
+            # Source the appropriate profile file to make bun available
+            if [ -f "/home/\$ACTUAL_USER/.bashrc" ]; then
+              source "/home/\$ACTUAL_USER/.bashrc"
+            fi
+            
+            # Add bun to PATH for this session if not available
+            export PATH="/home/\$ACTUAL_USER/.bun/bin:\$PATH"
           fi
           
-          # Ensure permissions
-          sudo chown -R pi:pi \$INSTALL_DIR
+          # Copy files to installation directory
+          log "Copying files to \$INSTALL_DIR..."
+          cp -r . "\$INSTALL_DIR/"
+          chown -R "\$ACTUAL_USER:\$ACTUAL_USER" "\$INSTALL_DIR"
           
-          # Start the service
-          sudo systemctl start prayer-times.service
+          # Install systemd service
+          log "Installing systemd service..."
+          cp "\$INSTALL_DIR/prayer-times.service" /etc/systemd/system/
           
-          # Clean up
-          rm -rf \$TMP_DIR
+          # Fix user in service file if needed
+          sed -i "s/User=pi/User=\$ACTUAL_USER/" /etc/systemd/system/prayer-times.service
+          sed -i "s|ExecStart=/home/pi/.bun/bin/bun|ExecStart=/home/\$ACTUAL_USER/.bun/bin/bun|" /etc/systemd/system/prayer-times.service
           
-          echo "Update to version \$LATEST_VERSION complete!"
+          # Enable and start the service
+          log "Enabling and starting service..."
+          systemctl daemon-reload
+          systemctl enable prayer-times.service
+          systemctl start prayer-times.service
+          
+          # Setup automatic updates (runs daily at 3 AM)
+          CRON_JOB="0 3 * * * \$INSTALL_DIR/update.sh >> \$INSTALL_DIR/update.log 2>&1"
+          if ! (crontab -u "\$ACTUAL_USER" -l 2>/dev/null | grep -F "\$INSTALL_DIR/update.sh"); then
+            log "Setting up automatic updates (daily at 3 AM)..."
+            (crontab -u "\$ACTUAL_USER" -l 2>/dev/null || echo ""; echo "\$CRON_JOB") | crontab -u "\$ACTUAL_USER" -
+          fi
+          
+          success "Installation complete! Prayer Times Display is now running."
+          log "You can access it at http://localhost"
+          log "To set up kiosk mode, run: \$INSTALL_DIR/setup-kiosk.sh"
           EOL
           
-          chmod +x dist/prayer-times-display/update.sh
+          chmod +x dist/prayer-times-display/install.sh
           
           # Create the tarball
           cd dist
