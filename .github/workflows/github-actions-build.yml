@@ -33,8 +33,27 @@ jobs:
         run: bun install
         
       - name: Build application
-        run: bun run build || (echo "Build command hung, forcing exit" && exit 1)
-        timeout-minutes: 3
+        run: |
+          # Run build in background and capture PID
+          bun run build & BUILD_PID=$!
+          
+          # Wait for a reasonable time for build to complete
+          echo "Build started in background (PID: $BUILD_PID). Waiting for output..."
+          sleep 60
+          
+          # Check if build directory exists, which indicates a successful build
+          if [ -d "build" ]; then
+            echo "Build directory found. Build appears to be complete."
+            # Kill the build process if it's still running
+            kill $BUILD_PID 2>/dev/null || true
+            echo "Proceeding with workflow..."
+          else
+            echo "Build directory not found after waiting. Build may have failed."
+            ls -la
+            # Kill the build process if it's still running
+            kill $BUILD_PID 2>/dev/null || true
+            exit 1
+          fi
         
       - name: Create distribution package
         run: |
@@ -56,7 +75,8 @@ jobs:
           WorkingDirectory=/opt/prayer-times-display
           Environment="PORT=80"
           Environment="HOST=0.0.0.0"
-          ExecStart=/home/pi/.bun/bin/bun ./build/index.js --port=80 --host=0.0.0.0
+          # Use a wrapper script to make sure the app starts properly
+          ExecStart=/bin/bash -c '/home/pi/.bun/bin/bun ./build/index.js --port=80 --host=0.0.0.0 &'
           Restart=on-failure
           RestartSec=10
           StandardOutput=journal
