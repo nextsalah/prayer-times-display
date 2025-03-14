@@ -53,27 +53,8 @@ fi
 # Check if Bun is installed; if not, install it
 if ! command -v bun &> /dev/null; then
   log "Installing Bun runtime..."
+  export HOME="$HOME_DIR"  # Force HOME to the target user's home directory
   curl -fsSL https://bun.sh/install | bash
-  
-  # Source the appropriate profile file to make bun available
-  if [ -f "$HOME/.bashrc" ]; then
-    source "$HOME/.bashrc"
-  elif [ -f "$HOME/.profile" ]; then
-    source "$HOME/.profile"
-  elif [ -f "$HOME/.zshrc" ]; then
-    source "$HOME/.zshrc"
-  fi
-  
-  # Add bun to PATH for this session if not available
-  if ! command -v bun &> /dev/null; then
-    export PATH="$HOME/.bun/bin:$PATH"
-  fi
-  
-  # Verify bun is now available
-  if ! command -v bun &> /dev/null; then
-    log "Error: Failed to install or access Bun. Please install manually and retry."
-    exit 1
-  fi
 fi
 
 # Create temporary directory for downloads

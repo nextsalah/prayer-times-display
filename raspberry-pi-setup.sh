@@ -58,14 +58,8 @@ apt-get install -y curl git unclutter chromium-browser xserver-xorg x11-xserver-
 # 2. INSTALL BUN
 log "Installing Bun runtime..."
 if ! command -v bun &> /dev/null; then
+  export HOME="$HOME_DIR"  # Force HOME to the target user's home directory
   curl -fsSL https://bun.sh/install | bash
-  # Add Bun to PATH for this session
-  export PATH="$HOME_DIR/.bun/bin:$PATH"
-  # Also add to profile for future use
-  echo 'export PATH="$HOME/.bun/bin:$PATH"' >> "$HOME_DIR/.profile"
-  echo 'export PATH="$HOME/.bun/bin:$PATH"' >> "$HOME_DIR/.bashrc"
-  # Make bun available to the actual user
-  chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOME_DIR/.bun"
 fi
 
 # 3. FETCH LATEST RELEASE VERSION
