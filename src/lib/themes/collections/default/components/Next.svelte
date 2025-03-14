@@ -1,7 +1,5 @@
 <script lang="ts">
   import type { PrayerTimeItem } from "$lib/themes/interfaces/types";
-  import { onMount } from "svelte";
-
   // Props for the Next component
   let {
     nextText = 'Next',
@@ -17,12 +15,9 @@
     isDefaultTheme: boolean
   } = $props();
   
-  // Reference to the container element
-  let nextSectionElement: HTMLElement;
 </script>
 
 <div 
-  bind:this={nextSectionElement}
   class={`next_section fade ${isDefaultTheme 
     ? 'default_next_section' 
     : 'bg-primary/40 border-solid border-t border-l border-primary/10'}`}
@@ -64,10 +59,6 @@
   padding: 0 1rem;
 }
 
-/* No 3D text shadow effects for modern look */
-.text-white {
-  /* No text-shadow for modern flat design */
-}
 
 .next_section p {
   margin: 0.1em 0;

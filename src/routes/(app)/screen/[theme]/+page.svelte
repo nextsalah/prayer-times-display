@@ -20,36 +20,10 @@
     let processedEvents = $state<Map<string, number>>(new Map()); // Track events with timestamps
     let isProcessingEvent = $state(false); // Lock to prevent concurrent processing
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let scheduledReloadTimer: ReturnType<typeof setTimeout> | null = null;
     
     // Services
     let prayerManager = $state<PrayerSubscriptionManager | null>(null);
-    
-    // Create SSE connection with better event handling
-    const connection = source('/api/sse', {
-        open() {
-            console.log('[Prayer Screen] SSE connection opened');
-            sseState.connectionStatus = 'connected';
-            sseState.lastAction = 'Connection established';
-        },
-        close({ connect }) {
-            console.log('[Prayer Screen] SSE connection closed, reconnecting...');
-            sseState.connectionStatus = 'disconnected';
-            sseState.lastAction = 'Connection closed, reconnecting...';
-            // Reconnect after 2 seconds if disconnected
-            setTimeout(() => connect(), 2000);
-        },
-        error(err) {
-            console.error('[Prayer Screen] SSE connection error:', err);
-            sseState.connectionStatus = 'error';
-            sseState.lastAction = 'Connection error';
-        }
-    });
-    
-    // Subscribe to specific event types
-    const screenEvents = connection.select(EventType.SCREEN_EVENT);
-    const notifications = connection.select(EventType.NOTIFICATION);
-    const systemStatus = connection.select(EventType.SYSTEM_STATUS);
-    const status = connection.select(EventType.STATUS);
     
     // State stores
     let prayerState = $state<any>({
@@ -64,12 +38,87 @@
         connectionStatus: 'unknown' | 'connected' | 'disconnected' | 'error';
         lastUpdateTime: string;
         lastAction: string;
+        nextScheduledReload: string;
     }>({
         connectionStatus: 'unknown',
         lastUpdateTime: '',
-        lastAction: ''
+        lastAction: '',
+        nextScheduledReload: ''
     });
+    
+    console.log('[Prayer Screen] Initializing screen component');
+    // Create SSE connection with better event handling
+    const connection = source('/api/sse', {
+        open() {
+            console.log('[Prayer Screen] SSE connection opened');
+            sseState.connectionStatus = 'connected';
+            sseState.lastAction = 'Connection established';
+        },
+        close({ connect }) {
+            console.log('[Prayer Screen] SSE connection closed, reconnecting...');
+            sseState.connectionStatus = 'disconnected';
+            sseState.lastAction = 'Connection closed, reconnecting...';
+            // Reconnect after 3 seconds if disconnected
+            setTimeout(() => connect(), 3000);
+        },
+        error(err) {
+            console.error('[Prayer Screen] SSE connection error:', err);
+            sseState.connectionStatus = 'error';
+            sseState.lastAction = 'Connection error';
+        }
+    });
+    
+    // Schedule reloads - at 1:00 AM nightly and every 4 hours
+    function scheduleReloads() {
+        // Clear any existing scheduled reload
+        if (scheduledReloadTimer) {
+            clearTimeout(scheduledReloadTimer);
+        }
 
+        const now = new Date();
+        
+        // Calculate time until next 1:00 AM
+        const nextMidnight = new Date(now);
+        nextMidnight.setHours(1, 0, 0, 0); // Set to 1:00:00.000 AM
+        
+        // If it's already past 1:00 AM, schedule for tomorrow
+        if (now >= nextMidnight) {
+            nextMidnight.setDate(nextMidnight.getDate() + 1);
+        }
+        
+        // Calculate time until next 4-hour interval (from the start of the day)
+        const hours = now.getHours();
+        const next4HourBlock = new Date(now);
+        const nextBlockHour = Math.ceil(hours / 4) * 4;
+        next4HourBlock.setHours(nextBlockHour, 0, 0, 0);
+        
+        // If the next 4-hour block is in the past, add 4 hours
+        if (next4HourBlock <= now) {
+            next4HourBlock.setHours(next4HourBlock.getHours() + 4);
+        }
+        
+        // Choose the earlier of the two times
+        const nextReloadTime = nextMidnight < next4HourBlock ? nextMidnight : next4HourBlock;
+        const timeUntilReload = nextReloadTime.getTime() - now.getTime();
+        
+        // Update the next scheduled reload time for display
+        sseState.nextScheduledReload = nextReloadTime.toLocaleString();
+        
+        console.log(`[Prayer Screen] Next reload scheduled for ${nextReloadTime.toLocaleString()} (in ${Math.round(timeUntilReload/1000/60)} minutes)`);
+        
+        // Schedule the reload
+        scheduledReloadTimer = setTimeout(() => {
+            console.log('[Prayer Screen] Executing scheduled reload');
+            window.location.reload();
+        }, timeUntilReload);
+    }
+    
+    // Subscribe to specific event types
+    const screenEvents = connection.select(EventType.SCREEN_EVENT);
+    const notifications = connection.select(EventType.NOTIFICATION);
+    const systemStatus = connection.select(EventType.SYSTEM_STATUS);
+    const status = connection.select(EventType.STATUS);
+    
     // Extract theme change logic to a dedicated function
     async function handleThemeChange(theme: string) {
         console.log('[Prayer Screen] Handling theme change to:', theme);
@@ -288,6 +337,9 @@
             });
             
             pageComponent = componentModule.default;
+            
+            // Schedule automatic reloads
+            scheduleReloads();
         } catch (err) {
             // Let the error propagate to the error handler
             throw err;
@@ -303,6 +355,11 @@
         // Clear any pending timeouts
         if (debounceTimer) {
             clearTimeout(debounceTimer);
+        }
+        
+        // Clear scheduled reload timer
+        if (scheduledReloadTimer) {
+            clearTimeout(scheduledReloadTimer);
         }
         
         // Close the SSE connection

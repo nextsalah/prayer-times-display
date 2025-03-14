@@ -1,7 +1,7 @@
 {
   "name": "prayer_times_display",
   "description": "Digital display solution for mosques, showing prayer times accurately and efficiently.",
-  "version": "0.5.5",
+  "version": "0.6.0",
   "author": "Ismail Sacic <ismail.sacic@gmail.com>",
   "license": "MIT",
   "bugs": {

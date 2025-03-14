@@ -540,6 +540,9 @@ class PrayerTimeCalculator {
                 return dayjs(a.time).valueOf() - dayjs(b.time).valueOf();
             });
             
+            // Define the prayer order for validity checking
+            const prayerOrder = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
+            
             // Find the most recent prayer time that has passed (excluding sunrise)
             let currentPrayer: PrayerTimeItem | null = null;
             
@@ -552,6 +555,37 @@ class PrayerTimeCalculator {
                 ) {
                     currentPrayer = prayer;
                     break;
+                }
+            }
+            
+            // Validate if the current prayer makes sense with the next prayer
+            if (currentPrayer && this._nextPrayerTime) {
+                const currentIndex = prayerOrder.indexOf(currentPrayer.id as string);
+                const nextIndex = prayerOrder.indexOf(this._nextPrayerTime.id as string);
+                
+                // Fix issue: If next prayer is Dhuhr but current is Fajr, this is invalid
+                // The current prayer should be the previous valid prayer or null
+                if (
+                    // Invalid case: current prayer is earlier in the day than next prayer,
+                    // but not the one immediately before it
+                    currentIndex >= 0 && nextIndex >= 0 && 
+                    nextIndex > currentIndex + 1
+                ) {
+                    // Find the prayer that comes before the next prayer in the sequence
+                    const expectedCurrentIndex = nextIndex - 1;
+                    // Skip sunrise as it can't be a current prayer
+                    const expectedCurrentId = expectedCurrentIndex === 1 ? 'fajr' : prayerOrder[expectedCurrentIndex];
+                    
+                    const expectedPrayer = sortedPrayers.find(p => p.id === expectedCurrentId);
+                    
+                    // Only use the expected prayer if it has passed
+                    if (expectedPrayer && dayjs(expectedPrayer.time).isBefore(now)) {
+                        currentPrayer = expectedPrayer;
+                    } else {
+                        // If the expected prayer hasn't passed, we're in a transition period
+                        // where no prayer is current (e.g., between Isha and Fajr)
+                        currentPrayer = null;
+                    }
                 }
             }
             
@@ -595,7 +629,6 @@ class PrayerTimeCalculator {
             this._currentPrayer = null;
         }
     }
-
     public prayerHasPassed(prayerTime: PrayerTimeItem): boolean {
         if (!prayerTime || !prayerTime.time) return false;
         
