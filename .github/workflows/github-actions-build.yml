@@ -77,7 +77,7 @@ jobs:
           Environment="PORT=80"
           Environment="HOST=0.0.0.0"
           # Use a wrapper script to make sure the app starts properly
-          ExecStart=/bin/bash -c '/home/pi/.bun/bin/bun ./build/index.js --port=80 --host=0.0.0.0 &'
+          ExecStart=PORT=80 /bin/bash -c '/home/pi/.bun/bin/bun ./build/index.js --host=0.0.0.0 &'
           Restart=on-failure
           RestartSec=10
           StandardOutput=journal

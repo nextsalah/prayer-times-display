@@ -53,7 +53,7 @@ chown "$ACTUAL_USER:$ACTUAL_USER" "$LOG_FILE"
 log "Updating system and installing dependencies..."
 apt-get update
 apt-get upgrade -y
-apt-get install -y curl git unclutter chromium-browser xserver-xorg x11-xserver-utils xinit openbox
+apt-get install -y curl git unclutter firefox xserver-xorg x11-xserver-utils xinit openbox
 
 # 2. INSTALL BUN
 log "Installing Bun runtime..."
@@ -63,7 +63,7 @@ fi
 
 # 3. FETCH LATEST RELEASE VERSION
 log "Fetching latest release version..."
-VERSION=$(curl -s https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest | 
+VERSION=$(curl -s https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest |
           grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)
 
 if [ -z "$VERSION" ]; then
@@ -84,7 +84,7 @@ if ! curl -L --fail -o "$TMP_DIR/release.tar.gz" "$TARBALL_URL"; then
   # Try alternate URL format
   TARBALL_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/prayer-times-display-v$VERSION_CLEAN.tar.gz"
   log "First download attempt failed. Trying alternate URL: $TARBALL_URL"
-  
+
   if ! curl -L --fail -o "$TMP_DIR/release.tar.gz" "$TARBALL_URL"; then
     error "Failed to download release. Please check the version and repository."
     exit 1
@@ -112,11 +112,11 @@ chown -R "$ACTUAL_USER:$ACTUAL_USER" "$INSTALL_DIR"
 # 6. INSTALL DEPENDENCIES
 log "Installing application dependencies..."
 cd "$INSTALL_DIR"
-sudo -u "$ACTUAL_USER" bash -c "PATH=\"$HOME_DIR/.bun/bin:\$PATH\" && cd \"$INSTALL_DIR\" && bun install"
+sudo -u "$ACTUAL_USER" bash -c "PATH=\"$HOME_DIR/.bun/bin:\$PATH\" && cd \"$INSTALL_DIR\" && bun install --production"
 
-# Build the app
-log "Building the application..."
-sudo -u "$ACTUAL_USER" bash -c "PATH=\"$HOME_DIR/.bun/bin:\$PATH\" && cd \"$INSTALL_DIR\" && bun build"
+# Allow the server to bind to port 80 without root
+log "Configuring port 80 binding..."
+sudo setcap CAP_NET_BIND_SERVICE=+eip /home/pi/.bun/bin/bun
 
 # 7. CREATE SYSTEMD SERVICE
 log "Creating systemd service..."
@@ -127,11 +127,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=$ACTUAL_USER
-WorkingDirectory=$INSTALL_DIR
+User=pi
+WorkingDirectory=/opt/prayer-times-display
 Environment="PORT=80"
 Environment="HOST=0.0.0.0"
-ExecStart=$HOME_DIR/.bun/bin/bun start -- --port=80 --host=0.0.0.0
+ExecStart=/home/pi/.bun/bin/bun run start
 Restart=on-failure
 RestartSec=10
 StandardOutput=syslog
@@ -166,42 +166,11 @@ sudo -u "$ACTUAL_USER" mkdir -p "$HOME_DIR/.config/prayer-times-kiosk"
 cat > "$HOME_DIR/.config/prayer-times-kiosk/start-kiosk.sh" << 'EOL'
 #!/bin/bash
 
-# Wait for network and server to be available
-count=0
-while ! curl -s http://localhost/screen > /dev/null; do
-  count=$((count + 1))
-  if [ $count -gt 60 ]; then
-    # After 60 seconds, try to start anyway
-    break
-  fi
-  sleep 1
-done
-
-# Kill any existing Chromium processes
-pkill -o chromium || true
-
-# Hide the mouse cursor
-unclutter -idle 0 &
-
-# Prevent screen from going blank
-xset s off
-xset -dpms
-xset s noblank
-
-# Wait a moment for everything to settle
+# Wait a moment
 sleep 5
 
-# Launch Chromium in kiosk mode pointing to /screen endpoint
-chromium-browser --noerrdialogs \
-  --disable-infobars \
-  --disable-features=TranslateUI \
-  --disable-pinch \
-  --overscroll-history-navigation=0 \
-  --disable-features=TouchpadOverscrollHistoryNavigation \
-  --kiosk http://localhost/screen \
-  --incognito \
-  --disable-restore-session-state \
-  --disable-session-crashed-bubble
+# Launch Chromium in kiosk mode
+firefox --kiosk http://0.0.0.0/screen
 EOL
 
 chmod +x "$HOME_DIR/.config/prayer-times-kiosk/start-kiosk.sh"
@@ -226,25 +195,25 @@ EOL
 # For Raspberry Pi OS Lite, set up a minimal X environment
 if ! dpkg -s lightdm >/dev/null 2>&1; then
   log "Setting up minimal X environment for headless operation..."
-  
+
   # Configure xinit to start openbox
   cat > "$HOME_DIR/.xinitrc" << EOL
 #!/bin/sh
 exec openbox-session
 EOL
-  
+
   chmod +x "$HOME_DIR/.xinitrc"
   chown "$ACTUAL_USER:$ACTUAL_USER" "$HOME_DIR/.xinitrc"
-  
+
   # Configure openbox to start our kiosk
   sudo -u "$ACTUAL_USER" mkdir -p "$HOME_DIR/.config/openbox"
   cat > "$HOME_DIR/.config/openbox/autostart" << EOL
 # Start our kiosk script
 $HOME_DIR/.config/prayer-times-kiosk/start-kiosk.sh &
 EOL
-  
+
   chown -R "$ACTUAL_USER:$ACTUAL_USER" "$HOME_DIR/.config/openbox"
-  
+
   # Set up automatic login
   mkdir -p /etc/systemd/system/getty@tty1.service.d/
   cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOL
@@ -252,7 +221,7 @@ EOL
 ExecStart=
 ExecStart=-/sbin/agetty --autologin $ACTUAL_USER --noclear %I \$TERM
 EOL
-  
+
   # Add startx to bash_profile
   if ! grep -q "startx" "$HOME_DIR/.bash_profile" 2>/dev/null; then
     echo "[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx" >> "$HOME_DIR/.bash_profile"
@@ -295,7 +264,7 @@ fi
 
 # Fetch latest release version
 log "Checking for updates..."
-LATEST_VERSION=$(curl -s https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest | 
+LATEST_VERSION=$(curl -s https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest |
   grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)
 
 if [ -z "$LATEST_VERSION" ]; then
@@ -328,7 +297,7 @@ if ! curl -L --fail -o "$TMP_DIR/release.tar.gz" "$TARBALL_URL"; then
   # Try alternate URL format if the first one fails
   TARBALL_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$LATEST_VERSION/prayer-times-display-v$LATEST_VERSION_CLEAN.tar.gz"
   log "First download attempt failed. Trying alternate URL: $TARBALL_URL"
-  
+
   if ! curl -L --fail -o "$TMP_DIR/release.tar.gz" "$TARBALL_URL"; then
     log "Error: Failed to download release. Update failed."
     exit 1

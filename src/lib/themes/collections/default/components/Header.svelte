@@ -5,14 +5,13 @@
         use24h = true,
         showSeconds = true,
         dateFormat = "dddd, MMMM D YYYY",
-        languageCode = "en",
-        isDefaultTheme = true
+        languageCode = "en"
     } = $props();
 </script>
 
-<header class={isDefaultTheme ? 'default-header' : 'bg-gradient-to-b from-base-300 to-base-100 shadow-md'}>
+<header class='bg-gradient-to-b from-base-300 to-base-100 shadow-md'>
     <!-- Main Clock -->
-    <p class={isDefaultTheme ? 'default-text clock-display' : 'clock-display text-base-content font-extrabold'}>
+    <p class='clock-display text-base-content font-extrabold'>
         <Time 
             mode="time" 
             as="span"
@@ -23,7 +22,7 @@
     </p>
     
     <!-- Date Display -->
-    <p class={isDefaultTheme ? 'default-text date-display' : 'date-display text-base-content/80 font-semibold'}>
+    <p class='date-display text-base-content/80 font-semibold'>
         <Time 
             mode="date" 
             as="span"
@@ -40,15 +39,6 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-    }
-
-    .default-header {
-        background-color: #f0f0f0;
-    }
-
-    .default-text {
-        color: rgb(46, 46, 46);
-        font-family: Arial, Helvetica, sans-serif;
     }
 
     .clock-display, .date-display {

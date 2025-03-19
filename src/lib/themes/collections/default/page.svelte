@@ -5,7 +5,6 @@
   import CombinedDisplay from "./components/CombinedDisplay.svelte";
   import type { DefaultThemeSettings } from "./customization";
   import Next from "./components/Next.svelte";
-    import { onMount } from "svelte";
   
   let { data } : { data: AppDataResult<DefaultThemeSettings> } = $props();
   
@@ -17,7 +16,6 @@
 
   // Theme selection
   const themeColor = $derived(data.apiData.custom_settings.theme_color || 'default');
-  const isDefaultTheme = $derived(themeColor === 'default');
   
   // Interface text
   const interfaceText = $derived({
@@ -81,7 +79,6 @@
       use24h={data.apiData.localization.timeSettings.use24Hour}
       showSeconds={data.apiData.localization.timeSettings.showSeconds}
       languageCode={data.apiData.localization.language.language_code}
-      {isDefaultTheme}
     />
   </div>
 
@@ -92,10 +89,8 @@
       iqamahTimes={iqamahTimes}
       prayer={interfaceText.prayer}
       begins={interfaceText.begins}
-      iqamah={interfaceText.iqamah}
       activePrayer={currentPrayer}
       nextPrayer={nextPrayer}
-      {isDefaultTheme}
     />
   </div>
 
@@ -109,7 +104,6 @@
         nextPrayer={nextPrayer}
         nextPrayerTime={nextPrayer.time_readable}
         countdownText={countdownText || '--:--:--'}
-        {isDefaultTheme}
       />
     {:else}
       <Next
@@ -117,16 +111,15 @@
         nextPrayer={nextPrayer}
         nextPrayerTime={nextPrayer.time_readable}
         countdownText={countdownText || '--:--:--'}
-        {isDefaultTheme}
       />
     {/if}
   </div>
   
   <!-- Footer Section -->
   <div class="footer">
-    <footer
-      class="footer_text {isDefaultTheme ? 'footer_text_default' : 'text-base-content font-bold'}"
-    >{data.apiData.custom_settings.footer_text}</footer>
+    <footer class="footer_text text-base-content font-bold">
+      {data.apiData.custom_settings.footer_text}
+    </footer>
   </div>
 </div>
 
@@ -164,6 +157,12 @@
   .headers {
     height: auto;
   }
+  
+  /* Use vh units for portrait mode */
+  .footer_text {
+    font-size: 2.5vh;
+    padding: 1.2vh 0;
+  }
 }
 
 /* ------------------ Grid System (Landscape) ------------------*/
@@ -177,6 +176,12 @@
       "headers headers"
       "body next-prayer"
       "footer footer";
+  }
+  
+  /* Use vw units for landscape mode */
+  .footer_text {
+    font-size: 1.5vw;
+    padding: 0.8vw 0;
   }
 }
 
@@ -200,20 +205,21 @@
   grid-area: footer;
   width: 100%;
 }
-.footer_text_default{
-  background-color: #f0f0f0;
-  color: rgb(46, 46, 46);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-weight: 500;
-}
 
 .footer_text { 
   display: flex;
   width: 100%;
   justify-content: center;
   align-items: center;
-  font-size: 1.5rem;
-  padding: 1rem 0;
   text-align: center;
+  /* Base styles common to both orientations */
+  /* Specific font sizes are defined in the media queries above */
+  /* Using viewport units (vh/vw) makes the text scale dynamically */
+  /* The min() function ensures text doesn't get too large on bigger screens */
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2vw; /* Side padding for text safety */
 }
 </style>
