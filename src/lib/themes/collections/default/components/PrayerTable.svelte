@@ -163,10 +163,10 @@
     {@const data = prayerMap[prayer.key] || { name: prayer.key, time: "--:--" }}
     
     <section class="prayer_row" class:active={isActive} class:next={isNext} class:past={isPast}>
-      <h2 class="prayer-name {getTextSize(data.name)} text-base-content border-solid border-b border-r border-base-300 {!isActive && prayer.isOdd ? 'bg-gradient-to-r from-base-200/60 to-base-100' : !isActive ? 'bg-base-100' : ''}">
+      <h2 class="prayer-name {getTextSize(data.name)} text-base-content border-solid border-b border-r border-base-300 {(!isActive && !isNext && prayer.isOdd) ? 'bg-gradient-to-r from-base-200/60 to-base-100' : (!isActive && !isNext) ? 'bg-base-100' : ''}">
         {#if isPast}
           <span class="indicator past checkmark">
-            <Check strokeWidth={3}/>
+            <Check strokeWidth={4} class="checkmark_logo" />
           </span>
         {/if}
         
@@ -225,7 +225,7 @@
     margin: 0;
     font-weight: 800;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.1); /* Improved text readability */
+    text-shadow: 0 0.1vw 0.1vw rgba(0,0,0,0.1); /* Changed from 0 1px 1px */
   }
   
 }
@@ -254,7 +254,7 @@
     margin: 0;
     transition: all 0.3s ease;
     font-weight: 700; /* Increased font weight for better visibility */
-    text-shadow: 0 1px 1px rgba(0,0,0,0.05); /* Improved text readability */
+    text-shadow: 0 0.1vw 0.1vw rgba(0,0,0,0.05); /* Changed from 0 1px 1px */
     
     &.text-xs { font-size: 3vw; }
     &.text-sm { font-size: 4vw; }
@@ -262,18 +262,17 @@
   }
   
   &.past { 
-    opacity: 0.8; /* Increased from 0.7 for better visibility */
+    opacity: 0.7; /* Increased from 0.7 for better visibility */
   }
 
   
   &.active {
     background-color: rgba(76, 175, 80, 0.15);
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.2);
     z-index: 10;
     
     h2 {
       font-weight: 700;
-      text-shadow: 0 1px 1px rgba(0,0,0,0.1); /* Enhanced visibility */
+      text-shadow: 0 0.1vw 0.1vw rgba(0,0,0,0.1); /* Changed from 0 1px 1px */
     }
     
     &::before {
@@ -282,7 +281,7 @@
       left: 0;
       top: 0;
       height: 100%;
-      width: 6px;
+      width: 0.7vw; /* Changed from 6px to viewport unit */
       background-color: var(--active-color);
       animation: pulse 2s infinite;
       z-index: 2;
@@ -298,7 +297,7 @@
       left: 0;
       top: 0;
       height: 100%;
-      width: 6px;
+      width: 0.7vw; /* Changed from 6px to viewport unit */
       background-color: var(--next-color);
       z-index: 2;
     }
@@ -342,18 +341,18 @@
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  border-radius: 4px;
+  border-radius: 0.5vw; /* Changed from 4px */
   
   &.next {
     background-color: var(--next-color);
     color: white;
-    margin-left: 6px;
-    padding: 1px 4px;
-    font-size: 2.2vw; /* Responsive font size */
+    margin-left: 0.7vw; /* Changed from 6px */
+    padding: 0.1vw 0.5vw; /* Changed from 1px 4px */
+    font-size: 2.2vw;
   }
   
   &.past { 
-    margin-right: 6px;
+    margin-right: 0.7vw; /* Changed from 6px to viewport unit */
     width: 1.1vw;
     height: 1.1vw;
   }
@@ -361,8 +360,13 @@
     background-color: #4caf50;
     border-radius: 50%;
     color: white;
-    padding: 2px;
-    opacity: 0.9;
+    padding: 0.5vw; /* Changed from 3px */
+    opacity: 0.8;
+  }
+
+  &.checkmark_logo {
+    width:2vw; /* Changed from 10px */
+    height: 2vw; /* Changed from 10px */
   }
   
 }
@@ -371,7 +375,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 0.3em;
+  margin-left: 0.3em; /* This could be changed to vw as well: margin-left: 0.5vw; */
   max-height: 90%;
   height: 100%;
   
@@ -383,11 +387,30 @@
 
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+  70% { box-shadow: 0 0 0 1vw rgba(76, 175, 80, 0); } /* Changed from 10px to 1vw */
   100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
 }
+@media (orientation: portrait) {
+  .indicator {
 
-/* Responsive adjustments for landscape mode */
+    &.checkmark {
+      width: 2.5vw; /* Changed from 10px */
+      height: 2.5vw; /* Changed from 10px */
+    }
+
+    &.checkmark_logo {
+      width: 2.5vw !important; /* Changed from 10px */
+      height: 2.5vw !important; /* Changed from 10px */
+    }
+
+    :global(svg) {
+      width: 2.5vw !important; /* Changed from 10px */
+      height: 2.5vw !important; /* Changed from 10px */
+    }
+  }
+
+
+}
 @media (orientation: landscape) {
   .table_header h2 { font-size: 5vh !important; }
   
@@ -400,23 +423,42 @@
   }
   
   .icon :global(svg) {
-    height: 0.95em;
-    min-height: 20px;
+    width: auto;
+    max-height: 100%;
+    height: 3vh; /* Changed from 2.5vh */
+     
   }
   
   .indicator {
     &.next {
-      font-size: 2.2vh !important; /* Responsive font size for landscape */
+      margin-left: 0.7vh; /* Changed from 6px */
+      padding: 0.1vh 0.5vh; /* Changed from 1px 4px */
+      font-size: 2.2vh;
+      border-radius: 0.5vh; /* Changed from fixed px */
     }
     
     &.past {
       font-size: 2.8vh !important; /* Responsive font size for landscape */
-      
+      margin-right: 0.7vh; /* Changed to vh for landscape */
+
       :global(svg) {
         width: 2.8vh;
         height: 2.8vh;
       }
     }
+    &.checkmark {
+      padding: 0.5vh; /* Changed to vh for landscape */
+    }
+  }
+  
+  .active::before, .next::before {
+    width: 0.7vh; /* Use vh units for landscape */
+    }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { box-shadow: 0 0 0 1vh rgba(76, 175, 80, 0); } /* Changed to 1vh for landscape */
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
   }
 }
 </style>

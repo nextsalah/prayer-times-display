@@ -89,8 +89,8 @@
 <style>
   .internet-status-container {
     position: fixed;
-    bottom: 2px;
-    right: 2px;
+    bottom:  0.1vh;
+    right:  0.1vw;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -99,22 +99,23 @@
   }
   
   .qr-container {
-    margin-bottom: 3px;
+    margin-bottom:  0.2vh; /* Using viewport height for margin */
     background: white;
-    padding: 2px;
+    padding:  0.5vw; /* Using viewport width for padding */
     box-shadow: none;
   }
   
   .qr-container img {
     display: block;
+    height: 5.5vh; /* Using viewport height for QR code */
+    width: auto;
   }
   
   .ip-status {
     background-color: rgba(0, 0, 0, 0.5);
     color: white;
-    padding: 3px 5px;
-    font-size: 10px;
-    border-radius: 2px ;
+    padding: 0.2vw 0.5vw; /* Using viewport width for padding */
+    font-size: 1.5vw; /* Using viewport width for text */
     text-align: right;
   }
   
@@ -123,10 +124,27 @@
     color: white;
     padding: 3px 5px;
     border-radius: 2px;
-    font-size: 10px;
+    font-size: 1.2vw; /* Using viewport width for text */
   }
   
   p {
     margin: 0;
   }
+  
+  /* Add responsive adjustments for different screen orientations */
+  @media ( orientation: landscape) {
+    .qr-container img {
+      height: 5vh; /* Adjusted for landscape */
+    }
+    
+    .ip-status {
+      font-size: 1vh; /* Adjusted for landscape */
+      padding: 0.2vh 0.5vh; /* Adjusted for landscape */
+    }
+    .qr-container {
+      margin-bottom: 0.5vh; /* Adjusted for landscape */
+      padding: 0.3vh; /* Adjusted for landscape */
+    }
+  }
+
 </style>

@@ -117,109 +117,109 @@
   
   <!-- Footer Section -->
   <div class="footer">
-    <footer class="footer_text text-base-content font-bold">
+    <footer class="footer_text">
       {data.apiData.custom_settings.footer_text}
     </footer>
   </div>
 </div>
-
 <style lang="scss">
-.container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  max-width: 100vw;
-  max-height: 100vh;
-  overflow: hidden;
-}
-.headers {
-  grid-area: headers;
-  width: 100%;
-}
-/* ------------------ Grid System (portrait) ------------------*/
-@media (orientation: portrait) {
   .container {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
-    gap: 0;
-    grid-template-areas:
-      "headers"
-      "body"
-      "next-prayer"
-      "footer";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    overflow: hidden;
   }
-
+  
   .headers {
-    height: auto;
+    grid-area: headers;
+    width: 100%;
   }
   
-  /* Use vh units for portrait mode */
-  .footer_text {
-    font-size: 2.5vh;
-    padding: 1.2vh 0;
-  }
-}
-
-/* ------------------ Grid System (Landscape) ------------------*/
-@media (orientation: landscape) {
-  .container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr auto;
-    gap: 0;
-    grid-template-areas:
-      "headers headers"
-      "body next-prayer"
-      "footer footer";
+  /* ------------------ Grid System (portrait) ------------------*/
+  @media (orientation: portrait) {
+    .container {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+      gap: 0;
+      grid-template-areas:
+        "headers"
+        "body"
+        "next-prayer"
+        "footer";
+    }
+  
+    .headers {
+      height: auto;
+    }
+    
+    /* Use vw units for portrait mode */
+    .footer_text {
+      font-size: 2.5vw;
+      padding: 1vw 0; /* Using vw for portrait */
+    }
   }
   
-  /* Use vw units for landscape mode */
-  .footer_text {
-    font-size: 1.5vw;
-    padding: 0.8vw 0;
+  /* ------------------ Grid System (Landscape) ------------------*/
+  @media (orientation: landscape) {
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 1fr auto;
+      gap: 0;
+      grid-template-areas:
+        "headers headers"
+        "body next-prayer"
+        "footer footer";
+    }
+    
+    .headers {
+      height: auto;
+    }
+    .footer_text {
+      font-size: 2vh;
+      padding: 0.6vh 0; /* Using vh for landscape */
+    }
   }
-}
+  
+  .body { 
+    grid-area: body; 
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .next-prayer-container { 
+    grid-area: next-prayer; 
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .footer {
+    grid-area: footer;
+    width: 100%;
+  }
+  
+  .footer_text { 
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-weight: bold;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.body { 
-  grid-area: body; 
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.next-prayer-container { 
-  grid-area: next-prayer; 
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.footer {
-  grid-area: footer;
-  width: 100%;
-}
-
-.footer_text { 
-  display: flex;
-  width: 100%;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  /* Base styles common to both orientations */
-  /* Specific font sizes are defined in the media queries above */
-  /* Using viewport units (vh/vw) makes the text scale dynamically */
-  /* The min() function ensures text doesn't get too large on bigger screens */
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0 2vw; /* Side padding for text safety */
-}
 </style>

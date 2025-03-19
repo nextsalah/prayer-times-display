@@ -14,21 +14,6 @@ import {
 export const navigation = {
     items: [
         {
-            slug: "prayertimes",
-            href: "/prayertimes",
-            title: "Prayer Times",
-            mobileTitle: "Prayers",
-            description: "Configure times, Iqamah and display options",
-            icon: Clock,
-            color: "bg-primary",
-            badgeColor: "badge-primary",
-            subItems: [
-                "Prayer Source",
-                "Iqamah Settings",
-                "Display Settings"
-            ]
-        },
-        {
             slug: "theme",
             href: "/theme",
             title: "Theme & Style",
@@ -41,6 +26,21 @@ export const navigation = {
                 "Theme Selection",
                 "Colors & Fonts",
                 "Background"
+            ]
+        },
+        {
+            slug: "prayertimes",
+            href: "/prayertimes",
+            title: "Prayer Times",
+            mobileTitle: "Prayers",
+            description: "Configure times, Iqamah and display options",
+            icon: Clock,
+            color: "bg-primary",
+            badgeColor: "badge-primary",
+            subItems: [
+                "Prayer Source",
+                "Iqamah Settings",
+                "Display Settings"
             ]
         },
         {

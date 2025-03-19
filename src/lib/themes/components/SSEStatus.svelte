@@ -56,14 +56,56 @@
     });
 </script>
 
-<div class="fixed top-1 left-1 z-50 flex items-center">
-    <div class={`w-2 h-2 rounded-full ${getStatusColor(sseState.connectionStatus)}`}></div>
+<div class="sse-status-container">
+    <div class={`status-circle ${getStatusColor(sseState.connectionStatus)}`}></div>
     
     {#if sseState.lastAction && showActionText && shouldShowText(sseState.lastAction)}
         <span 
             transition:fade={{ duration: 150 }}
-            class="ml-2 text-xs font-sans text-white bg-black/70 px-2 rounded">
+            class="status-text">
             {sseState.lastAction}
         </span>
     {/if}
 </div>
+
+<style>
+    .sse-status-container {
+        position: fixed;
+        top: 0.5vh;
+        left: 0.5vw;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+    }
+    
+    .status-circle {
+        width: 1vw;
+        height: 1vw;
+        border-radius: 50%;
+    }
+    
+    .status-text {
+        margin-left: 0.5vw;
+        font-size: 1.5vw;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 0.2vh 0.6vw;
+        border-radius: 0.3vw;
+    }
+    
+    /* Responsive adjustments for different orientations */
+    @media (orientation: landscape) {
+        .status-circle {
+            width: 0.8vh;
+            height: 0.8vh;
+        }
+        
+        .status-text {
+            margin-left: 0.5vh;
+            font-size: 1.2vh;
+            padding: 0.2vh 0.6vh;
+            border-radius: 0.3vh;
+        }
+    }
+    
+</style>
