@@ -23,44 +23,24 @@
             if (userValue !== undefined && userValue !== null) {
                 if (field.type === 'file') {
                     try {
-                        // Process file data
                         const files = [];
-                        // Ensure userValue is an array of FileMetadata
                         const fileDataArray = Array.isArray(userValue) ? userValue : [];
+                        
                         for (const fileData of fileDataArray as FileMetadata[]) {
-                            try {
-                                const response = await fetch(`/api/images/${fileData.id}?fallback=true`);
-                                                            
-                                if (!response.ok) {
-                                    throw new Error(`Failed to fetch file: ${response.status}`);
-                                }
-                                
-                                const blob = await response.blob();
-                                if (blob.size === 0) {
-                                    console.warn(`Empty blob received for file ${fileData.name}`);
-                                    continue; // Skip this file
-                                }
-                                
-                                const file = new File([blob], fileData.name, {
-                                    type: fileData.type || blob.type,
-                                    lastModified: Date.now()
-                                });
-                                
-                                files.push({
-                                    name: fileData.name,
-                                    size: fileData.size,
-                                    type: fileData.type || blob.type,
-                                    isStoredFile: true,
-                                    fileId: fileData.id || `${fileData.name}-${Date.now()}-${fileData.size}`
-                                });
-                            } catch (error) {
-                                console.error(`Error loading file ${fileData.name}:`, error);
-                                // We'll continue with other files and just skip this one
-                            }
+                            files.push({
+                                name: fileData.name,
+                                size: fileData.size,
+                                type: fileData.type ,
+                                isStoredFile: true,
+                                fileId: fileData.id,
+                                previewUrl: `/api/files/${fileData.id}`
+                            }); 
                         }
+                        
                         field.value = files;
                         originalValues[field.name] = [...files]; // Store a copy of the files array
                     } catch (error) {
+                        console.error('Error setting up file field:', error);
                         field.value = [];
                         originalValues[field.name] = [];
                     }
@@ -83,52 +63,6 @@
             isLoaded = true;
         }
     });
-
-    // Helper function to check if form values have changed
-    function hasFormChanged(newValues: Record<string, unknown>): boolean {
-        // Filter out special form properties
-        const formValues = Object.fromEntries(
-            Object.entries(newValues).filter(([key]) => 
-                key !== 'touched' && key !== 'valid'
-            )
-        );
-        
-        // Check for changes in each field
-        for (const [key, newValue] of Object.entries(formValues)) {
-            const originalValue = originalValues[key];
-            
-            // Skip fields that don't have original values
-            if (originalValue === undefined) continue;
-            
-            // Special handling for file fields
-            if (Array.isArray(newValue) && Array.isArray(originalValue)) {
-                // If lengths are different, there's a change
-                if (newValue.length !== originalValue.length) return true;
-                
-                // Check if there are any new files (not stored)
-                const hasNewFiles = newValue.some((file: any) => 
-                    file instanceof File || (file.blob && !file.isStoredFile)
-                );
-                
-                if (hasNewFiles) return true;
-                
-                // For existing files, check if they're the same
-                for (let i = 0; i < newValue.length; i++) {
-                    const newFile = newValue[i] as any;
-                    const origFile = originalValue[i] as any;
-                    
-                    if (!newFile.isStoredFile || !origFile.isStoredFile) return true;
-                    if (newFile.path !== origFile.path) return true;
-                }
-            } 
-            // For regular fields, simple comparison
-            else if (newValue !== originalValue) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
 
     async function handleSubmit(event: CustomEvent<Record<string, unknown>>) { 
         if (isSubmitting) return;

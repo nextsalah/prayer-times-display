@@ -40,6 +40,18 @@ export class ThemeSettingsService extends SingletonDB<ThemeSettings> {
     });
   }
 
+  async mergeCustomSettingsWithDefaults(customSettings: Record<string, any>, defaults: Record<string, any>): Promise<Omit<ThemeSettings, 'id'>> {
+    const mergedSettings = { ...defaults, ...customSettings };
+    return this.updateCustomSettingsObject(mergedSettings);
+  }
+
+
+  async mergeNewFilesWithExisting(newFiles: File[], existingFiles: File[]): Promise<File[]> {
+    const mergedFiles = [...existingFiles, ...newFiles];
+    return mergedFiles;
+  }
+
+
   /**
    * Toggle QR code visibility
    */

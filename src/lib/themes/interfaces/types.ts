@@ -101,14 +101,24 @@ export function isThemeCustomizationForm(value: unknown): value is IField[] {
   );
 }
 
-export type FileMetadata = {
-  id: string,
-  name: string,
-  type: string,
-  size: number,
-  uploadedAt: string
-};
-
+export interface FileMetadata {
+    /** Unique identifier of the file */
+    id: string;
+    /** Display name of the file */
+    name: string;
+    /** URL to access the file */
+    url: string;
+    /** MIME type of the file */
+    type: string;
+    /** Size of the file in bytes */
+    size: number;
+    /** ISO timestamp when the file was uploaded */
+    uploadedAt: string;
+    /** Flag indicating this is a stored file */
+    isStoredFile: boolean;
+    /** Additional preview URL if available */
+    previewUrl?: string;
+}
 export interface AppDataResult<T>{
   apiData: AppData<T>;  
   prayerTimes: {

@@ -1,120 +1,120 @@
-// lib/db/image-service.ts
 import { db } from '$lib/db';
 import { eq } from 'drizzle-orm';
-import { uploadedImages, type ImageMetadata } from '../schemas';
+import { uploadedFiles, type FileMetadata } from '../schemas';
 
-export const imageService = {
+export const fileService = {
     /**
-     * Upload an image to the database
+     * Upload a file to the database
      */
-    async uploadImage(file: File, description: string = '', themeName: string = 'default'): Promise<ImageMetadata> {
+    async uploadFile(file: File, description: string = '', themeName: string = 'default'): Promise<FileMetadata> {
         // Convert the file to a buffer
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Insert the image into the database
-        const result = await db.insert(uploadedImages).values({
-            filename: file.name,
-            mimeType: file.type,
+        // Insert the file into the database
+        const result = await db.insert(uploadedFiles).values({
+            name: file.name,
+            type: file.type,
             description,
             themeName,
             data: buffer,
             size: file.size,
             createdAt: new Date()
         }).returning({
-            id: uploadedImages.id,
-            filename: uploadedImages.filename,
-            mimeType: uploadedImages.mimeType,
-            description: uploadedImages.description,
-            themeName: uploadedImages.themeName,
-            size: uploadedImages.size,
-            createdAt: uploadedImages.createdAt
+            id: uploadedFiles.id,
+            name: uploadedFiles.name,
+            type: uploadedFiles.type,
+            description: uploadedFiles.description,
+            themeName: uploadedFiles.themeName,
+            size: uploadedFiles.size,
+            createdAt: uploadedFiles.createdAt
         });
 
         // Check if the insert was successful
         if (result.length === 0) {
-            throw new Error('Failed to upload image');
+            throw new Error('Failed to upload file');
         }
-        // Return the metadata of the uploaded image
+        // Return the metadata of the uploaded file
         return result[0];
     },
 
     /**
-     * Get all images (metadata only, not the actual image data)
+     * Get all files (metadata only, not the actual file data)
      */
-    async getAllImages(): Promise<ImageMetadata[]> {
-        const images = await db.select({
-            id: uploadedImages.id,
-            filename: uploadedImages.filename,
-            mimeType: uploadedImages.mimeType,
-            description: uploadedImages.description,
-            themeName: uploadedImages.themeName,
-            size: uploadedImages.size,
-            createdAt: uploadedImages.createdAt
-        }).from(uploadedImages).orderBy(uploadedImages.createdAt);
+    async getAllFiles(): Promise<FileMetadata[]> {
+        const files = await db.select({
+            id: uploadedFiles.id,
+            name: uploadedFiles.name,
+            type: uploadedFiles.type,
+            description: uploadedFiles.description,
+            themeName: uploadedFiles.themeName,
+            size: uploadedFiles.size,
+            createdAt: uploadedFiles.createdAt
+        }).from(uploadedFiles).orderBy(uploadedFiles.createdAt);
 
-        return images;
+        return files;
     },
 
     /**
-     * Get image metadata by ID
+     * Get file metadata by ID
      */
-    async getImageMetadata(id: number): Promise<ImageMetadata | null> {
-        const images = await db.select({
-            id: uploadedImages.id,
-            filename: uploadedImages.filename,
-            mimeType: uploadedImages.mimeType,
-            description: uploadedImages.description,
-            themeName: uploadedImages.themeName,
-            size: uploadedImages.size,
-            createdAt: uploadedImages.createdAt
-        }).from(uploadedImages).where(eq(uploadedImages.id, id));
+    async getFileMetadata(id: number): Promise<FileMetadata | null> {
+        const files = await db.select({
+            id: uploadedFiles.id,
+            name: uploadedFiles.name,
+            type: uploadedFiles.type,
+            description: uploadedFiles.description,
+            themeName: uploadedFiles.themeName,
+            size: uploadedFiles.size,
+            createdAt: uploadedFiles.createdAt
+        }).from(uploadedFiles).where(eq(uploadedFiles.id, id));
 
-        return images.length > 0 ? images[0] : null;
+        return files.length > 0 ? files[0] : null;
     },
 
     /**
-     * Get image data by ID
+     * Get file data by ID
      */
-    async getImageData(id: number): Promise<{ data: Buffer; mimeType: string } | null> {
-        const images = await db.select({
-            data: uploadedImages.data,
-            mimeType: uploadedImages.mimeType
-        }).from(uploadedImages).where(eq(uploadedImages.id, id));
+    async getFileData(id: number): Promise<{ data: Buffer; type: string } | null> {
+        const files = await db.select({
+            data: uploadedFiles.data,
+            type: uploadedFiles.type
+        }).from(uploadedFiles).where(eq(uploadedFiles.id, id));
 
-        if (images.length === 0) return null;
+        if (files.length === 0) return null;
         
-        // Cast the unknown data to Buffer
         return {
-            data: images[0].data as Buffer,
-            mimeType: images[0].mimeType
+            data: files[0].data as Buffer,
+            type: files[0].type
         };
     },
 
     /**
-     * Delete an image by ID
+     * Delete a file by ID
      */
-    async deleteImage( id: number): Promise<boolean> {
-        const result = await db.delete(uploadedImages).where(eq(uploadedImages.id, id));
-        return true;
+    async deleteFile(id: number): Promise<boolean> {
+        await db.delete(uploadedFiles).where(eq(uploadedFiles.id, id));
+        // Since we can't check rowsAffected directly, we'll check if the file still exists
+        const fileStillExists = await this.getFileMetadata(id);
+        return fileStillExists === null;
     },
 
     /**
-     * Get images by theme ID
+     * Get files by theme ID
      */
-    async getImagesByTheme(themeName: string): Promise<ImageMetadata[]> {
-        const images = await db.select({
-            id: uploadedImages.id,
-            filename: uploadedImages.filename,
-            mimeType: uploadedImages.mimeType,
-            description: uploadedImages.description,
-            themeName: uploadedImages.themeName,
-            size: uploadedImages.size,
-            createdAt: uploadedImages.createdAt
-        }).from(uploadedImages)
-        .where(eq(uploadedImages.themeName, themeName))
-        .orderBy(uploadedImages.createdAt);
+    async getFilesByTheme(themeName: string): Promise<FileMetadata[]> {
+        const files = await db.select({
+            id: uploadedFiles.id,
+            name: uploadedFiles.name,
+            type: uploadedFiles.type,
+            description: uploadedFiles.description,
+            themeName: uploadedFiles.themeName,
+            size: uploadedFiles.size,
+            createdAt: uploadedFiles.createdAt
+        }).from(uploadedFiles)
+        .where(eq(uploadedFiles.themeName, themeName))
+        .orderBy(uploadedFiles.createdAt);
 
-        return images;
+        return files;
     }
 };

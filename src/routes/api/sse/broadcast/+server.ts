@@ -24,7 +24,7 @@ export async function POST({ request }) {
                 break;
                 
             case EventType.SYSTEM_STATUS:
-                sseService.broadcastSystemStatus(
+                sseService.updateSystemStatus(
                     payload.status,
                     payload.message
                 );

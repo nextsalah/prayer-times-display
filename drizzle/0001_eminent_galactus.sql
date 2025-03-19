@@ -1,0 +1,1 @@
+ALTER TABLE `uploaded_images` RENAME TO `uploaded_files`;

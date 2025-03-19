@@ -8,7 +8,7 @@ import {
     type FileMetadata,
     type ThemeBasicInfo,
 } from '$lib/themes/interfaces/types';
-import { imageService } from '$lib/db/services/upload';
+import { fileService } from '$lib/db/services/upload';
 
 // Import with fallback for BUILT_IN_THEMES
 let BUILT_IN_THEMES: string[] = [];
@@ -25,25 +25,26 @@ import type { IField } from '@ismail424/svelte-formly';
 class MediaService {
     static async uploadFile(file: File) {
         try {
-            // Maximum file size in byte, 10MB
+            // Maximum file size in bytes, 10MB
             const maxSize = 10 * 1024 * 1024;
             if (file.size > maxSize) {
                 throw new Error(`File size exceeds ${maxSize / (1024 * 1024)}MB limit`);
             }
 
             // Upload file to database
-            const imageMetadata = await imageService.uploadImage(file);
+            const fileMetadata = await fileService.uploadFile(file);
 
             // Prepare metadata in the format expected by existing code
-            const fileMetadata = {
-                id: imageMetadata.id.toString(),
-                name: imageMetadata.filename,
-                type: imageMetadata.mimeType,
-                size: imageMetadata.size,
-                uploadedAt: imageMetadata.createdAt.toISOString()
+            return {
+                id: fileMetadata.id.toString(),
+                name: fileMetadata.name,
+                type: fileMetadata.type,
+                size: fileMetadata.size,
+                uploadedAt: fileMetadata.createdAt.toISOString(),
+                contentType: fileMetadata.type,
+                url: `/api/files/${fileMetadata.id}`, // URL to access the file
+                isStoredFile: true // Flag as stored file
             } as FileMetadata;
-            
-            return fileMetadata;
         } catch (error) {
             console.error('File upload failed:', error);
             throw error;
@@ -58,20 +59,40 @@ class MediaService {
                 throw new Error(`Invalid file path format: ${path}`);
             }
             
-            const imageId = parseInt(matches[1], 10);
-            await imageService.deleteImage(imageId);
+            const fileId = parseInt(matches[1], 10);
+            await fileService.deleteFile(fileId);
         } catch (error) {
             console.error('File deletion failed:', error);
             throw error;
         }
     }
 
+    static async deleteFileById(id: number) {
+        try {
+            // Delete file by ID
+            const fileMetadata = await fileService.getFileData(id);
+            if (!fileMetadata) {
+                throw new Error(`File with ID ${id} not found`);
+            }
+
+            await fileService.deleteFile(id);
+            return {
+                success: true,
+                message: `File with ID ${id} deleted successfully`
+            };
+        } catch (error) {
+            console.error('File deletion failed:', error);
+            throw error;
+        }
+    }
+
+
     static async clearUploads() {
         try {
-            // Get all images and delete them one by one
-            const allImages = await imageService.getAllImages();
-            for (const image of allImages) {
-                await imageService.deleteImage(image.id);
+            // Get all files and delete them one by one
+            const allFiles = await fileService.getAllFiles();
+            for (const file of allFiles) {
+                await fileService.deleteFile(file.id);
             }
         } catch (error) {
             console.error('Failed to clear uploads:', error);

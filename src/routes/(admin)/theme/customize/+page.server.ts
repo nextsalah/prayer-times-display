@@ -10,6 +10,8 @@ import {
   processFormData,
 } from '$lib/themes/logic/theme-settings-manager';
 import { sseService } from '$lib/server/sse/service';
+import { enhanceFileMetadata } from '$lib/themes/logic/file-utils';
+
 
 export const load = (async ({ url }: { url: URL }) => {
     try {
@@ -22,6 +24,7 @@ export const load = (async ({ url }: { url: URL }) => {
             logger.error('Failed to load theme:', activeTheme);
             throw error(400, 'Failed to load active theme');
         }
+        
         // Parse user settings from database
         let rawUserSettings: ThemeUserSettings;
         try {
@@ -33,16 +36,19 @@ export const load = (async ({ url }: { url: URL }) => {
         
         // Merge with defaults for any missing values
         const userSettings = mergeWithDefaults(rawUserSettings, activeTheme.customization);
-    
         
-        
+        // Enhance file metadata if theme supports file uploads
+        const enhancedSettings = activeTheme.hasFileUploadSupport() 
+            ? await enhanceFileMetadata(userSettings, activeTheme.customization, storedSettings.themeName)
+            : userSettings;
+        console.log('Enhanced settings:', enhancedSettings);
         return {
             title: 'Customize Theme',
             theme: {
                 name: activeTheme.name,
                 customizationForm: activeTheme.customization,
             },
-            userSettings,
+            userSettings: enhancedSettings,
         };
     } catch (err) {
         logger.error('Failed to load theme customization:', err);
@@ -93,7 +99,6 @@ export const actions: Actions = {
 
             // Create the updated settings object properly merging arrays
             const updatedSettings = { ...currentSettings };
-            
             // Handle each property from processed data
             for (const [key, value] of Object.entries(processedData)) {
                 // If it's an array of files, we want to append not replace
@@ -109,7 +114,7 @@ export const actions: Actions = {
                     updatedSettings[key] = value;
                 }
             }
-            // Save updated settings
+            
             await themeService.updateCustomSettingsObject(updatedSettings);
             
             logger.info('Theme settings updated successfully');
@@ -131,11 +136,17 @@ export const actions: Actions = {
     delete: async ({ request }) => {
         try {
             const formData = await request.formData();
-            const fileUrl = formData.get('fileUrl')?.toString();
+            let fileIdStr = formData.get('fileUrl')?.toString();
             const fieldName = formData.get('fieldName')?.toString();
-            
-            if (!fileUrl || !fieldName) {
+
+            if (!fileIdStr || !fieldName) {
                 throw error(400, 'File URL and field name are required');
+            }
+  
+            // convert to number
+            const fileId = fileIdStr ? Number(fileIdStr) : undefined;
+            if  (!fileId) {
+                throw error(400, 'File ID is required');
             }
 
             // Get current settings
@@ -151,7 +162,7 @@ export const actions: Actions = {
             // Remove file reference from settings
             if (Array.isArray(currentSettings[fieldName])) {
                 currentSettings[fieldName] = currentSettings[fieldName].filter(
-                    (file: FileMetadata) => file.path !== fileUrl
+                    (file: FileMetadata) => Number(file.id) !== fileId
                 );
                 
                 // If array is empty, check if we should use default value
@@ -160,13 +171,13 @@ export const actions: Actions = {
                     if (defaultValue !== undefined) {
                         currentSettings[fieldName] = defaultValue;
                     } else {
-                        // Remove the property
+                        // If no default, remove the property
                         delete currentSettings[fieldName];
                     }
                 }
             } else {
                 // Check if field has default value
-                const defaultValue = activeTheme.customization.find(f => f.name === fieldName)?.value;
+                const defaultValue =  activeTheme.customization.find(f => f.name === fieldName)?.value;
                 if (defaultValue !== undefined) {
                     currentSettings[fieldName] = defaultValue;
                 } else {
@@ -174,8 +185,7 @@ export const actions: Actions = {
                 }
             }
 
-            // Delete file - passing the fileUrl directly as we now handle path extraction in MediaService
-            await MediaService.deleteFile(fileUrl);
+            await MediaService.deleteFileById(fileId);
             
             // Update settings in database
             await themeService.updateCustomSettingsObject(currentSettings);
