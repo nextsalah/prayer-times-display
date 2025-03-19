@@ -160,7 +160,7 @@ export const actions: Actions = {
                     if (defaultValue !== undefined) {
                         currentSettings[fieldName] = defaultValue;
                     } else {
-                        // If no default, remove the property
+                        // Remove the property
                         delete currentSettings[fieldName];
                     }
                 }
@@ -174,8 +174,8 @@ export const actions: Actions = {
                 }
             }
 
-            // Delete physical file
-            await MediaService.deleteFile(fileUrl.replace('/uploads/', ''));
+            // Delete file - passing the fileUrl directly as we now handle path extraction in MediaService
+            await MediaService.deleteFile(fileUrl);
             
             // Update settings in database
             await themeService.updateCustomSettingsObject(currentSettings);
@@ -201,23 +201,32 @@ export const actions: Actions = {
             if (activeTheme instanceof Error) {
                 throw error(400, 'Failed to load active theme');
             }
+
+            // Get current custom settings to identify files that need cleanup
+            const currentSettings = await themeService.getCustomSettingsObject();
             
             // Reset custom settings to theme defaults
             await themeService.updateCustomSettingsObject(activeTheme.defaultSettings || {});
-            logger.info('Theme settings reset to default');
             
+            // Clean up any uploaded files - this removes unused file references
+            // Only clean if the theme has file upload fields
+            if (activeTheme.hasFileUploadSupport()) {
+                await MediaService.clearUploads();
+            }
+            
+            logger.info('Theme settings reset to default');
             sseService.updateContent('Theme settings reset to default');
 
             return {
-                success: true,
-                message: 'Theme settings reset to defaults'
+                status: 200,
+                body: {
+                    success: true,
+                    message: 'Theme settings reset to defaults'
+                }
             };
         } catch (err) {
             logger.error('Failed to reset theme settings:', err);
-            return {
-                success: false,
-                message: err instanceof Error ? err.message : 'Failed to reset theme settings'
-            };
+            throw error(500, err instanceof Error ? err.message : 'Failed to reset theme settings');
         }
     },
 } satisfies Actions;

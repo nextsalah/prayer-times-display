@@ -1,6 +1,3 @@
-import { Glob } from 'bun';
-import { v4 as uuidv4 } from 'uuid';
-import { unlink } from 'node:fs/promises';
 import { 
     isThemeCustomizationForm,
     type ThemeManifest, 
@@ -11,6 +8,7 @@ import {
     type FileMetadata,
     type ThemeBasicInfo,
 } from '$lib/themes/interfaces/types';
+import { imageService } from '$lib/db/services/upload';
 
 // Import with fallback for BUILT_IN_THEMES
 let BUILT_IN_THEMES: string[] = [];
@@ -22,96 +20,29 @@ try {
     BUILT_IN_THEMES = ['default'];
 }
 
-import path from 'node:path';
-import { existsSync, mkdirSync } from "fs";
 import type { IField } from '@ismail424/svelte-formly';
-
-const UPLOAD_BASE_PATH = path.join(process.cwd(), 'static', 'uploads');
-const getRootPath = () => path.resolve(process.cwd());
-
-// Cache for theme list to avoid redundant filesystem access
-let themeListCache: ThemeBasicInfo[] | null = null;
-let themeCacheExpiry = 0;
-const CACHE_TTL = 60000; // 1 minute cache
-
-class FileManager {
-    static async createUploadFolder(): Promise<void> {
-        try {
-            // Check if the folder exists
-            if (!existsSync(UPLOAD_BASE_PATH)) {
-                // Create the folder if it doesn't exist
-                mkdirSync(UPLOAD_BASE_PATH, { recursive: true });
-            } 
-        } catch (error) {
-            console.error("Failed to create uploads folder:", error);
-        }
-    }
-
-    static async saveFile(file: File) {
-        await this.createUploadFolder();
-
-        const id = uuidv4();
-        const filename = `${id}-${file.name}`;
-        const path = `${UPLOAD_BASE_PATH}/${filename}`;
-
-        await Bun.write(path, file);
-
-        return {
-            id,
-            name: file.name,
-            type: file.type,
-            path
-        };
-    }
-
-    static async deleteFile(path: string) {
-        const fullPath = `${UPLOAD_BASE_PATH}/${path}`;
-        try {
-            await unlink(fullPath);
-        } catch (error) {
-            console.error(`Cannot delete file: ${fullPath}`, error);
-        }
-    }
-
-    static async clearUploads() {
-        try {
-            const glob = new Glob("*");
-            const files = await Array.fromAsync(glob.scan({ cwd: UPLOAD_BASE_PATH }));
-            
-            await Promise.all(files.map(file => 
-                Bun.write(`${UPLOAD_BASE_PATH}/${file}`, '')
-            ));
-        } catch (error) {
-            console.error('Cannot clear uploads folder', error);
-        }
-    }
-}
 
 class MediaService {
     static async uploadFile(file: File) {
         try {
             // Maximum file size in byte, 10MB
-            const maxSize =  10 * 1024 * 1024;
+            const maxSize = 10 * 1024 * 1024;
             if (file.size > maxSize) {
                 throw new Error(`File size exceeds ${maxSize / (1024 * 1024)}MB limit`);
             }
 
-            // Upload file
-            const uploadResult = await FileManager.saveFile(file);
+            // Upload file to database
+            const imageMetadata = await imageService.uploadImage(file);
 
-            const relativePath = uploadResult.path.replace(UPLOAD_BASE_PATH, '/uploads');
-
-            // Prepare metadata
+            // Prepare metadata in the format expected by existing code
             const fileMetadata = {
-                id: uploadResult.id,
-                name: uploadResult.name,
-                path: relativePath,
-                fullPath: uploadResult.path,
-                type: uploadResult.type,
-                size: file.size,
-                uploadedAt: new Date().toISOString()
+                id: imageMetadata.id.toString(),
+                name: imageMetadata.filename,
+                type: imageMetadata.mimeType,
+                size: imageMetadata.size,
+                uploadedAt: imageMetadata.createdAt.toISOString()
             } as FileMetadata;
-            // Retrieve current settings
+            
             return fileMetadata;
         } catch (error) {
             console.error('File upload failed:', error);
@@ -121,7 +52,14 @@ class MediaService {
 
     static async deleteFile(path: string) {
         try {
-            await FileManager.deleteFile(path);
+            // Extract the ID from the path format "/uploads/db-{id}"
+            const matches = path.match(/db-(\d+)$/);
+            if (!matches || !matches[1]) {
+                throw new Error(`Invalid file path format: ${path}`);
+            }
+            
+            const imageId = parseInt(matches[1], 10);
+            await imageService.deleteImage(imageId);
         } catch (error) {
             console.error('File deletion failed:', error);
             throw error;
@@ -130,7 +68,11 @@ class MediaService {
 
     static async clearUploads() {
         try {
-            await FileManager.clearUploads();
+            // Get all images and delete them one by one
+            const allImages = await imageService.getAllImages();
+            for (const image of allImages) {
+                await imageService.deleteImage(image.id);
+            }
         } catch (error) {
             console.error('Failed to clear uploads:', error);
             throw error;
@@ -220,11 +162,6 @@ class Theme {
      * Get full information for all available themes with caching
      */
     static async getAllThemes(): Promise<ThemeList> {
-        // Use cache if available and not expired
-        if (themeListCache && Date.now() < themeCacheExpiry) {
-            return themeListCache;
-        }
-        
         const themes = await this.list();
         const themeList = await Promise.all(
             themes.map(async name => {
@@ -245,11 +182,7 @@ class Theme {
                 }
             })
         );
-        
-        // Update cache
-        themeListCache = themeList;
-        themeCacheExpiry = Date.now() + CACHE_TTL;
-        
+            
         return themeList;
     }
 
@@ -348,13 +281,6 @@ const ThemeManager = {
         return Theme.exists(id);
     },
     
-    /**
-     * Clear the theme cache
-     */
-    clearCache: (): void => {
-        themeListCache = null;
-        themeCacheExpiry = 0;
-    },
     
     /**
      * Get built-in theme IDs defined in collections/index.ts
@@ -364,4 +290,4 @@ const ThemeManager = {
     }
 };
 
-export { Theme, FileManager, MediaService, ThemeManager };
+export { Theme, MediaService, ThemeManager };

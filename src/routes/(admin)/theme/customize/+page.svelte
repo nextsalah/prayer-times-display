@@ -29,23 +29,33 @@
                         const fileDataArray = Array.isArray(userValue) ? userValue : [];
                         for (const fileData of fileDataArray as FileMetadata[]) {
                             try {
-                                if (!fileData.path) continue;
-
-                                const response = await fetch(fileData.path);
-                                if (!response.ok) throw new Error(`Failed to fetch: ${fileData.path}`);
-
+                                const response = await fetch(`/api/images/${fileData.id}?fallback=true`);
+                                                            
+                                if (!response.ok) {
+                                    throw new Error(`Failed to fetch file: ${response.status}`);
+                                }
+                                
+                                const blob = await response.blob();
+                                if (blob.size === 0) {
+                                    console.warn(`Empty blob received for file ${fileData.name}`);
+                                    continue; // Skip this file
+                                }
+                                
+                                const file = new File([blob], fileData.name, {
+                                    type: fileData.type || blob.type,
+                                    lastModified: Date.now()
+                                });
+                                
                                 files.push({
                                     name: fileData.name,
                                     size: fileData.size,
-                                    type: fileData.type,
-                                    url: fileData.path,
+                                    type: fileData.type || blob.type,
                                     isStoredFile: true,
-                                    path: fileData.path,
                                     fileId: fileData.id || `${fileData.name}-${Date.now()}-${fileData.size}`
                                 });
                             } catch (error) {
-                                // Fallback image handling stays the same
-                                // ...
+                                console.error(`Error loading file ${fileData.name}:`, error);
+                                // We'll continue with other files and just skip this one
                             }
                         }
                         field.value = files;

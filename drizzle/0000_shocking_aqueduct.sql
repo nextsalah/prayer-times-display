@@ -22,6 +22,17 @@ CREATE TABLE `theme_settings` (
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `uploaded_images` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`filename` text NOT NULL,
+	`mime_type` text NOT NULL,
+	`description` text,
+	`theme_name` text NOT NULL,
+	`data` blob NOT NULL,
+	`size` integer NOT NULL,
+	`created_at` integer NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `date_settings` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`date_format` text DEFAULT 'DD/MM/YYYY' NOT NULL

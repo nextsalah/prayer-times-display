@@ -4,3 +4,4 @@ export * from './services/prayerconfig';
 export * from './services/localization';
 export * from './services/appDataService';
 export * from './services/prayertimes';
+export * from './services/upload';

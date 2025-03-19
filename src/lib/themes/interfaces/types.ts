@@ -104,8 +104,6 @@ export function isThemeCustomizationForm(value: unknown): value is IField[] {
 export type FileMetadata = {
   id: string,
   name: string,
-  path: string,
-  fullPath: string,
   type: string,
   size: number,
   uploadedAt: string
