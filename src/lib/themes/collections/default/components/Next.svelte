@@ -64,7 +64,7 @@
 /* Next Prayer Section Styles */
 .next_section {
   text-align: center;
-  font-size: 10vmin; 
+  font-size: 9vmin; 
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -81,33 +81,32 @@
   z-index: 2;
   width: 100%;
   padding: 0.5vmin 0.3vmin;
-  padding-bottom: 5vmin; /* Add bottom padding to avoid overlap with indicators */
+  padding-bottom: 3vmin; /* Reduced from 5vmin */
   display: flex;
   flex-direction: column;
-  gap: 1.6vmin;
+  gap: 0.5vmin; /* Reduced from 1.6vmin */
   backdrop-filter: blur(10px);
 }
 @media ( orientation: landscape ) {
   .text-container {
-    gap:  1.5vh;
+    gap: 0.5vh; /* Reduced from 1.5vh */
   }
 }
 
 /* Group styles for better hierarchy */
 .secondary-info {
-  margin-bottom: -0.4em;
+  margin-bottom: 0.2vmin; /* Changed from -0.5vmin to positive value to move text down */
+  padding-top: 0.5vmin; /* Added padding to further adjust position */
 }
 
 .primary-info {
   transform: scale(1.05);
-  margin: 0.3em 0;
+  margin: 0.5vmin 0; /* Changed from 0.3em to viewport units */
   position: relative;
 }
 
-
-
 .countdown-container {
-  margin-top: 0.2em;
+  margin-top: 0.3vmin; /* Changed from 0.2em to viewport units */
   position: relative;
 }
 
@@ -152,7 +151,6 @@
 .countdown-container p {
   font-size: 7vmin;
   font-weight: 700;
-  margin-top: 0.1em;
   transition: color 0.3s ease;
   color: rgba(255, 255, 255, 0.9);
 }
@@ -160,9 +158,8 @@
 /* Modern prayer time indicators with minimal shadows */
 .prayer-indicator {
   display: inline-block;
-  margin-top: 0.5em;
   padding: 0.4em 1em;
-  border-radius: 100px;
+  border-radius: 1vw;
   font-size: 0.35em;
   font-weight: 600;
   color: white;
@@ -207,23 +204,11 @@
   }
 }
 
-/* Ambient notification replaced with a simple accent line */
-.countdown-container:has(> .prayer-indicator.imminent)::after {
-  content: "";
-  position: absolute;
-  bottom: -1em;
-  left: 25%;
-  right: 25%;
-  height: 0.3vmin;
-  background-color: rgba(239, 68, 68, 0.6);
-  border-radius: 0.3vmin;
-  animation: pulse 2s infinite;
-}
 
 /* Responsive adjustments for landscape mode */
 @media (orientation: landscape) {
   .next_section {
-    font-size: 10vh !important;
+    font-size: 8vh !important;
   }
   
   .text-container {
@@ -240,6 +225,7 @@
   
   .prayer-indicator {
     font-size: 0.3em;
+    border-radius: 1vh;
   }
   
   .countdown-container p {
