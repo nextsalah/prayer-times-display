@@ -87,6 +87,7 @@
     <PrayerTable 
       allPrayerTimes={legacyPrayerTimes}
       iqamahTimes={iqamahTimes}
+      nextText={interfaceText.next}
       prayer={interfaceText.prayer}
       begins={interfaceText.begins}
       activePrayer={currentPrayer}
@@ -161,8 +162,8 @@
     
     /* Use vw units for portrait mode */
     .footer_text {
-      font-size: 2.5vw;
-      padding: 1vw 0; /* Using vw for portrait */
+      font-size: 3.5vw;
+      padding: 1.9vw 0; /* Using vw for portrait */
     }
   }
   
@@ -183,8 +184,8 @@
       height: auto;
     }
     .footer_text {
-      font-size: 2vh;
-      padding: 0.6vh 0; /* Using vh for landscape */
+      font-size: 2.5vh;
+      padding: 1.3vh 0; /* Using vh for landscape */
     }
   }
   

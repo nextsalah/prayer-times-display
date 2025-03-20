@@ -41,7 +41,6 @@ export const load = (async ({ url }: { url: URL }) => {
         const enhancedSettings = activeTheme.hasFileUploadSupport() 
             ? await enhanceFileMetadata(userSettings, activeTheme.customization, storedSettings.themeName)
             : userSettings;
-        console.log('Enhanced settings:', enhancedSettings);
         return {
             title: 'Customize Theme',
             theme: {
@@ -86,19 +85,24 @@ export const actions: Actions = {
                 };
             }
 
+            // Get current custom settings before processing files
+            const currentSettings = await themeService.getCustomSettingsObject();
+
             // Process the form data with file uploads
             const processedData = await processFormData(
                 formData, 
                 activeTheme.customization,
                 // File uploader function
-                async (file: File) => await MediaService.uploadFile(file)
+                async (file: File) => {
+                    const result = await MediaService.uploadFile(file);
+                    logger.info(`File uploaded successfully: ${file.name}`);
+                    return result;
+                }
             );
-
-            // Get current custom settings
-            const currentSettings = await themeService.getCustomSettingsObject();
 
             // Create the updated settings object properly merging arrays
             const updatedSettings = { ...currentSettings };
+            
             // Handle each property from processed data
             for (const [key, value] of Object.entries(processedData)) {
                 // If it's an array of files, we want to append not replace
@@ -107,27 +111,36 @@ export const actions: Actions = {
                     if (!updatedSettings[key] || !Array.isArray(updatedSettings[key])) {
                         updatedSettings[key] = [];
                     }
+                    
+                    // Ensure all file objects have required metadata
+                    const processedFiles = value.map(file => {
+                        if (!file.id || !file.path) {
+                            logger.warn(`File missing required metadata: ${JSON.stringify(file)}`);
+                        }
+                        return file;
+                    });
+                    
                     // Append new files to existing ones
-                    updatedSettings[key] = [...updatedSettings[key], ...value];
+                    updatedSettings[key] = [...updatedSettings[key], ...processedFiles];
+                    logger.info(`Added ${processedFiles.length} files to setting "${key}"`);
                 } else {
                     // For non-file fields, just replace the value
                     updatedSettings[key] = value;
                 }
             }
             
+            // Save the updated settings
             await themeService.updateCustomSettingsObject(updatedSettings);
             
-            logger.info('Theme settings updated successfully');
+            logger.info('Theme settings updated successfully with file uploads');
             sseService.updateContent('Theme settings updated');
             return {
                 status: 200,
                 body: {
                     success: true,
-                    message: 'Theme Settings Saved'
+                    message: 'Theme Settings Saved with Uploads'
                 }
             };
-
-
         } catch (err) {
             logger.error('Failed to save theme settings:', err);
             throw error(500, err instanceof Error ? err.message : 'Failed to save settings');

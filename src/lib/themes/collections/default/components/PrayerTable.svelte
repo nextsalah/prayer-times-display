@@ -36,6 +36,7 @@
   let { 
       prayer = 'Namaz',
       begins = 'Počinje',
+      nextText = 'Next',
       allPrayerTimes = {},
       iqamahTimes,
       activePrayer,
@@ -43,6 +44,7 @@
   }: {
       prayer: string;
       begins: string;
+      nextText: string;
       allPrayerTimes: any;
       iqamahTimes?: {[key: string]: string} | undefined | null;
       activePrayer: PrayerTimeItem;
@@ -177,7 +179,11 @@
         {/if}
         
         {#if isNext}
-          <span class="indicator next">NEXT</span>
+          <span class="indicator next">
+            {#if prayer.id != "sunrise"}
+              {nextText}
+            {/if}
+          </span>
         {/if}
       </h2>
       
@@ -225,7 +231,6 @@
     margin: 0;
     font-weight: 800;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    text-shadow: 0 0.1vw 0.1vw rgba(0,0,0,0.1); /* Changed from 0 1px 1px */
   }
   
 }
@@ -254,7 +259,6 @@
     margin: 0;
     transition: all 0.3s ease;
     font-weight: 700; /* Increased font weight for better visibility */
-    text-shadow: 0 0.1vw 0.1vw rgba(0,0,0,0.05); /* Changed from 0 1px 1px */
     
     &.text-xs { font-size: 3vw; }
     &.text-sm { font-size: 4vw; }
@@ -281,7 +285,7 @@
       left: 0;
       top: 0;
       height: 100%;
-      width: 0.7vw; /* Changed from 6px to viewport unit */
+      width: 0.4vw; /* Changed from 6px to viewport unit */
       background-color: var(--active-color);
       animation: pulse 2s infinite;
       z-index: 2;
@@ -297,7 +301,7 @@
       left: 0;
       top: 0;
       height: 100%;
-      width: 0.7vw; /* Changed from 6px to viewport unit */
+      width: 0.4vw; /* Changed from 6px to viewport unit */
       background-color: var(--next-color);
       z-index: 2;
     }
@@ -346,7 +350,7 @@
   &.next {
     background-color: var(--next-color);
     color: white;
-    margin-left: 0.7vw; /* Changed from 6px */
+    margin-left: 1.4vw; /* Changed from 6px */
     padding: 0.1vw 0.5vw; /* Changed from 1px 4px */
     font-size: 2.2vw;
   }
@@ -431,7 +435,7 @@
   
   .indicator {
     &.next {
-      margin-left: 0.7vh; /* Changed from 6px */
+      margin-left:1.4vh; /* Changed from 6px */
       padding: 0.1vh 0.5vh; /* Changed from 1px 4px */
       font-size: 2.2vh;
       border-radius: 0.5vh; /* Changed from fixed px */
@@ -452,7 +456,7 @@
   }
   
   .active::before, .next::before {
-    width: 0.7vh; /* Use vh units for landscape */
+    width: 0.4vh; /* Use vh units for landscape */
     }
 
   @keyframes pulse {

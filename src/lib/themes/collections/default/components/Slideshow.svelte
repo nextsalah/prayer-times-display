@@ -16,15 +16,34 @@
   let timer: ReturnType<typeof setInterval> | null = null;
   
   // Get the URLs for displaying images
-  const imageUrls = $derived(images.map(img => img.path || ''));
+  const imageUrls = $derived(images.map(img => img.url || ''));
   const totalImages = $derived(imageUrls.length);
   
-  // Start the slideshow
+  // Add a flag to handle image transition
+  let isTransitioning = $state(false);
+  let currentImageUrl = $state('');
+  let nextImageUrl = $state('');
+  
+  // Modified function to handle smooth transition
   function startSlideshow() {
     if (totalImages <= 1) return; // No slideshow needed if only one image
     
+    // Initialize first image
+    currentImageUrl = imageUrls[currentImageIndex];
+    
     timer = setInterval(() => {
-      currentImageIndex = (currentImageIndex + 1) % totalImages;
+      const nextIndex = (currentImageIndex + 1) % totalImages;
+      nextImageUrl = imageUrls[nextIndex];
+      
+      // Start transition
+      isTransitioning = true;
+      
+      // After transition completes, update current image
+      setTimeout(() => {
+        currentImageIndex = nextIndex;
+        currentImageUrl = nextImageUrl;
+        isTransitioning = false;
+      }, 600); // Match the transition duration in CSS
     }, slideDuration);
   }
   
@@ -51,11 +70,14 @@
 
 <div class="slideshow-container">
   {#if totalImages > 0}
-    {#each imageUrls as url, i}
-      <div class="slide" class:active={i === currentImageIndex}>
-        <img src={url} alt="Slideshow image {i+1}" />
+    <div class="slide current">
+      <img src={currentImageUrl} alt="Current slideshow content" />
+    </div>
+    {#if isTransitioning}
+      <div class="slide next">
+        <img src={nextImageUrl} alt="Next slideshow content" />
       </div>
-    {/each}
+    {/if}
   {:else}
     <div class="placeholder">No images available</div>
   {/if}
@@ -76,19 +98,29 @@
     left: 0;
     width: 100%;
     height: 100%;
-    opacity: 0;
-    transition: opacity 1s ease-in-out;
+    transform: translateZ(0); /* Hardware acceleration hint */
     
-    &.active {
-      opacity: 1;
+    &.current {
+      z-index: 1;
+    }
+    
+    &.next {
       z-index: 2;
+      animation: simpleFadeIn 600ms ease-in-out forwards;
     }
     
     img {
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Ensures image covers the entire container */
+      object-fit: cover;
+      transform: translateZ(0);
+      will-change: transform;
     }
+  }
+  
+  @keyframes simpleFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
   
   .placeholder {
@@ -99,5 +131,6 @@
     justify-content: center;
     color: #777;
     font-family: Arial, sans-serif;
+    padding: 2vmin;
   }
 </style>

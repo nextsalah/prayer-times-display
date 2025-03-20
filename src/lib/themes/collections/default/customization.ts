@@ -20,7 +20,6 @@ const customization: IField[] = [
 		},
 		extra: {
 			options: [
-                { value: 'default', title: 'Default' },
                 { value: 'light', title: 'Light' },
                 { value: 'dark', title: 'Dark' },
                 { value: 'cupcake', title: 'Cupcake' },
@@ -55,7 +54,7 @@ const customization: IField[] = [
                 { value: 'sunset', title: 'Sunset' }
               ]
 		},
-        value: 'default',
+        value: 'nord',
         rules: ['required']
 	},
     {

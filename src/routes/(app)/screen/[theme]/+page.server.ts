@@ -15,7 +15,7 @@ export const load = (async ({ params }) => {
     }
     
     // If theme is specified in URL, override the default theme
-    const themePath = themeFromUrl || data.componentPath;
+    const themePath = themeFromUrl || data.themeSettings.themeName;
     
     if (!ThemeManager.themeExists(themePath)) {
       throw error(404, 'Theme not found');

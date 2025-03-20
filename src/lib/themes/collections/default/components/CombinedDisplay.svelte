@@ -26,9 +26,8 @@
   let timerId = $state<number | null>(null);
   
   // Derived values
-  const imageUrls = $derived(images.map(img => img.path || ''));
+  const imageUrls = $derived(images.map(img => img.url));
   const totalImages = $derived(imageUrls.length);
-  
   let previousDuration = $state(slideDuration);
   let timerNeedsReset = $state(false);
 
@@ -63,6 +62,7 @@
 
   // This effect only monitors changes to props, not state
   $effect(() => {
+
     // Check if slideDuration changed
     if (slideDuration !== previousDuration) {
       previousDuration = slideDuration;
@@ -81,6 +81,8 @@
       timerNeedsReset = false;
       startToggleTimer();
     }
+    console.log("Image URLs: ", imageUrls);
+    console.log("Total Images: ", totalImages);
   });
   
   // Initial timer setup on mount
@@ -111,29 +113,33 @@
 </script>
 
 <div class="combined-container">
-  {#if showNext}
-    <div class="display-wrapper" in:slide={{ duration: 500, axis: 'x' }} out:slide={{ duration: 500, axis: 'x' }}>
-      <Next
-        nextText={nextText}
-        nextPrayer={nextPrayer}
-        nextPrayerTime={nextPrayerTime}
-        countdownText={countdownText}
-      />
-    </div>
-  {:else}
-    <!-- Integrated slideshow directly instead of using a separate component -->
-    <div class="display-wrapper slideshow-container" in:slide={{ duration: 500, axis: 'x' }} out:slide={{ duration: 500, axis: 'x' }}>
-      {#if totalImages > 0}
-        {#each imageUrls as url, i}
-          <div class="slide" class:active={i === currentImageIndex}>
-            <img src={url} alt="Slideshow image {i+1}" />
-          </div>
-        {/each}
-      {:else}
-        <div class="placeholder">No images available</div>
-      {/if}
-    </div>
-  {/if}
+  <div class="display-area">
+    {#if showNext}
+      <div class="display-wrapper" transition:slide={{ duration: 500, axis: 'x' }}>
+        <Next
+          nextText={nextText}
+          nextPrayer={nextPrayer}
+          nextPrayerTime={nextPrayerTime}
+          countdownText={countdownText}
+        />
+      </div>
+    {:else}
+      <!-- Integrated slideshow directly instead of using a separate component -->
+      <div class="display-wrapper slideshow-container" transition:slide={{ duration: 500, axis: 'x' }}>
+        {#if totalImages > 0}
+          {#each imageUrls as url, i}
+            {#if i === currentImageIndex}
+              <div class="slide active" transition:slide={{ duration: 300, axis: 'x' }}>
+                <img src={url} alt="Slideshow image {i+1}" />
+              </div>
+            {/if}
+          {/each}
+        {:else}
+          <div class="placeholder">No images available</div>
+        {/if}
+      </div>
+    {/if}
+  </div>
   
   <!-- Only show indicators if we have at least one image -->
   {#if totalImages > 0}
@@ -165,6 +171,12 @@
     overflow: hidden;
   }
   
+  .display-area {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  
   .display-wrapper {
     position: absolute;
     top: 0;
@@ -184,12 +196,6 @@
     left: 0;
     width: 100%;
     height: 100%;
-    opacity: 0;
-    transition: opacity 1s ease-in-out;
-  }
-  
-  .slide.active {
-    opacity: 1;
     z-index: 2;
   }
   
@@ -212,16 +218,19 @@
   /* Indicators */
   .indicators {
     position: absolute;
-    bottom: 10px;
+    bottom: 0.2vmin; /* Moved higher up from the bottom */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 8px;
-    z-index: 10;
-    padding: 10px; /* Add padding to ensure indicators are visible */
+    gap: 0.5vmin;
+    z-index: 100; /* Higher z-index to ensure it's above other content */
+    padding: 0.7vmin;
+    border-radius: 5vmin; /* Rounded corners */
   }
   
   .indicator {
+    width: 0.7vmin;
+    height: 0.7vmin;
     border-radius: 50%;
     background-color: rgba(255, 255, 255, 0.4);
     border: none;
@@ -229,19 +238,19 @@
     cursor: pointer;
     transition: all 0.3s ease;
   }
-  @media (orientation: landscape) {
+  /*  on media query for portrait mode */
+  @media (orientation: portrait) {
     .indicator {
-      width: 0.6vh;
-      height: 0.6vh;
+      width: 1vmin;
+      height: 1vmin;
+    }
+    .indicators {
+      gap: 0.6vmin;
+      bottom: 0.5vmin; /* Moved higher up from the bottom */
+
     }
   }
 
-  @media (orientation: portrait) {
-    .indicator {
-      width: 1.2vw;
-      height: 1.2vw;
-    }
-  }
   
   .indicator.active {
     background-color: rgba(255, 255, 255, 0.9);
