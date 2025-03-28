@@ -39,6 +39,7 @@ INSTALL_DIR="/opt/prayer-times-display"
 ACTUAL_USER=$(logname || whoami)
 HOME_DIR="/home/$ACTUAL_USER"
 LOG_FILE="$INSTALL_DIR/setup.log"
+ACTUAL_USER=$(logname || whoami)
 
 log "Starting full Raspberry Pi setup for Prayer Times Display..."
 log "This script will install the server and configure kiosk mode."
@@ -53,12 +54,26 @@ chown "$ACTUAL_USER:$ACTUAL_USER" "$LOG_FILE"
 log "Updating system and installing dependencies..."
 apt-get update
 apt-get upgrade -y
-apt-get install -y curl git unclutter firefox xserver-xorg x11-xserver-utils xinit openbox
+apt-get install -y curl git unclutter firefox-esr xserver-xorg x11-xserver-utils xinit openbox
 
+# 2. INSTALL BUN
 # 2. INSTALL BUN
 log "Installing Bun runtime..."
 if ! command -v bun &> /dev/null; then
-  curl -fsSL https://bun.sh/install | bash
+  # Install bun for the actual user
+  sudo -u "$ACTUAL_USER" bash -c "curl -fsSL https://bun.sh/install | bash"
+  
+  # Add Bun to bashrc for the actual user
+  BUN_BASHRC="export BUN_INSTALL=\"\$HOME/.bun\"
+export PATH=\"\$BUN_INSTALL/bin:\$PATH\""
+  
+  sudo -u "$ACTUAL_USER" bash -c "echo '$BUN_BASHRC' >> $HOME_DIR/.bashrc"
+  
+  # Source for immediate use in this script
+  export BUN_INSTALL="$HOME_DIR/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  
+  log "Added Bun to PATH and .bashrc"
 fi
 
 # 3. FETCH LATEST RELEASE VERSION
@@ -131,6 +146,7 @@ User=pi
 WorkingDirectory=/opt/prayer-times-display
 Environment="PORT=80"
 Environment="HOST=0.0.0.0"
+Environment="PATH=$HOME_DIR/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ExecStart=/home/pi/.bun/bin/bun run start
 Restart=on-failure
 RestartSec=10
