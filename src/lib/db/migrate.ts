@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/bun-sqlite"; // Importing Drizzle with Bun SQLite
-import { migrate } from "drizzle-orm/better-sqlite3/migrator"; // Migration helper
+import { migrate } from "drizzle-orm/bun-sqlite/migrator"; // Migration helper
 import { Database } from "bun:sqlite"; // SQLite database via Bun
 
 // Step 1: Initialize SQLite database file
