@@ -1,21 +1,27 @@
 # Nixpacks configuration for Prayer Times Display
 # This configures the build and deployment process for Bun + SvelteKit
+# Documentation: https://nixpacks.com/docs
 
 [variables]
 PORT = "5000"
 HOST = "0.0.0.0"
 NODE_ENV = "production"
+NPM_CONFIG_PRODUCTION = "false"
 
 [phases.setup]
 nixPkgs = ["bun"]
+nixOverlays = ["https://github.com/railwayapp/nix-npm-overlay/archive/main.tar.gz"]
+aptPkgs = ["curl", "wget"]
 
 [phases.install]
 cmds = ["bun install --frozen-lockfile"]
+cacheDirectories = ["/root/.bun"]
 paths = ["/app/node_modules/.bin"]
 
 [phases.build]
 cmds = ["bun run build"]
 dependsOn = ["install"]
+cacheDirectories = ["node_modules/.cache"]
 
 [start]
 cmd = "bun run migrate && bun run start"
