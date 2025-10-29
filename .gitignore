@@ -33,11 +33,9 @@ static/uploads
 /uploads
 todo.txt
 database.sqlite
-bun.lockb
 
 build
 ./build
-bun.lockb
 build/
 build/*
 

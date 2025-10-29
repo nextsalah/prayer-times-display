@@ -10,7 +10,7 @@ HOST = "0.0.0.0"
 nixPkgs = ["bun"]
 
 [phases.install]
-cmds = ["bun install --frozen-lockfile"]
+cmds = ["bun install --no-save"]
 
 [phases.build]
 cmds = ["bun run build"]
