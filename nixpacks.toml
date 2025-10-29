@@ -2,18 +2,20 @@
 # This configures the build and deployment process for Bun + SvelteKit
 
 [variables]
-# Default port (can be overridden by platform)
 PORT = "5000"
 HOST = "0.0.0.0"
+NODE_ENV = "production"
 
 [phases.setup]
 nixPkgs = ["bun"]
 
 [phases.install]
-cmds = ["bun install --no-save"]
+cmds = ["bun install --frozen-lockfile"]
+paths = ["/app/node_modules/.bin"]
 
 [phases.build]
 cmds = ["bun run build"]
+dependsOn = ["install"]
 
 [start]
 cmd = "bun run migrate && bun run start"

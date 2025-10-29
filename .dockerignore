@@ -1,0 +1,64 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.svelte-kit
+build
+dist
+.vercel
+.netlify
+.cloudflare
+
+# Development files
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+
+# Testing
+test-results
+coverage
+
+# Version control
+.git
+.github
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database files (will be created at runtime)
+sqlite.db
+database.sqlite
+dev.db
+*.sql
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Documentation
+README.md
+LICENSE
+NIXPACKS.md
+todo.txt
+
+# Uploads (will be created at runtime)
+static/uploads
+uploads
+
+# Cache
+.cache
+.turbo
+.rollup.cache
