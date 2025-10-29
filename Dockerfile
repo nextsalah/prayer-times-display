@@ -11,8 +11,9 @@ RUN apk add --no-cache curl wget
 
 # Install dependencies only (for better caching)
 FROM deps AS install
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile --production=false
+COPY package.json ./
+COPY bun.lock* ./
+RUN bun install --production=false
 
 # Build the application
 FROM install AS build
@@ -23,8 +24,9 @@ RUN bun run build
 FROM base AS release
 
 # Install only production dependencies
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile --production
+COPY package.json ./
+COPY bun.lock* ./
+RUN bun install --production
 
 # Copy built application
 COPY --from=build /app/build ./build
