@@ -10,8 +10,8 @@ const __dirname = path.dirname(__filename);
 
 const config: UserConfig = {
     server: {
-        port: 5000,
-        allowedHosts: ['.ngrok-free.app']
+        port: parseInt(process.env.PORT || '5000'),
+        host: process.env.HOST || '0.0.0.0',
     },
     plugins: [
         sveltekit(),
