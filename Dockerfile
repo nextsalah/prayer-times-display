@@ -12,7 +12,7 @@ RUN apk add --no-cache curl wget
 # Install dependencies only (for better caching)
 FROM deps AS install
 COPY package.json ./
-RUN bun install --production=false
+RUN bun install
 
 # Build the application
 FROM install AS build
