@@ -7,7 +7,15 @@ const config = {
     vitePreprocess(),
   ],
   kit: {
-    adapter: adapter(),
+    adapter: adapter({
+      // Use environment variables for host and port
+      development: false,
+      precompress: {
+        brotli: true,
+        gzip: true,
+        files: ['html', 'js', 'json', 'css', 'svg', 'xml']
+      }
+    }),
   },
 };
 

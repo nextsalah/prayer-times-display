@@ -43,16 +43,16 @@ RUN mkdir -p /usr/src/app/data && chmod 777 /usr/src/app/data
 
 # Set environment
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV DATABASE_URL=file:/usr/src/app/data/database.db
 
 # run the app
 USER bun
-EXPOSE 5000/tcp
+EXPOSE 3000/tcp
 
 # Health check for Coolify
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:5000/ || exit 1
+  CMD curl -f http://localhost:3000/ || exit 1
 
 CMD ["bun", "run", "start"]
