@@ -9,9 +9,10 @@ COPY package.json bun.lockb* /temp/dev/
 RUN cd /temp/dev && bun install --frozen-lockfile
 
 # install with --production (exclude devDependencies)
+# Note: SvelteKit needs some packages at runtime, so we install all dependencies
 RUN mkdir -p /temp/prod
 COPY package.json bun.lockb* /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
+RUN cd /temp/prod && bun install --frozen-lockfile
 
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
