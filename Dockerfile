@@ -25,6 +25,11 @@ RUN bun run build
 
 # copy production dependencies and source code into final image
 FROM base AS release
+
+# Install curl for health checks (as root before switching to bun user)
+USER root
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /usr/src/app/build ./build
 COPY --from=prerelease /usr/src/app/package.json .
@@ -43,4 +48,9 @@ ENV HOST=0.0.0.0
 # run the app
 USER bun
 EXPOSE 5000/tcp
+
+# Health check for Coolify
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:5000/ || exit 1
+
 CMD ["bun", "run", "start"]
