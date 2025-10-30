@@ -63,5 +63,6 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:5000/ || exit 1
 
-# Run migrations and start the application
-CMD ["sh", "-c", "bun run migrate && bun run start"]
+# Start the application
+# Note: Run migrations manually with: docker exec <container> bun run migrate
+CMD ["bun", "run", "start"]
