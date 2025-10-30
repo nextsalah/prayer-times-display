@@ -1,6 +1,7 @@
 # Dependencies
 node_modules
 .pnpm-store
+bun.lockb
 
 # Build outputs
 .svelte-kit
@@ -41,16 +42,20 @@ Thumbs.db
 sqlite.db
 database.sqlite
 dev.db
-*.sql
+*.db
+*.db-*
+data/
 
 # Temporary files
 tmp
 temp
 *.tmp
 
-# Documentation
-README.md
-LICENSE
+# Documentation (keep important ones)
+!README.md
+!LICENSE
+!DOCKER.md
+*.md
 NIXPACKS.md
 todo.txt
 
@@ -62,3 +67,11 @@ uploads
 .cache
 .turbo
 .rollup.cache
+
+# Docker files (not needed inside image)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Scripts that are not needed in production
+raspberry-pi-setup.sh

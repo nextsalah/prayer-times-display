@@ -1,9 +1,0 @@
-# Nixpacks ignore file
-# Files and directories to exclude from the Nixpacks build
-
-.git
-.github
-node_modules/.cache
-.svelte-kit
-build
-sqlite.db

@@ -1,10 +1,49 @@
-# Prayer Times Display for Raspberry Pi
+# Prayer Times Display 🕌
 
-This guide explains how to install and configure the Prayer Times Display application on a Raspberry Pi with automatic updates.
+**Digital display solution for Raspberry Pi - showing prayer times accurately and efficiently in mosques.**
 
-## Installation
+This application is designed specifically for **Raspberry Pi** to run 24/7 mosque displays. It uses SQLite for data storage, works offline, and is optimized for low-power, reliable operation.
 
-### Method 1: One-line installer (Recommended)
+## Quick Start
+
+### 🥧 Raspberry Pi (Primary Target)
+
+This app is designed for Raspberry Pi deployment in mosques:
+
+```bash
+# On your Raspberry Pi
+curl -sSL https://raw.githubusercontent.com/nextsalah/prayer-times-display/main/install.sh | bash
+```
+
+Or use Docker:
+
+```bash
+git clone https://github.com/nextsalah/prayer-times-display.git
+cd prayer-times-display
+./docker-deploy.sh start
+```
+
+### 🌐 Coolify (Live Preview/Demo Only)
+
+Want to test/preview the app online before deploying to Raspberry Pi?
+
+See [COOLIFY.md](COOLIFY.md) for deploying a live demo on Coolify.
+
+### 🐳 Docker (Works Everywhere)
+
+The easiest way to deploy on any system including Raspberry Pi 4:
+
+```bash
+# Using the deployment script
+./docker-deploy.sh start
+
+# Or using Docker Compose directly
+docker-compose up -d
+```
+
+See [DOCKER.md](DOCKER.md) for detailed Docker deployment instructions.
+
+### 📦 Method 1: One-line installer (Raspberry Pi)
 
 Run this command on your Raspberry Pi:
 
@@ -12,7 +51,25 @@ Run this command on your Raspberry Pi:
 curl -sSL https://raw.githubusercontent.com/nextsalah/prayer-times-display/main/install.sh | bash
 ```
 
-### Method 2: Manual installation
+### 📦 Method 2: Docker Deployment (All platforms)
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/nextsalah/prayer-times-display.git
+cd prayer-times-display
+```
+
+2. Deploy using the helper script:
+
+```bash
+chmod +x docker-deploy.sh
+./docker-deploy.sh start
+```
+
+See [DOCKER.md](DOCKER.md) for complete Docker documentation.
+
+### 📦 Method 3: Manual installation (Raspberry Pi)
 
 1. Download the latest release:
 
@@ -115,7 +172,37 @@ Make sure the cron job is set up:
 crontab -l | grep update
 ```
 
+## Docker Commands Quick Reference
+
+```bash
+# Start application
+./docker-deploy.sh start
+
+# Stop application
+./docker-deploy.sh stop
+
+# View logs
+./docker-deploy.sh logs
+
+# Check status
+./docker-deploy.sh status
+
+# Backup database
+./docker-deploy.sh backup
+
+# Update to latest version
+./docker-deploy.sh update
+```
+
 ## Uninstallation
+
+### Docker
+
+```bash
+./docker-deploy.sh clean
+```
+
+### Manual installation
 
 To completely remove the application:
 
@@ -126,3 +213,18 @@ sudo rm /etc/systemd/system/prayer-times.service
 sudo rm -rf /opt/prayer-times-display
 crontab -l | grep -v "prayer-times-display/update.sh" | crontab -
 ```
+
+## Documentation
+
+- [Coolify Deployment Guide](COOLIFY.md) - Deploy on Coolify (self-hosted PaaS)
+- [Docker Deployment Guide](DOCKER.md) - Complete Docker deployment documentation
+- [Raspberry Pi Setup](raspberry-pi-setup.sh) - Raspberry Pi specific setup script
+
+## Deployment Options
+
+| Method | Use Case | Best For |
+|--------|----------|----------|
+| **Raspberry Pi** | 🎯 **Production** | Actual mosque displays |
+| **Docker** | 🐳 **Production** | Self-hosting anywhere (including Pi) |
+| **Coolify** | 🌐 **Preview/Demo** | Testing & sharing live preview |
+| **Local Dev** | 💻 **Development** | Fast iteration while coding |
