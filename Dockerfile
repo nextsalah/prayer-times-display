@@ -45,6 +45,7 @@ RUN mkdir -p /usr/src/app/data && chmod 777 /usr/src/app/data
 ENV NODE_ENV=production
 ENV PORT=5000
 ENV HOST=0.0.0.0
+ENV DATABASE_URL=file:/usr/src/app/data/database.db
 
 # run the app
 USER bun
