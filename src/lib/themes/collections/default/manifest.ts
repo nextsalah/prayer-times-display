@@ -4,6 +4,7 @@ export const manifest: ThemeManifest = {
   "name": "Default Theme",
   "description": "Simple, clean and responsive default theme.",
   "version": "1.0.0",
+  "orientation": "both",
   "authors": [
     {
       "name": "Ismail Sacic",
