@@ -5,6 +5,7 @@
   import CombinedDisplay from "./components/CombinedDisplay.svelte";
   import type { DefaultThemeSettings } from "./customization";
   import Next from "./components/Next.svelte";
+  import backgroundDarkmode from "./assets/background_darkmode.png";
   
   let { data } : { data: AppDataResult<DefaultThemeSettings> } = $props();
   
@@ -77,56 +78,72 @@
 </div>
 
 <div class="container" data-theme={themeColor !== 'default' ? themeColor : undefined}>
-  <!-- Header Section -->
-  <div class="headers">
-    <Header 
-      dateFormat={data.apiData.localization.dateSettings.dateFormat}
-      timezone={data.apiData.localization.timeSettings.timezone}
-      use24h={data.apiData.localization.timeSettings.use24Hour}
-      showSeconds={data.apiData.localization.timeSettings.showSeconds}
-      languageCode={data.apiData.localization.language.language_code}
-    />
-  </div>
-
-  <!-- Body Section - Prayer Times Table -->
-  <div class="body">
-    <PrayerTable 
-      allPrayerTimes={legacyPrayerTimes}
-      iqamahTimes={iqamahTimes}
-      nextText={interfaceText.next}
-      prayer={interfaceText.prayer}
-      begins={interfaceText.begins}
-      activePrayer={currentPrayer}
-      nextPrayer={nextPrayer}
-    />
-  </div>
-
-  <!-- Combined Next Prayer Section and Slideshow -->
-  <div class="next-prayer-container">
-    {#if showSlideshow}
-      <CombinedDisplay
-        images={images}
-        slideDuration={slideshowDuration * 1000}
-        nextText={interfaceText.next}
-        nextPrayer={nextPrayer}
-        nextPrayerTime={nextPrayer.time_readable}
-        countdownText={countdownText || '--:--:--'}
-      />
-    {:else}
-      <Next
-        nextText={interfaceText.next}
-        nextPrayer={nextPrayer}
-        nextPrayerTime={nextPrayer.time_readable}
-        countdownText={countdownText || '--:--:--'}
-      />
-    {/if}
-  </div>
+  <!-- Background Image -->
+  <div class="background-image" style="background-image: url({backgroundDarkmode});"></div>
   
-  <!-- Footer Section -->
-  <div class="footer">
-    <footer class="footer_text">
-      {data.apiData.custom_settings.footer_text}
-    </footer>
+  <!-- Content Wrapper -->
+  <div class="content-wrapper">
+    <!-- Header Section with Clock and Date -->
+    <div class="headers">
+      <Header 
+        dateFormat={data.apiData.localization.dateSettings.dateFormat}
+        timezone={data.apiData.localization.timeSettings.timezone}
+        use24h={data.apiData.localization.timeSettings.use24Hour}
+        showSeconds={data.apiData.localization.timeSettings.showSeconds}
+        languageCode={data.apiData.localization.language.language_code}
+      />
+      
+      <!-- Arabic Quote below header -->
+      <div class="arabic-quote">
+        <p>لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا</p>
+      </div>
+    </div>
+
+    <!-- Body Section - Prayer Times Table -->
+    <div class="body">
+      <PrayerTable 
+        allPrayerTimes={legacyPrayerTimes}
+        iqamahTimes={iqamahTimes}
+        nextText={interfaceText.next}
+        prayer={interfaceText.prayer}
+        begins={interfaceText.begins}
+        activePrayer={currentPrayer}
+        nextPrayer={nextPrayer}
+      />
+    </div>
+
+    <!-- Next Prayer Section -->
+    <div class="next-prayer-container">
+      <!-- Arabic Quote above countdown -->
+      <div class="arabic-quote-bottom">
+        <p>إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا</p>
+      </div>
+      
+      {#if showSlideshow}
+        <CombinedDisplay
+          images={images}
+          slideDuration={slideshowDuration * 1000}
+          nextText={interfaceText.next}
+          nextPrayer={nextPrayer}
+          nextPrayerTime={nextPrayer.time_readable}
+          countdownText={countdownText || '--:--:--'}
+        />
+      {:else}
+        <Next
+          nextText={interfaceText.next}
+          nextPrayer={nextPrayer}
+          nextPrayerTime={nextPrayer.time_readable}
+          countdownText={countdownText || '--:--:--'}
+        />
+      {/if}
+    </div>
+    
+    <!-- Footer Section -->
+    <div class="footer">
+      <footer class="footer_text">
+        {data.apiData.custom_settings.footer_text}
+      </footer>
+    </div>
   </div>
 </div>
 <style lang="scss">
@@ -184,16 +201,38 @@
     max-width: 100vw;
     max-height: 100vh;
     overflow: hidden;
+    background-color: #0a0e1a;
   }
   
-  /* ------------------ Grid System (Portrait Only) ------------------*/
-  .container {
+  /* Background Image Layer */
+  .background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 1;
+    z-index: 0;
+  }
+  
+  /* Content Wrapper */
+  .content-wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-rows: auto auto 1fr auto auto;
     gap: 0;
     grid-template-areas:
       "headers"
+      "arabic-top"
       "body"
       "next-prayer"
       "footer";
@@ -205,9 +244,35 @@
     height: auto;
   }
   
-  .footer_text {
-    font-size: 3.5vw;
-    padding: 1.9vw 0;
+  /* Arabic Quote Styling */
+  .arabic-quote, .arabic-quote-bottom {
+    width: 100%;
+    text-align: center;
+    padding: 2vw 0;
+    
+    p {
+      margin: 0;
+      font-size: 4.5vw;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
+      font-family: 'Traditional Arabic', 'Amiri', 'Scheherazade', serif;
+      letter-spacing: 0.05em;
+      line-height: 1.4;
+    }
+  }
+  
+  .arabic-quote {
+    padding-top: 0;
+    padding-bottom: 3vw;
+  }
+  
+  .arabic-quote-bottom {
+    padding-top: 3vw;
+    padding-bottom: 2vw;
+    
+    p {
+      font-size: 4vw;
+    }
   }
   
   .body { 
@@ -215,12 +280,16 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2vw;
   }
   
   .next-prayer-container { 
     grid-area: next-prayer; 
     width: 100%;
-    height: 100%;
+    height: auto;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -229,6 +298,7 @@
   .footer {
     grid-area: footer;
     width: 100%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
   }
   
   .footer_text { 
@@ -242,6 +312,43 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 3.5vw;
+    padding: 2vw 0;
+    color: rgba(255, 255, 255, 0.9);
   }
 
+  /* Override component backgrounds to be transparent */
+  :global(.body_container) {
+    background: transparent !important;
+  }
+  
+  :global(.table_header) {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px);
+  }
+  
+  :global(.prayer_row) {
+    background: rgba(0, 0, 0, 0.2) !important;
+    backdrop-filter: blur(5px);
+  }
+  
+  :global(.prayer_row.active) {
+    background: rgba(34, 197, 94, 0.15) !important;
+  }
+  
+  :global(.prayer_row.next) {
+    background: rgba(255, 165, 0, 0.15) !important;
+  }
+  
+  :global(header) {
+    background: transparent !important;
+  }
+  
+  :global(.next_section) {
+    background: transparent !important;
+  }
+  
+  :global(.next_section::before) {
+    background: rgba(0, 0, 0, 0.2) !important;
+  }
 </style>
