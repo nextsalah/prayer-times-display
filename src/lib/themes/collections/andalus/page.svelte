@@ -7,6 +7,9 @@
   import Next from "./components/Next.svelte";
   import backgroundDarkmode from "./assets/background_darkmode.png";
   
+  // Import local fonts (includes all-fonts.css)
+  import "./assets/fonts";
+  
   let { data } : { data: AppDataResult<DefaultThemeSettings> } = $props();
   
   // Derived values
@@ -85,40 +88,33 @@
   <div class="content-wrapper">
     <!-- Header Section with Clock and Date -->
     <div class="headers">
-      <Header 
-        dateFormat={data.apiData.localization.dateSettings.dateFormat}
-        timezone={data.apiData.localization.timeSettings.timezone}
-        use24h={data.apiData.localization.timeSettings.use24Hour}
+      <Header
         showSeconds={data.apiData.localization.timeSettings.showSeconds}
-        languageCode={data.apiData.localization.language.language_code}
       />
-      
-      <!-- Arabic Quote below header -->
-      <div class="arabic-quote">
-        <p>لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا</p>
-      </div>
+    </div>
+    
+    <!-- Arabic Quote below header -->
+    <div class="arabic-quote-top">
+      <p>لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَاا</p>
     </div>
 
     <!-- Body Section - Prayer Times Table -->
     <div class="body">
-      <PrayerTable 
+      <PrayerTable
         allPrayerTimes={legacyPrayerTimes}
         iqamahTimes={iqamahTimes}
-        nextText={interfaceText.next}
-        prayer={interfaceText.prayer}
-        begins={interfaceText.begins}
         activePrayer={currentPrayer}
         nextPrayer={nextPrayer}
       />
     </div>
 
+    <!-- Arabic Quote above next prayer -->
+    <div class="arabic-quote-bottom">
+      <p>إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا</p>
+    </div>
+
     <!-- Next Prayer Section -->
     <div class="next-prayer-container">
-      <!-- Arabic Quote above countdown -->
-      <div class="arabic-quote-bottom">
-        <p>إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا</p>
-      </div>
-      
       {#if showSlideshow}
         <CombinedDisplay
           images={images}
@@ -138,12 +134,6 @@
       {/if}
     </div>
     
-    <!-- Footer Section -->
-    <div class="footer">
-      <footer class="footer_text">
-        {data.apiData.custom_settings.footer_text}
-      </footer>
-    </div>
   </div>
 </div>
 <style lang="scss">
@@ -226,30 +216,18 @@
     z-index: 1;
     width: 100%;
     height: 100%;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr auto auto;
-    gap: 0;
-    grid-template-areas:
-      "headers"
-      "arabic-top"
-      "body"
-      "next-prayer"
-      "footer";
   }
 
   .headers {
-    grid-area: headers;
     width: 100%;
     height: auto;
   }
   
   /* Arabic Quote Styling */
-  .arabic-quote, .arabic-quote-bottom {
+  .arabic-quote-top, .arabic-quote-bottom {
     width: 100%;
     text-align: center;
-    padding: 2vw 0;
-    
+
     p {
       margin: 0;
       font-size: 4.5vw;
@@ -260,15 +238,22 @@
       line-height: 1.4;
     }
   }
-  
-  .arabic-quote {
-    padding-top: 0;
-    padding-bottom: 3vw;
+
+  .arabic-quote-top {
+    padding: 1vw 0 2vw 0;
+
+    p {
+      font-family: 'KFGQPC HafsEx1 Uthmanic Script', 'Hafs', 'Uthmanic HAFS', 'Traditional Arabic', 'Amiri', serif;
+      font-size: 5vw;
+      font-weight: 400;
+      color: white;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+    }
   }
   
   .arabic-quote-bottom {
-    padding-top: 3vw;
-    padding-bottom: 2vw;
+    padding: 2vw 0 1vw 0;
     
     p {
       font-size: 4vw;
@@ -276,7 +261,6 @@
   }
   
   .body { 
-    grid-area: body; 
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -287,68 +271,106 @@
   }
   
   .next-prayer-container { 
-    grid-area: next-prayer; 
     width: 100%;
-    height: auto;
+    height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
   
-  .footer {
-    grid-area: footer;
-    width: 100%;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
+  /* ------------------ Grid System (portrait) ------------------*/
+  @media (orientation: portrait) {
+    .content-wrapper {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+      gap: 0;
+      grid-template-areas:
+        "headers"
+        "arabic-top"
+        "body"
+        "arabic-bottom"
+        "next-prayer"
+        "footer";
+    }
+    
+    .headers { grid-area: headers; }
+    .arabic-quote-top { grid-area: arabic-top; }
+    .body { grid-area: body; }
+    .arabic-quote-bottom { grid-area: arabic-bottom; }
+    .next-prayer-container { grid-area: next-prayer; }
+    .footer { grid-area: footer; }
+    
+    .footer_text {
+      font-size: 3.5vw;
+      padding: 1.9vw 0;
+    }
   }
   
-  .footer_text { 
-    display: flex;
-    width: 100%;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-weight: bold;
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 3.5vw;
-    padding: 2vw 0;
-    color: rgba(255, 255, 255, 0.9);
-  }
+  /* ------------------ Grid System (Landscape) ------------------*/
+  @media (orientation: landscape) {
+    .content-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 0;
+      grid-template-areas:
+        "headers headers"
+        "arabic-top arabic-bottom"
+        "body next-prayer"
+        "footer footer";
+    }
+    
+    .headers { grid-area: headers; }
+    .arabic-quote-top { grid-area: arabic-top; }
+    .arabic-quote-bottom { grid-area: arabic-bottom; }
+    .body { grid-area: body; }
+    .next-prayer-container { grid-area: next-prayer; }
+    .footer { grid-area: footer; }
+    
+    .arabic-quote-top, .arabic-quote-bottom {
+      padding: 2vh 1vw;
 
-  /* Override component backgrounds to be transparent */
+      p {
+        font-size: 3vh;
+      }
+    }
+
+    .arabic-quote-top {
+      p {
+        font-family: 'KFGQPC HafsEx1 Uthmanic Script', 'Hafs', 'Uthmanic HAFS', 'Traditional Arabic', 'Amiri', serif;
+        font-size: 3.5vh;
+        font-weight: 400;
+        color: white;
+        letter-spacing: 0.02em;
+        line-height: 1.2;
+      }
+    }
+    
+    .footer_text {
+      font-size: 2.5vh;
+      padding: 1.3vh 0;
+    }
+  }
+ 
+  /* Override component backgrounds - keep only essential ones */
   :global(.body_container) {
     background: transparent !important;
   }
-  
-  :global(.table_header) {
-    background: rgba(255, 255, 255, 0.08) !important;
-    backdrop-filter: blur(10px);
-  }
-  
-  :global(.prayer_row) {
-    background: rgba(0, 0, 0, 0.2) !important;
-    backdrop-filter: blur(5px);
-  }
-  
-  :global(.prayer_row.active) {
-    background: rgba(34, 197, 94, 0.15) !important;
-  }
-  
-  :global(.prayer_row.next) {
-    background: rgba(255, 165, 0, 0.15) !important;
-  }
-  
+
   :global(header) {
     background: transparent !important;
   }
-  
+
   :global(.next_section) {
-    background: transparent !important;
+    background: rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
   }
-  
+
   :global(.next_section::before) {
-    background: rgba(0, 0, 0, 0.2) !important;
+    background: transparent !important;
   }
 </style>
