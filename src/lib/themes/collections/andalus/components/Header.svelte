@@ -93,6 +93,7 @@
         background: transparent;
         position: relative;
         padding: 0;
+        transform: translateX(3vw);
     }
     
     /* Date row at the top */
@@ -158,6 +159,8 @@
         line-height: 1;
         font-family: 'Big Shoulders Display', 'Impact', sans-serif;
         letter-spacing: 0;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum";
     }
     
     /* Separator colon */
@@ -181,12 +184,18 @@
         align-self: flex-end;
         margin-left: 1vw;
         padding-bottom: 1.5vw;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum";
+        width: 12vw;
+        text-align: center;
+        flex-shrink: 0;
     }
 
     /* Media query for landscape orientation */
     @media (orientation: landscape) {
         header {
             padding: 0;
+            transform: translateX(2vh);
         }
         
         .date-row {
@@ -215,6 +224,8 @@
         
         .time-digits {
             font-size: 22vh;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum";
         }
         
         .separator {
@@ -226,6 +237,11 @@
             font-size: 11vh;
             margin-left: 1vh;
             padding-bottom: 1.5vh;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum";
+            width: 8vh;
+            text-align: center;
+            flex-shrink: 0;
         }
     }
 </style>

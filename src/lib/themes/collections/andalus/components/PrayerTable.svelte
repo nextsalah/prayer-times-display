@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PrayerTimeItem } from "$lib/themes/interfaces/types";
+  import sunriseIcon from "../assets/sunrise.png";
 
   // Types
   type PrayerConfig = {
@@ -144,7 +145,7 @@
     <section class="prayer_row" class:active={isActive}>
       <div class="prayer-name">
         {#if prayer.id === "sunrise"}
-          <img src="/src/lib/themes/collections/andalus/assets/sunrise.png" alt="Sunrise" class="sunrise-icon" />
+          <img src={sunriseIcon} alt="Sunrise" class="sunrise-icon" />
         {:else}
           {data.name}
         {/if}
@@ -239,8 +240,8 @@
 }
 
 .sunrise-icon {
-  width: 5vw;
-  height: 5vw;
+  width: 7vw;
+  height: 7vw;
   object-fit: contain;
 }
 
@@ -269,8 +270,8 @@
   }
 
   .sunrise-icon {
-    width: 4vh;
-    height: 4vh;
+    width: 5vh;
+    height: 5vh;
   }
 }
 </style>
