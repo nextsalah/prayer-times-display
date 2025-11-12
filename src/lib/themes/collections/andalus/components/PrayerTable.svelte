@@ -135,7 +135,7 @@
 
 </script>
 
-<div class="body_container">
+<div class="body_container" class:has-active={PRAYERS.some(prayer => isPrayerActive(prayer.id))}>
   <!-- Prayer Rows -->
   {#each PRAYERS as prayer}
     {@const isActive = isPrayerActive(prayer.id)}
@@ -181,8 +181,8 @@
   transition: all 0.3s ease;
   flex: 1;
   background: transparent;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 
   &:first-child {
     border-top: none;
@@ -193,16 +193,18 @@
   }
 
   &.active {
-    background: radial-gradient(ellipse at center, rgba(67, 255, 196, 0.12) 0%, rgba(67, 255, 196, 0.04) 40%, transparent 70%);
-
     .prayer-name,
     .prayer-time,
     .iqamah-time {
       color: #43FFC4;
-      font-size: 4vw;
+      font-size: 5.5vw;
       font-weight: 500;
     }
   }
+}
+
+.body_container.has-active {
+  background: radial-gradient(ellipse 60% 80% at center, rgba(67, 255, 196, 0.06) 0%, rgba(67, 255, 196, 0.02) 50%, transparent 100%);
 }
 
 .prayer-name,
@@ -210,12 +212,12 @@
 .iqamah-time {
   display: flex;
   align-items: center;
-  padding: 3vw 1vw;
-  font-size: 3.5vw;
+  padding: 5vw 1vw;
+  font-size: 5vw;
   margin: 0;
   font-weight: 400;
   font-family: 'Barlow', sans-serif;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -237,8 +239,8 @@
 }
 
 .sunrise-icon {
-  width: 3vw;
-  height: 3vw;
+  width: 5vw;
+  height: 5vw;
   object-fit: contain;
 }
 
@@ -267,8 +269,8 @@
   }
 
   .sunrise-icon {
-    width: 2.5vh;
-    height: 2.5vh;
+    width: 4vh;
+    height: 4vh;
   }
 }
 </style>

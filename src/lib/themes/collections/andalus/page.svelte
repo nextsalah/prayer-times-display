@@ -115,25 +115,19 @@
 
     <!-- Next Prayer Section -->
     <div class="next-prayer-container">
-      {#if showSlideshow}
-        <CombinedDisplay
-          images={images}
-          slideDuration={slideshowDuration * 1000}
-          nextText={interfaceText.next}
-          nextPrayer={nextPrayer}
-          nextPrayerTime={nextPrayer.time_readable}
-          countdownText={countdownText || '--:--:--'}
-        />
-      {:else}
         <Next
           nextText={interfaceText.next}
           nextPrayer={nextPrayer}
           nextPrayerTime={nextPrayer.time_readable}
           countdownText={countdownText || '--:--:--'}
         />
-      {/if}
     </div>
-    
+
+    <!-- Footer with Masjid Logo -->
+    <div class="footer">
+      <img src="/src/lib/themes/collections/andalus/assets/masjid logo.png" alt="Masjid Logo" class="masjid-logo" />
+    </div>
+
   </div>
 </div>
 <style lang="scss">
@@ -216,6 +210,8 @@
     z-index: 1;
     width: 100%;
     height: 100%;
+    padding-top: 12vh;
+    box-sizing: border-box;
   }
 
   .headers {
@@ -240,23 +236,23 @@
   }
 
   .arabic-quote-top {
-    padding: 1vw 0 2vw 0;
+    padding: 2vw 0;
 
     p {
       font-family: 'KFGQPC HafsEx1 Uthmanic Script', 'Hafs', 'Uthmanic HAFS', 'Traditional Arabic', 'Amiri', serif;
-      font-size: 5vw;
+      font-size: 6vw;
       font-weight: 400;
       color: white;
       letter-spacing: 0.02em;
       line-height: 1.2;
     }
   }
-  
+
   .arabic-quote-bottom {
-    padding: 2vw 0 1vw 0;
-    
+    padding: 2vw 0;
+
     p {
-      font-size: 4vw;
+      font-size: 5.5vw;
     }
   }
   
@@ -270,12 +266,26 @@
     padding: 0 2vw;
   }
   
-  .next-prayer-container { 
+  .next-prayer-container {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+  }
+
+  .footer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2vw 0;
+  }
+
+  .masjid-logo {
+    height: 6.5vw;
+    width: auto;
+    filter: brightness(1.2);
   }
   
   /* ------------------ Grid System (portrait) ------------------*/
@@ -283,8 +293,8 @@
     .content-wrapper {
       display: grid;
       grid-template-columns: 1fr;
-      grid-template-rows: auto auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
-      gap: 0;
+      grid-template-rows: auto auto 3fr auto 1.5fr auto;
+      gap: 0.2vh;
       grid-template-areas:
         "headers"
         "arabic-top"
@@ -300,77 +310,15 @@
     .arabic-quote-bottom { grid-area: arabic-bottom; }
     .next-prayer-container { grid-area: next-prayer; }
     .footer { grid-area: footer; }
-    
-    .footer_text {
-      font-size: 3.5vw;
-      padding: 1.9vw 0;
-    }
   }
-  
-  /* ------------------ Grid System (Landscape) ------------------*/
-  @media (orientation: landscape) {
-    .content-wrapper {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto 1fr auto;
-      gap: 0;
-      grid-template-areas:
-        "headers headers"
-        "arabic-top arabic-bottom"
-        "body next-prayer"
-        "footer footer";
-    }
-    
-    .headers { grid-area: headers; }
-    .arabic-quote-top { grid-area: arabic-top; }
-    .arabic-quote-bottom { grid-area: arabic-bottom; }
-    .body { grid-area: body; }
-    .next-prayer-container { grid-area: next-prayer; }
-    .footer { grid-area: footer; }
-    
-    .arabic-quote-top, .arabic-quote-bottom {
-      padding: 2vh 1vw;
 
-      p {
-        font-size: 3vh;
-      }
-    }
 
-    .arabic-quote-top {
-      p {
-        font-family: 'KFGQPC HafsEx1 Uthmanic Script', 'Hafs', 'Uthmanic HAFS', 'Traditional Arabic', 'Amiri', serif;
-        font-size: 3.5vh;
-        font-weight: 400;
-        color: white;
-        letter-spacing: 0.02em;
-        line-height: 1.2;
-      }
-    }
-    
-    .footer_text {
-      font-size: 2.5vh;
-      padding: 1.3vh 0;
-    }
-  }
- 
   /* Override component backgrounds - keep only essential ones */
   :global(.body_container) {
     background: transparent !important;
   }
 
   :global(header) {
-    background: transparent !important;
-  }
-
-  :global(.next_section) {
-    background: rgba(0, 0, 0, 0.25) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
-  }
-
-  :global(.next_section::before) {
     background: transparent !important;
   }
 </style>

@@ -104,6 +104,7 @@
         width: 100%;
         position: relative;
         margin-bottom: 1vw;
+        transform: translateX(-3vw);
         
         p {
             margin: 0;
@@ -191,7 +192,8 @@
         .date-row {
             gap: 4vh;
             margin-bottom: 1vh;
-            
+            transform: translateX(-2vh);
+
             p {
                 font-size: 3.5vh;
             }
