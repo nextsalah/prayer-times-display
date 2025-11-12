@@ -6,7 +6,8 @@
   import type { DefaultThemeSettings } from "./customization";
   import Next from "./components/Next.svelte";
   import backgroundDarkmode from "./assets/background_darkmode.png";
-  
+  import masjidLogo from "./assets/masjid logo.png";
+
   // Import local fonts (includes all-fonts.css)
   import "./assets/fonts";
   
@@ -125,7 +126,7 @@
 
     <!-- Footer with Masjid Logo -->
     <div class="footer">
-      <img src="/src/lib/themes/collections/andalus/assets/masjid logo.png" alt="Masjid Logo" class="masjid-logo" />
+      <img src={masjidLogo} alt="Masjid Logo" class="masjid-logo" />
     </div>
 
   </div>

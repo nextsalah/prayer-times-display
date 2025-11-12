@@ -16,6 +16,7 @@ const config = {
         files: ['html', 'js', 'json', 'css', 'svg', 'xml']
       }
     }),
+    csrf: false
   },
 };
 
