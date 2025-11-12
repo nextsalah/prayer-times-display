@@ -28,6 +28,7 @@ export type ThemeManifest = {
   name: string;
   description: string;
   version: string;
+  orientation?: 'portrait' | 'landscape' | 'both';
   authors: {
     name: string;
     github_profile: string;

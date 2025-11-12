@@ -7,7 +7,7 @@ import type { ThemeBasicInfo } from '../interfaces/types';
  */
 export const BUILT_IN_THEMES = [
     'default',
-    'retro',
+    'andalus',
 ];
 
 /**

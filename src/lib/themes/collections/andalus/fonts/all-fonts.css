@@ -1,0 +1,97 @@
+/* ================================================
+   ANDALUS THEME - ALL FONTS
+   ================================================ */
+
+/* KFGQPC HafsEx1 Uthmanic Script Font (Primary Quran Font) */
+@font-face {
+  font-family: 'KFGQPC HafsEx1 Uthmanic Script';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Hafs.ttf') format('truetype');
+}
+
+/* Alternative KFGQPC Uthmanic Script Font */
+@font-face {
+  font-family: 'KFGQPC Uthmanic Script HAFS';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/KFGQPC_Uthmanic_Script_HAFS.ttf') format('truetype');
+}
+
+/* Font Aliases for easier usage */
+@font-face {
+  font-family: 'Hafs';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Hafs.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Uthmanic HAFS';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Hafs.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Uthmanic Script';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/KFGQPC_Uthmanic_Script_HAFS.ttf') format('truetype');
+}
+
+/* ================================================
+   FONT UTILITY CLASSES
+   ================================================ */
+
+/* Primary Quran Text Font */
+.font-quran-primary {
+  font-family: 'KFGQPC HafsEx1 Uthmanic Script', 'Hafs', 'Traditional Arabic', 'Amiri', serif;
+}
+
+/* Alternative Quran Text Font */
+.font-quran-alt {
+  font-family: 'KFGQPC Uthmanic Script HAFS', 'Uthmanic Script', 'Traditional Arabic', 'Amiri', serif;
+}
+
+/* Arabic Text General */
+.font-arabic {
+  font-family: 'KFGQPC HafsEx1 Uthmanic Script', 'KFGQPC Uthmanic Script HAFS', 'Traditional Arabic', 'Amiri', 'Scheherazade', serif;
+}
+
+/* ================================================
+   RTL SUPPORT
+   ================================================ */
+
+.rtl-text {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: bidi-override;
+}
+
+/* ================================================
+   FONT FEATURE SETTINGS FOR ARABIC
+   ================================================ */
+
+.arabic-text {
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "calt" 1,
+    "ss01" 1,
+    "ss02" 1,
+    "ss03" 1;
+  -webkit-font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "calt" 1,
+    "ss01" 1,
+    "ss02" 1,
+    "ss03" 1;
+  text-rendering: optimizeLegibility;
+}

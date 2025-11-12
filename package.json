@@ -61,6 +61,8 @@
   },
   "type": "module",
   "dependencies": {
+    "@fontsource/barlow-condensed": "^5.2.8",
+    "@fontsource/big-shoulders-display": "^5.2.5",
     "@ismail424/svelte-formly": "^2.0.21",
     "@types/ip": "^1.1.3",
     "@types/qrcode": "^1.5.5",
